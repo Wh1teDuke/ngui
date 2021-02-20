@@ -27,7 +27,7 @@ Installation
   # Install GTK3
   https://www.gtk.org/docs/installations/
   # Install NGUI
-  git clone ...
+  git clone https://github.com/Wh1teDuke/ngui
   # OPTIONAL
   cd NGUI_DIR
   nim addPath niguiscipt.nims
