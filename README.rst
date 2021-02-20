@@ -7,7 +7,7 @@ NGUI
 Introduction
 ============
 
-*Not to be confused with `NiGui <https://github.com/trustable-code/NiGui>`_*, 
+*Not to be confused with* `NiGui <https://github.com/trustable-code/NiGui>`_, 
 NGUI is an interface of GUI toolkits (a.k.a. thin layer on top of GTK3). Use
 this library to make GUI applications in Nim.
 
