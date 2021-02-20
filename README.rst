@@ -13,9 +13,9 @@ this library to make GUI applications in Nim.
 
 |
 
-- `Learn <./docs/html/learn.html>`_
-- `API <./docs/html/ngui.html>`_
-- `Architecture <./docs/html/architecture.html>`_
+- `Learn <https://wh1teduke.github.io/ngui/html/learn.html>`_
+- `API <https://wh1teduke.github.io/ngui/html/ngui.html>`_
+- `Architecture <https://wh1teduke.github.io/ngui/html/architecture.html>`_
 
 Installation
 ============
