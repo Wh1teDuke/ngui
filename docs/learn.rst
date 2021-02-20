@@ -25,9 +25,9 @@ Useful Links
 - `List of graphical user interface elements <https://en.wikipedia.org/wiki/List_of_graphical_user_interface_elements>`_
 - `Getting Started with GTK+ <https://developer.gnome.org/gtk3/stable/gtk-getting-started.html>`_
 - NGUI
-  - `NGUI API <ngui.html>`_
-  - `NGUI backend interface <ngui_backend_interface.html>`_
-  - `Nim GTK3 Bindings <https://github.com/StefanSalewski/oldgtk3>`_
+   - `NGUI API <ngui.html>`_
+   - `NGUI backend interface <ngui_backend_interface.html>`_
+   - `Nim GTK3 Bindings <https://github.com/StefanSalewski/oldgtk3>`_
 
 
 About NGUI
@@ -41,6 +41,7 @@ in the future more gui backends will follow, I assume.
 
 
 .. code-block:: nim
+
   let app = app()               # Lib initialization
   app.add(window())             # Add Window Element
   app[0].add(label("NGUI"))     # Add label to Window
@@ -74,8 +75,9 @@ Your first application
   
 In this example, a window will display a button which, upon clicking, will
 close the application:
-  
+
 .. code-block:: nim
+
   # Lib initialization, first thing you need to do before using any element
   let app = app()
   
@@ -106,7 +108,8 @@ using array notation. However, conversion is needed. `Window` and `Container`
 elements were added the moment you added the button. That code is similar to
 this one:
   
-.. code-block:: nim  
+.. code-block:: nim
+
   let window = window()
   let box = box()
   let button = button("Close now")
@@ -124,6 +127,7 @@ More
 For more examples, have a look at the `examples` folder, or execute:
   
 .. code-block:: nim
+
   nim examples nguiscript.nims
 
 
