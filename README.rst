@@ -30,7 +30,7 @@ Installation
   git clone https://github.com/Wh1teDuke/ngui
   # OPTIONAL
   cd NGUI_DIR
-  nim addPath niguiscipt.nims
+  nim addPath nguiscipt.nims
 
 |
   
