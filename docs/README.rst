@@ -59,3 +59,10 @@ Beta alpha alpha quality.
 - Better documentation
 - More backends, prune some GTK3 binding files
 - A logo for the project
+
+|
+
+License
+=======
+
+See `LICENSE <./docs/LICENSE.rst>`_ (MIT)
