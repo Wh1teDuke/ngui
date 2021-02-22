@@ -65,4 +65,4 @@ Beta alpha alpha quality.
 License
 =======
 
-See `LICENSE <./docs/LICENSE.rst>`_ (MIT)
+See `LICENSE <./LICENSE.rst>`_ (MIT)
