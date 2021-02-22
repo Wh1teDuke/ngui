@@ -237,16 +237,24 @@ const
 
 # NElement --------------------------------------
 proc tag*(this: NElement, key: string): string =
+  ## Return the value for this key attached to this element or ""
   tags.withValue(this, elementTags):
     return getOrDefault(elementTags[], key)
 
 proc `tag=`*(this: NElement, tag: tuple[key, value: string]) =
+  ## Attach a key-value string pair to this element
   tags[this][tag.key] = tag.value
 
-proc name*(this: NElement): string = getOrDefault(names, this, "")
-proc `name=`*(this: NElement, name: string) = names[this] = name
+proc name*(this: NElement): string =
+  ## Get this element's name or ""
+  getOrDefault(names, this, "")
+
+proc `name=`*(this: NElement, name: string) =
+  ## Set a name for this element
+  names[this] = name
 
 proc named*[N: NElement](this: N, name: string): N =
+  ## Set a name for this element and return it
   this.name = name
   return this
 
@@ -270,7 +278,9 @@ proc hide*(this: NElement) = this.visible = false
 proc alive*(this: NElement): bool = not internalGetDestroy(this)
 proc destroyed*(this: NElement): bool = internalGetDestroy(this)
 proc destroy*(this: NElement) = internalSetDestroy(this)
+
 proc tryDestroy*(this: NElement): bool {.discardable.} =
+  ## Destroy and return true only if this element is still alive
   if alive(this):
     destroy(this)
     return true
@@ -284,9 +294,14 @@ proc `size=`*(this: NElement, size: tuple[w, h: int]) =
   internalSetSize(this, size)
 
 proc next*(this: NElement): NElement = internalGetNext(this)
-proc prev*(this: NElement): NElement = internalGetPrev(this)
+
+proc prev*(this: NElement): NElement =
+  ## Get the previous element in this element's parent list of children or nil
+  internalGetPrev(this)
 
 proc index*(this: NElement): int =
+  ## Return the position of this element in its parent's children list or -1
+  ## If is not inside a `Container`
   if this.hasParent: internalIndex(this.parent, this) else: -1
 
 proc bgColor*(this: NElement): Pixel =
@@ -300,8 +315,13 @@ proc supports*(element: NElementKind, event: NElementEvent): bool =
 proc supports*(element: NElementKind, attribute: NElementAttribute): bool =
   discard
 
-proc currentEvent*(): NEventArgs = internalGetCurrentEvent()
-proc eventHandled*() = internalEventHandled()
+proc currentEvent*(): NEventArgs =
+  ## Get current event's argument object
+  internalGetCurrentEvent()
+
+proc eventHandled*() =
+  ## Stop propagating the event that is being currently processed
+  internalEventHandled()
 
 proc onEvent*(this: NElement, event: NElementEvent, action: NEventProc) =
   internalSetEvent(this, event, action)
@@ -344,13 +364,18 @@ proc `of`*(this: NElement, that: NElementKind): bool =
 proc getApp*: App =
   result = pApp
   doAssert result != nil
-    
+
 proc app*(): App =
+  ## Initialize the library and create the App context. This is the
+  ## main container, which can contain one or more windows.
+  ## You can only call this procedure once
+
   doAssert pApp == nil
   result = internalNewApp()
   pApp = result
 
 proc run*(this: App) =
+  ## Display any window and listen to user input
   doAssert(not init)
   init = true
   internalRun(this)
@@ -358,7 +383,7 @@ proc run*(this: App) =
 proc `[]`*(this: App, index: int): Window =
   Window(internalGetChild(this, index))
 proc `[]`*(this: App, index: BackwardsIndex): Window =
-  Window(internalGetChild(this, this.internalLen - int(index))) 
+  Window(internalGetChild(this, this.internalLen - int(index)))
 
 
 # WINDOW ----------------------------------------
@@ -732,9 +757,15 @@ iterator items*(this: Container): NElement =
 proc index*(this: Container, that: NElement): int =
   internalIndex(this, that)
   
-proc pop*(this: Container): NElement = internalRemove(this, this[^1])
+proc pop*(this: Container): NElement =
+  ## Remove the last element from this container's children list and 
+  ## return it, or nil if there are no elements
+  internalRemove(this, this[^1])
 
-proc shift*(this: Container): NElement = internalRemove(this, this[0])
+proc shift*(this: Container): NElement =
+  ## Remove the first element from this container's children list and 
+  ## return it, or nil if there are no elements
+  internalRemove(this, this[0])
 
 proc border*(this: Container): NBorder = internalGetBorder(this)
 
@@ -913,8 +944,10 @@ proc grid*(
 
 
 # TAB -------------------------------------------
-proc tab*(): Tab =
+proc tab*(reorderable: bool = false): Tab =
+  ## Creates a new Tab element (Menu of Tabs)
   result = internalNewTab()
+  internalSetReorderable(result, reorderable)
 
 proc add*(this: Tab, that: Container, label: Label) =
   internalAdd(this, that, label)
@@ -924,9 +957,6 @@ proc `reorderable=`*(this: Tab, v: bool) = internalSetReorderable(this, v)
 
 proc side*(this: Tab): NSide = internalGetSide(this)
 proc `side=`*(this: Tab, side: NSide) = internalSetSide(this, side)
-
-#proc index*(this: Tab, that: Container): int =
-  #internalIndex(this, that)
 
 
 # LIST ------------------------------------------
@@ -970,6 +1000,8 @@ proc `orientation=`*(this: Tools, value: NOrientation) =
 
 # ATTRIBUTE -------------------------------------
 proc get*(this: NElement, that: NElementAttribute): Attribute =
+  ## Find the attribute value of this element. If `attribute.found` is `false`,
+  ## then this element doesn't support it.
   result = Attribute(kind: that, found: false)
   template g(n, v) =
     result.n     = v
@@ -1009,9 +1041,13 @@ proc get*(this: NElement, that: NElementAttribute): Attribute =
       g(aValue, (int(v), v))
 
 proc has*(this: NElement, that: NElementAttribute): bool =
+  ## Returns whether or not this element supports the attribute
   get(this, that).found
 
 proc set*(this: NElement, that: Attribute) =
+  ## Set attribute value of this element, or do nothing if the element doesn't
+  ## support it.
+
   template s(t, p: typed, v: untyped) =
     if this of t: t(this).p(v)
   template s(p: typed, v: untyped) =
@@ -1045,6 +1081,8 @@ proc set*(this: NElement, that: Attribute) =
     raiseAssert("Not Implemented: " & $that.kind)
 
 proc attributes*(this: NElement): Attributes =
+  ## Returns a list of attributes for this element. Attributes not supported
+  ## will set their `found` field to false
   for attrKind in NElementAttribute:
     result[attrKind] = this.get(attrKind)
 

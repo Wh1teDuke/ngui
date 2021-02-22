@@ -153,14 +153,19 @@ proc internalSetText(this: Entry, text: string)
 proc internalNewCheckBox(): Checkbox
   ## Create a new CheckBox element
 proc internalSetText(this: Checkbox, that: string)
+  ## Set this CheckBox's text
 proc internalGetText(this: Checkbox): string
+  ## Get this CheckBox's text
 proc internalGetChecked(this: Checkbox): bool
+  ## Get whether or not this CheckBox is checked
 proc internalSetChecked(this: Checkbox, v: bool)
+  ## Set whether or not this CheckBox is checked
 
 
 # BUTTON ----------------------------------------
 proc internalNewButton(): Button 
-proc internalSetText(this: Button, text: string) 
+  ## Create a new Button
+proc internalSetText(this: Button, text: string)
 proc internalGetText(this: Button): string
 proc internalSetImage(this: Button, img: Bitmap)
 proc internalGetImage(this: Button): Bitmap

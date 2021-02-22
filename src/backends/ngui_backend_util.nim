@@ -53,20 +53,20 @@ when defined(NGUI_DEF_UTIL_CONTAINER):
   proc utilNext(this: NElement): NElement =
     let parent = this.internalGetParent
     if parent == nil: return
-    result = this
     var returnNext = false
     for child in utilChildren[parent]:
       if returnNext: return child
       returnNext = child.id == this.id
+    return nil
   
   proc utilPrev(this: NElement): NElement =
     let parent = this.internalGetParent
     if parent == nil: return
-    result = this
-    var prev = result
+    var prev: NElement = nil
     for child in utilChildren[parent]:
       if child.id == this.id: return prev
       prev = child
+    return nil
   
   proc utilChildrenReinsert(this: Container) =
     let list = utilChildren[this]
