@@ -392,64 +392,7 @@ proc handleMenuBarAdd(this, that: NElement) # FD
 proc handleToolsAdd(this: Tools, that: NElement) # FD
 
 proc internalAdd(this: Container, that: NElement) =
-  doAssert that.internalGetParent == nil
-  doAssert this.id != 0 and that.id != 0
-  
-  if that of FileChoose:
-    raiseAssert("FileChoose element cannot be added to any container. Use 'run' instead")
-
-  if this of Tab:    
-    if that of Container:
-      if that in names:
-        let label = internalNewLabel()
-        internalSetText(label, names[that])
-        Tab(this).internalAdd(Container(that), label)
-        return
-
-    else:
-      let cont = internalNewBox()
-      internalAdd(cont, that)
-      internalAdd(this, cont)
-      return
-    
-  if this of Window:
-    for c in utilItems(this):
-      internalAdd(Container(c), that)
-      return
-
-    if not (that of Container):
-      let b = internalNewBox()
-      internalAdd(b, that)
-      internalAdd(this, b)
-      return
-  
-  if this of App:
-    if not(that of Window):
-      if that of Box or that of Grid:
-        for c in utilItems(this):
-          internalAdd(Container(c), that)
-          return
-
-        let w = internalNewWindow()
-        internalAdd(w, that)
-        internalAdd(this, w)
-
-      else:
-        for c in utilItems(this):
-          for c in utilItems(Container(c)):
-            internalAdd(Container(c), that)
-            return
-
-        let b = internalNewBox()
-        internalAdd(b, that)
-        internalAdd(this, b)
-
-      return
-
-    # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-show-all
-    that.data(gtk.Window).showAll()
-
-  else:
+  if not (this of App):
     # MENU/BAR
     # (Complex stuff, we need to create MenuItems in the middle)
     if (this of Menu or this of Bar) or (that of Menu):

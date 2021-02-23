@@ -227,15 +227,17 @@ var
 include backends/ngui_backend
 
 let # const
-  NSEPARATOR* = NElement(kind: neKindInvalid, id: 5)
+  NSEPARATOR* = NElement(kind: neKindInvalid, id: 5) ## Pseudoelement
 
 const
-  nmLEFT*   = nm1
-  nmMIDDLE* = nm2
-  nmRIGHT*  = nm3
+  nmLEFT*   = nm1 ## Alias for nm1
+  nmMIDDLE* = nm2 ## Alias for nm2
+  nmRIGHT*  = nm3 ## Alias for nm3
 
 
 # NElement --------------------------------------
+proc add*(this: Container, that: NElement) # FD
+
 proc tag*(this: NElement, key: string): string =
   ## Return the value for this key attached to this element or ""
   tags.withValue(this, elementTags):
@@ -257,6 +259,11 @@ proc named*[N: NElement](this: N, name: string): N =
   ## Set a name for this element and return it
   this.name = name
   return this
+
+proc element*(name: string): NElement =
+  ## Retrieves NElement by name or nil if no element with that name exists
+  for e, n in pairs(names):
+    if n == name: return e
 
 proc opacity*(this: NElement): float = internalGetOpacity(this)
 proc `opacity=`*(this: NElement, o: float) = internalSetOpacity(this, o)
@@ -509,11 +516,11 @@ proc group*(list: varargs[Radio]) = internalSetGroup(list)
 # BUBBLE ----------------------------------------
 proc bubble*(text: string = ""): Bubble =
   result = internalNewBubble()
-  if text != "": internalAdd(result, label(text))
+  if text != "": add(result, label(text))
 
 proc bubble*(child: NElement): Bubble =
   result = internalNewBubble()
-  internalAdd(result, child)
+  add(result, child)
 
 proc attach*(this: Bubble, that: NElement) =
   internalAttach(this, that)
@@ -702,6 +709,16 @@ proc `checked=`*(this: Checkbox, v: bool) = internalSetChecked(this, v)
 
 
 # CONTAINER -------------------------------------
+proc len*(this: Container): int = internalLen(this)
+
+proc `[]`*(this: Container, index: int): NElement =
+  internalGetChild(this, index)
+proc `[]`*(this: Container, index: BackwardsIndex): NElement =
+  internalGetChild(this, this.len - int(index))
+
+iterator items*(this: Container): NElement =
+  for i in 0 ..< this.len: yield this[i]
+
 proc addSeparator*(this: Container) =
   var o: NOrientation
   
@@ -719,10 +736,70 @@ proc addSeparator*(this: Container) =
     raiseAssert("Can't add separator to container of kind " & $this.kind)
   
   internalAddSeparator(this, o)
+
+proc onAdd(this: Container, that: NElement) =
+  doAssert that.internalGetParent == nil
+  doAssert this.id != 0 and that.id != 0
+  
+  if that of FileChoose:
+    raiseAssert(
+      "FileChoose element cannot be added to any container. Use 'run' instead")
+
+  if this of Tab:    
+    if that of Container:
+      if that in names:
+        let label = internalNewLabel()
+        internalSetText(label, names[that])
+        Tab(this).internalAdd(Container(that), label)
+        return
+
+    else:
+      let cont = internalNewBox()
+      onAdd(cont, that)
+      onAdd(this, cont)
+      return
+
+  if this of Window:
+    for c in utilItems(this):
+      onAdd(Container(c), that)
+      return
+
+    if not (that of Container):
+      let b = internalNewBox()
+      onAdd(b, that)
+      onAdd(this, b)
+      return
+  
+  if this of App:
+    if not(that of Window):
+      if that of Box or that of Grid:
+        for c in utilItems(this):
+          onAdd(Container(c), that)
+          return
+
+        let w = internalNewWindow()
+        onAdd(w, that)
+        onAdd(this, w)
+
+      else:
+        for c in items(this):
+          for c in items(Container(c)):
+            onAdd(Container(c), that)
+            return
+
+        let b = internalNewBox()
+        onAdd(b, that)
+        onAdd(this, b)
+
+      return
+
+    Window(that).show()
+
+  internalAdd(this, that)
   
 proc add*(this: Container, that: NElement) =
   if that.id == NSEPARATOR.id: this.addSeparator()
-  else:                        this.internalAdd(that)
+  else:                        this.onAdd(that)
 
 proc add*(this: Container, text: string) = this.add(label(text))
 
@@ -741,18 +818,8 @@ proc add*[N: NElement](this: Container, list: openArray[N]) =
 proc remove*(this: Container, that: NElement) =
   internalRemove(this, that)
 
-proc len*(this: Container): int = internalLen(this)
-
 proc replace(container: Container, this, that: NElement) =
   internalReplace(container, this, that)
-
-proc `[]`*(this: Container, index: int): NElement =
-  internalGetChild(this, index)
-proc `[]`*(this: Container, index: BackwardsIndex): NElement =
-  internalGetChild(this, this.len - int(index))
-
-iterator items*(this: Container): NElement =
-  for i in 0 ..< this.len: yield this[i]
 
 proc index*(this: Container, that: NElement): int =
   internalIndex(this, that)
