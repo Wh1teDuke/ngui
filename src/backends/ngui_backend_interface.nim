@@ -311,9 +311,10 @@ proc internalSetOrientation(this: Tools, value: NOrientation)
 #proc internalAdd(this: Tools, value: NOrientation)
 
 
-# TIMER -----------------------------------------
+# TIMERS -----------------------------------------
+proc internalRepeat(event: NRepeatProc, ms: int): NRepeatHandle
 proc internalStop(this: NRepeatHandle)
-proc internalSetTime(this: var NRepeatHandle, ms: int) 
+proc internalSetTime(this: var NRepeatHandle, ms: int)
 
 
 # CLIPBOARD -------------------------------------
