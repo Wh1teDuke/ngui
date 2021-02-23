@@ -13,6 +13,7 @@ template bError(str: string) =
 
 # Easier to copy-paste from ngui_begtk3
 type gtk2Window = gtk2.PWindow
+type gtk2Widget = gtk2.PWidget
 
 proc nextID: NID =
   # ngui_begtk2.nim
@@ -44,6 +45,13 @@ proc internalEventHandled() =
 
 
 # WIDGET ----------------------------------------
+proc onCreate(this: NElement) =
+  # ngui_begtk3
+  doAssert this.id != 0
+  
+  # discard gSignalConnect(
+  #  this.raw, "destroy", gCALLBACK(gtkOnDestroyClean), cast[GPointer](this))
+
 proc internalGetOpacity(this: NElement): float =
   ## Get Opacity of this element (0.0 - 1.0)
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
@@ -229,23 +237,25 @@ proc internalStop(this: App) =
 
 
 # WINDOW ----------------------------------------
+proc onDestroyWin(this: Window) =
+  # ngui_begtk3
+  proc cb(this: gtk2Widget, data: PGpointer) {.cdecl.} =
+    if utilLen(pApp) == 1: internalStop(pApp)
+  discard this.data(gtk2Window).signalConnect(
+    "destroy", SIGNAL_FUNC(cb), nil)
+
 proc internalNewWindow: Window =
-  ## Create a new Window element
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewWindow: Window")
-  else: bError("proc internalNewWindow: Window")
+  result = Window(kind: neWindow, id: nextID())
+  let w = window_new(gtk2.TOP_LEVEL)
+  result.data = w
+  onCreate(result)
+  onDestroyWin(result)
 
 proc internalSetText(this: Window, text: string) =
-  ## Set this window's title
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetText(this: Window, text: string)")
-  else: bError("proc internalSetText(this: Window, text: string)")
+  this.data(gtk2Window).set_title(text)
 
 proc internalGetText(this: Window): string =
-  ## Get this window's title
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetText(this: Window): string")
-  else: bError("proc internalGetText(this: Window): string")
+  $this.data(gtk2Window).get_title()
 
 proc internalSetResizable(this: Window, state: bool) =
   ## Set whether the user can resize the window or not
@@ -719,9 +729,86 @@ proc internalNewMenu(): Menu =
   else: bError("proc internalNewMenu(): Menu")
 
 proc internalAdd(this: NElement, that: Menu) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalAdd(this: NElement, that: Menu)")
-  else: bError("proc internalAdd(this: NElement, that: Menu)")
+  doAssert that.internalGetParent == nil
+  doAssert this.id != 0 and that.id != 0
+  
+  if that of FileChoose:
+    raiseAssert("FileChoose element cannot be added to any container. Use 'run' instead")
+
+  if this of Tab:    
+    if that of Container:
+      if that in names:
+        let label = internalNewLabel()
+        internalSetText(label, names[that])
+        Tab(this).internalAdd(Container(that), label)
+        return
+
+    else:
+      let cont = internalNewBox()
+      internalAdd(cont, that)
+      internalAdd(this, cont)
+      return
+    
+  if this of Window:
+    for c in utilItems(this):
+      internalAdd(Container(c), that)
+      return
+
+    if not (that of Container):
+      let b = internalNewBox()
+      internalAdd(b, that)
+      internalAdd(this, b)
+      return
+  
+  if this of App:
+    if not(that of Window):
+      if that of Box or that of Grid:
+        for c in utilItems(this):
+          internalAdd(Container(c), that)
+          return
+
+        let w = internalNewWindow()
+        internalAdd(w, that)
+        internalAdd(this, w)
+
+      else:
+        for c in utilItems(this):
+          for c in utilItems(Container(c)):
+            internalAdd(Container(c), that)
+            return
+
+        let b = internalNewBox()
+        internalAdd(b, that)
+        internalAdd(this, b)
+
+      return
+
+    # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-show-all
+    that.data(gtk.Window).showAll()
+
+  else:
+    # MENU/BAR
+    # (Complex stuff, we need to create MenuItems in the middle)
+    if (this of Menu or this of Bar) or (that of Menu):
+      handleMenuBarAdd(this, that)
+      return
+    
+    # TOOLS
+    # Again, create an adapter
+    if this of Tools:
+      handleToolsAdd(Tools(this), that)
+      return
+    
+    let (thisD, thatD) = (this.data(gtk.Container), that.data(gtk.Widget))
+    
+    if not utilTryAddChild(thisD, thatD, adapters):
+      # https://developer.gnome.org/gtk3/stable/GtkContainer.html#gtk-container-add
+      thisD.add(thatD)
+    # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-show
+    thatD.show()
+
+  utilChild(this, that)
+
 
 
 
