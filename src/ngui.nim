@@ -760,7 +760,7 @@ proc onAdd(this: Container, that: NElement) =
       return
 
   if this of Window:
-    for c in utilItems(this):
+    for c in items(this):
       onAdd(Container(c), that)
       return
 
@@ -773,7 +773,7 @@ proc onAdd(this: Container, that: NElement) =
   if this of App:
     if not(that of Window):
       if that of Box or that of Grid:
-        for c in utilItems(this):
+        for c in items(this):
           onAdd(Container(c), that)
           return
 
@@ -796,7 +796,7 @@ proc onAdd(this: Container, that: NElement) =
     Window(that).show()
 
   internalAdd(this, that)
-  
+
 proc add*(this: Container, that: NElement) =
   if that.id == NSEPARATOR.id: this.addSeparator()
   else:                        this.onAdd(that)

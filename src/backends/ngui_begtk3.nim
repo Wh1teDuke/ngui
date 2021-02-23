@@ -391,29 +391,31 @@ proc internalRemove(this: Container, that: NElement) =
 proc handleMenuBarAdd(this, that: NElement) # FD
 proc handleToolsAdd(this: Tools, that: NElement) # FD
 
-proc internalAdd(this: Container, that: NElement) =
-  if not (this of App):
-    # MENU/BAR
-    # (Complex stuff, we need to create MenuItems in the middle)
-    if (this of Menu or this of Bar) or (that of Menu):
-      handleMenuBarAdd(this, that)
-      return
-    
-    # TOOLS
-    # Again, create an adapter
-    if this of Tools:
-      handleToolsAdd(Tools(this), that)
-      return
-    
-    let (thisD, thatD) = (this.data(gtk.Container), that.data(gtk.Widget))
-    
-    if not utilTryAddChild(thisD, thatD, adapters):
-      # https://developer.gnome.org/gtk3/stable/GtkContainer.html#gtk-container-add
-      thisD.add(thatD)
-    # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-show
-    thatD.show()
+proc internalAdd(this: Container, that: NElement) =  
+  if this of App:
+    utilChild(this, that)
+    return
 
+  # MENU/BAR
+  # (Complex stuff, we need to create MenuItems in the middle)
+  if (this of Menu or this of Bar) or (that of Menu):
+    handleMenuBarAdd(this, that)
+    return
+  
+  # TOOLS
+  # Again, create an adapter
+  if this of Tools:
+    handleToolsAdd(Tools(this), that)
+    return
+  
   utilChild(this, that)
+  let (thisD, thatD) = (this.data(gtk.Container), that.data(gtk.Widget))
+  
+  if not utilTryAddChild(thisD, thatD, adapters):
+    # https://developer.gnome.org/gtk3/stable/GtkContainer.html#gtk-container-add
+    thisD.add(thatD)
+  # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-show
+  thatD.show()
 
 proc reinsert(this: NElement) = utilChildrenReinsert(this.internalGetParent())
 
