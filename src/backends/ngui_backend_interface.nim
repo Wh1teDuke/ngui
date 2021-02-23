@@ -178,6 +178,11 @@ proc internalGetText(this: Radio): string
 proc internalSetGroup(radios: openArray[Radio])
 
 
+# BUBBLE ----------------------------------------
+proc internalNewBubble(): Bubble
+proc internalAttach(this: Bubble, that: NElement)
+
+
 # IMAGE -----------------------------------------
 proc internalNewImage(bitmap: Bitmap): Image
 proc internalNewBitmap(file: string): Bitmap
