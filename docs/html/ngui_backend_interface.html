@@ -189,6 +189,11 @@ window.addEventListener('DOMContentLoaded', main);
     title="internalNewList(): List">internalNewList(): List</a></li>
 
   </ul>
+  <ul class="simple nested-toc-section">internalGetReorderable
+      <li><a class="reference" href="#internalGetReorderable%2CTab"
+    title="internalGetReorderable(this: Tab): bool">internalGetReorderable(this: Tab): bool</a></li>
+
+  </ul>
   <ul class="simple nested-toc-section">internalNewTools
       <li><a class="reference" href="#internalNewTools"
     title="internalNewTools(): Tools">internalNewTools(): Tools</a></li>
@@ -197,6 +202,8 @@ window.addEventListener('DOMContentLoaded', main);
   <ul class="simple nested-toc-section">internalGet
       <li><a class="reference" href="#internalGet%2CTable%2Cint%2Cint"
     title="internalGet(this: Table; x, y: int): NTableCell">internalGet(this: Table; x, y: int): NTableCell</a></li>
+  <li><a class="reference" href="#internalGet%2CComboBox%2Cint"
+    title="internalGet(this: ComboBox; i: int): string">internalGet(this: ComboBox; i: int): string</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">internalClipboardClear
@@ -304,6 +311,11 @@ window.addEventListener('DOMContentLoaded', main);
     title="internalGetPrev(this: NElement): NElement">internalGetPrev(this: NElement): NElement</a></li>
 
   </ul>
+  <ul class="simple nested-toc-section">internalClear
+      <li><a class="reference" href="#internalClear%2CCalendar"
+    title="internalClear(this: Calendar)">internalClear(this: Calendar)</a></li>
+
+  </ul>
   <ul class="simple nested-toc-section">internalSetStep
       <li><a class="reference" href="#internalSetStep%2CSlider%2Cfloat"
     title="internalSetStep(this: Slider; step: float)">internalSetStep(this: Slider; step: float)</a></li>
@@ -320,6 +332,8 @@ window.addEventListener('DOMContentLoaded', main);
     title="internalGetText(this: CheckBox): string">internalGetText(this: CheckBox): string</a></li>
   <li><a class="reference" href="#internalGetText%2CButton"
     title="internalGetText(this: Button): string">internalGetText(this: Button): string</a></li>
+  <li><a class="reference" href="#internalGetText%2CRadio"
+    title="internalGetText(this: Radio): string">internalGetText(this: Radio): string</a></li>
   <li><a class="reference" href="#internalGetText%2CTextArea"
     title="internalGetText(this: TextArea): string">internalGetText(this: TextArea): string</a></li>
   <li><a class="reference" href="#internalGetText%2CFileChoose"
@@ -333,6 +347,11 @@ window.addEventListener('DOMContentLoaded', main);
     title="internalGetYAlign(this: Label): float">internalGetYAlign(this: Label): float</a></li>
 
   </ul>
+  <ul class="simple nested-toc-section">internalAttach
+      <li><a class="reference" href="#internalAttach%2CBubble%2CNElement"
+    title="internalAttach(this: Bubble; that: NElement)">internalAttach(this: Bubble; that: NElement)</a></li>
+
+  </ul>
   <ul class="simple nested-toc-section">internalUpdate
       <li><a class="reference" href="#internalUpdate%2CImage%2CBitmap"
     title="internalUpdate(this: Image; that: Bitmap)">internalUpdate(this: Image; that: Bitmap)</a></li>
@@ -343,6 +362,11 @@ window.addEventListener('DOMContentLoaded', main);
     title="internalIconBitmap(name: string): Bitmap">internalIconBitmap(name: string): Bitmap</a></li>
   <li><a class="reference" href="#internalIconBitmap%2CNIcon"
     title="internalIconBitmap(icon: NIcon): Bitmap">internalIconBitmap(icon: NIcon): Bitmap</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">internalUnmark
+      <li><a class="reference" href="#internalUnmark%2CCalendar%2Cint"
+    title="internalUnmark(this: Calendar; day: int)">internalUnmark(this: Calendar; day: int)</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">internalSetValue
@@ -425,6 +449,11 @@ window.addEventListener('DOMContentLoaded', main);
     title="internalSetMinimized(this: Window; v: bool)">internalSetMinimized(this: Window; v: bool)</a></li>
 
   </ul>
+  <ul class="simple nested-toc-section">internalRepeat
+      <li><a class="reference" href="#internalRepeat%2CNRepeatProc%2Cint"
+    title="internalRepeat(event: NRepeatProc; ms: int): NRepeatHandle">internalRepeat(event: NRepeatProc; ms: int): NRepeatHandle</a></li>
+
+  </ul>
   <ul class="simple nested-toc-section">internalGetBorderColor
       <li><a class="reference" href="#internalGetBorderColor%2CContainer"
     title="internalGetBorderColor(this: Container): Pixel">internalGetBorderColor(this: Container): Pixel</a></li>
@@ -464,6 +493,8 @@ window.addEventListener('DOMContentLoaded', main);
   <ul class="simple nested-toc-section">internalAdd
       <li><a class="reference" href="#internalAdd%2CContainer%2CNElement"
     title="internalAdd(this: Container; that: NElement)">internalAdd(this: Container; that: NElement)</a></li>
+  <li><a class="reference" href="#internalAdd%2CNElement%2CMenu"
+    title="internalAdd(this: NElement; that: Menu)">internalAdd(this: NElement; that: Menu)</a></li>
   <li><a class="reference" href="#internalAdd%2CTable%2CNTableRow"
     title="internalAdd(this: Table; that: NTableRow)">internalAdd(this: Table; that: NTableRow)</a></li>
   <li><a class="reference" href="#internalAdd%2CComboBox%2Cstring"
@@ -528,9 +559,9 @@ window.addEventListener('DOMContentLoaded', main);
     title="internalSetResizable(this: Window; state: bool)">internalSetResizable(this: Window; state: bool)</a></li>
 
   </ul>
-  <ul class="simple nested-toc-section">internalClipboardGetText
-      <li><a class="reference" href="#internalClipboardGetText"
-    title="internalClipboardGetText(): string">internalClipboardGetText(): string</a></li>
+  <ul class="simple nested-toc-section">internalNewBubble
+      <li><a class="reference" href="#internalNewBubble"
+    title="internalNewBubble(): Bubble">internalNewBubble(): Bubble</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">internalGetNext
@@ -551,6 +582,11 @@ window.addEventListener('DOMContentLoaded', main);
   <ul class="simple nested-toc-section">internalSetSide
       <li><a class="reference" href="#internalSetSide%2CTab%2CNSide"
     title="internalSetSide(this: Tab; side: NSide)">internalSetSide(this: Tab; side: NSide)</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">internalClipboardGetText
+      <li><a class="reference" href="#internalClipboardGetText"
+    title="internalClipboardGetText(): string">internalClipboardGetText(): string</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">internalGetBitmap
@@ -598,14 +634,29 @@ window.addEventListener('DOMContentLoaded', main);
     title="internalSetText(this: Frame; text: string)">internalSetText(this: Frame; text: string)</a></li>
 
   </ul>
+  <ul class="simple nested-toc-section">internalMarked
+      <li><a class="reference" href="#internalMarked%2CCalendar%2Cint"
+    title="internalMarked(this: Calendar; day: int): bool">internalMarked(this: Calendar; day: int): bool</a></li>
+
+  </ul>
   <ul class="simple nested-toc-section">internalNewFileChoose
       <li><a class="reference" href="#internalNewFileChoose"
     title="internalNewFileChoose(): FileChoose">internalNewFileChoose(): FileChoose</a></li>
 
   </ul>
+  <ul class="simple nested-toc-section">internalMark
+      <li><a class="reference" href="#internalMark%2CCalendar%2Cint"
+    title="internalMark(this: Calendar; day: int)">internalMark(this: Calendar; day: int)</a></li>
+
+  </ul>
   <ul class="simple nested-toc-section">internalCmp
       <li><a class="reference" href="#internalCmp%2CList%2CNCMPPRoc"
     title="internalCmp(this: List; that: NCMPPRoc)">internalCmp(this: List; that: NCMPPRoc)</a></li>
+
+  </ul>
+  <ul class="simple nested-toc-section">internalSetReorderable
+      <li><a class="reference" href="#internalSetReorderable%2CTab%2Cbool"
+    title="internalSetReorderable(this: Tab; v: bool)">internalSetReorderable(this: Tab; v: bool)</a></li>
 
   </ul>
   <ul class="simple nested-toc-section">internalNewRadio
@@ -1348,8 +1399,29 @@ Create a new Button
 
 
 </dd>
+<a id="internalGetText,Radio"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#internalGetText%2CRadio"><span class="Identifier">internalGetText</span></a><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="ngui.html#Radio"><span class="Identifier">Radio</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
+
+</dd>
 <a id="internalSetGroup,openArray[Radio]"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#internalSetGroup%2CopenArray%5BRadio%5D"><span class="Identifier">internalSetGroup</span></a><span class="Other">(</span><span class="Identifier">radios</span><span class="Other">:</span> <span class="Identifier">openArray</span><span class="Other">[</span><a href="ngui.html#Radio"><span class="Identifier">Radio</span></a><span class="Other">]</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
+
+</dd>
+<a id="internalNewBubble"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#internalNewBubble"><span class="Identifier">internalNewBubble</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <a href="ngui.html#Bubble"><span class="Identifier">Bubble</span></a> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
+
+</dd>
+<a id="internalAttach,Bubble,NElement"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#internalAttach%2CBubble%2CNElement"><span class="Identifier">internalAttach</span></a><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="ngui.html#Bubble"><span class="Identifier">Bubble</span></a><span class="Other">;</span> <span class="Identifier">that</span><span class="Other">:</span> <a href="ngui.html#NElement"><span class="Identifier">NElement</span></a><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -1449,6 +1521,34 @@ Create a new Button
 </dd>
 <a id="internalSetDate,Calendar,DateTime"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#internalSetDate%2CCalendar%2CDateTime"><span class="Identifier">internalSetDate</span></a><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="ngui.html#Calendar"><span class="Identifier">Calendar</span></a><span class="Other">;</span> <span class="Identifier">date</span><span class="Other">:</span> <span class="Identifier">DateTime</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
+
+</dd>
+<a id="internalMark,Calendar,int"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#internalMark%2CCalendar%2Cint"><span class="Identifier">internalMark</span></a><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="ngui.html#Calendar"><span class="Identifier">Calendar</span></a><span class="Other">;</span> <span class="Identifier">day</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
+
+</dd>
+<a id="internalUnmark,Calendar,int"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#internalUnmark%2CCalendar%2Cint"><span class="Identifier">internalUnmark</span></a><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="ngui.html#Calendar"><span class="Identifier">Calendar</span></a><span class="Other">;</span> <span class="Identifier">day</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
+
+</dd>
+<a id="internalMarked,Calendar,int"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#internalMarked%2CCalendar%2Cint"><span class="Identifier">internalMarked</span></a><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="ngui.html#Calendar"><span class="Identifier">Calendar</span></a><span class="Other">;</span> <span class="Identifier">day</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
+
+</dd>
+<a id="internalClear,Calendar"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#internalClear%2CCalendar"><span class="Identifier">internalClear</span></a><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="ngui.html#Calendar"><span class="Identifier">Calendar</span></a><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -1589,6 +1689,13 @@ Create a new Button
 
 
 </dd>
+<a id="internalAdd,NElement,Menu"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#internalAdd%2CNElement%2CMenu"><span class="Identifier">internalAdd</span></a><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="ngui.html#NElement"><span class="Identifier">NElement</span></a><span class="Other">;</span> <span class="Identifier">that</span><span class="Other">:</span> <a href="ngui.html#Menu"><span class="Identifier">Menu</span></a><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
+
+</dd>
 <a id="internalNewTable"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#internalNewTable"><span class="Identifier">internalNewTable</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <a href="ngui.html#NTable"><span class="Identifier">NTable</span></a> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
@@ -1656,6 +1763,13 @@ Create a new Button
 </dd>
 <a id="internalSet,ComboBox,string,int"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#internalSet%2CComboBox%2Cstring%2Cint"><span class="Identifier">internalSet</span></a><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="ngui.html#ComboBox"><span class="Identifier">ComboBox</span></a><span class="Other">;</span> <span class="Identifier">text</span><span class="Other">:</span> <span class="Identifier">string</span><span class="Other">;</span> <span class="Identifier">i</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
+
+</dd>
+<a id="internalGet,ComboBox,int"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#internalGet%2CComboBox%2Cint"><span class="Identifier">internalGet</span></a><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="ngui.html#ComboBox"><span class="Identifier">ComboBox</span></a><span class="Other">;</span> <span class="Identifier">i</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">string</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
 
 
@@ -1770,6 +1884,20 @@ Create a new Button
 
 
 </dd>
+<a id="internalSetReorderable,Tab,bool"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#internalSetReorderable%2CTab%2Cbool"><span class="Identifier">internalSetReorderable</span></a><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="ngui.html#Tab"><span class="Identifier">Tab</span></a><span class="Other">;</span> <span class="Identifier">v</span><span class="Other">:</span> <span class="Identifier">bool</span><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
+
+</dd>
+<a id="internalGetReorderable,Tab"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#internalGetReorderable%2CTab"><span class="Identifier">internalGetReorderable</span></a><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="ngui.html#Tab"><span class="Identifier">Tab</span></a><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">bool</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
+
+</dd>
 <a id="internalGetSide,Tab"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#internalGetSide%2CTab"><span class="Identifier">internalGetSide</span></a><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="ngui.html#Tab"><span class="Identifier">Tab</span></a><span class="Other">)</span><span class="Other">:</span> <a href="ngui.html#NSide"><span class="Identifier">NSide</span></a> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
@@ -1863,6 +1991,14 @@ Create a new Button
 
 
 </dd>
+<a id="internalRepeat,NRepeatProc,int"></a>
+<dt><pre><span class="Keyword">proc</span> <a href="#internalRepeat%2CNRepeatProc%2Cint"><span class="Identifier">internalRepeat</span></a><span class="Other">(</span><span class="Identifier">event</span><span class="Other">:</span> <a href="ngui.html#NRepeatProc"><span class="Identifier">NRepeatProc</span></a><span class="Other">;</span> <span class="Identifier">ms</span><span class="Other">:</span> <span class="Identifier">int</span><span class="Other">)</span><span class="Other">:</span> <a href="ngui.html#NRepeatHandle"><span class="Identifier">NRepeatHandle</span></a> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
+    <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
+<dd>
+
+
+
+</dd>
 <a id="internalStop,NRepeatHandle"></a>
 <dt><pre><span class="Keyword">proc</span> <a href="#internalStop%2CNRepeatHandle"><span class="Identifier">internalStop</span></a><span class="Other">(</span><span class="Identifier">this</span><span class="Other">:</span> <a href="ngui.html#NRepeatHandle"><span class="Identifier">NRepeatHandle</span></a><span class="Other">)</span> <span><span class="Other">{</span><span class="Other pragmadots">...</span><span class="Other">}</span></span><span class="pragmawrap"><span class="Other">{.</span><span class="pragma"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span><span class="Other">.}</span></span></pre></dt>
 <dd>
@@ -1936,7 +2072,7 @@ Create a new Button
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2021-02-22 09:58:35 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2021-02-23 14:46:01 UTC</small>
       </div>
     </div>
   </div>
