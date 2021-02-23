@@ -164,10 +164,10 @@ proc internalRemove(this: Container, that: NElement) =
 proc handleMenuBarAdd(this, that: NElement) # FD
 proc handleToolsAdd(this: Tools, that: NElement) # FD
 
-proc internalAdd(this: Container, that: NElement) =
-  utilChild(this, that)
-  
-  if this of App: return
+proc internalAdd(this: Container, that: NElement) =  
+  if this of App:
+    utilChild(this, that)
+    return
 
   # MENU/BAR
   # (Complex stuff, we need to create MenuItems in the middle)
@@ -181,6 +181,7 @@ proc internalAdd(this: Container, that: NElement) =
     handleToolsAdd(Tools(this), that)
     return
 
+  utilChild(this, that)
   let (thisD, thatD) = (this.data(gtk2Container), that.data(gtk2Widget))
 
   # TODO: if not utilTryAddChild(thisD, thatD, adapters):
