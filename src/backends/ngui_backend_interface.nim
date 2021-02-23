@@ -255,7 +255,8 @@ proc internalHeaders(this: NTable, v: bool)
 # COMBOBOX --------------------------------------
 proc internalNewComboBox(): ComboBox 
 proc internalAdd(this: ComboBox, text: string) 
-proc internalSet(this: ComboBox, text: string, i: int) 
+proc internalSet(this: ComboBox, text: string, i: int)
+proc internalGet(this: ComboBox, i: int): string
 proc internalGetSelected(this: ComboBox): string 
 proc internalGetSelectedIndex(this: ComboBox): int 
 proc internalSetSelectedIndex(this: ComboBox, i: int)
