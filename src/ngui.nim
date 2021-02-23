@@ -258,6 +258,11 @@ proc named*[N: NElement](this: N, name: string): N =
   this.name = name
   return this
 
+proc element*(name: string): NElement =
+  ## Retrieves Nelement by name or nil if no element with that name exists
+  for e, n in pairs(names):
+    if n == name: return e
+
 proc opacity*(this: NElement): float = internalGetOpacity(this)
 proc `opacity=`*(this: NElement, o: float) = internalSetOpacity(this, o)
 
