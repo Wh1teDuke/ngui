@@ -174,6 +174,7 @@ proc internalGetImage(this: Button): Bitmap
 # RADIO -----------------------------------------
 proc internalNewRadio(): Radio
 proc internalSetText(this: Radio, text: string)
+proc internalGetText(this: Radio): string
 proc internalSetGroup(radios: openArray[Radio])
 
 
