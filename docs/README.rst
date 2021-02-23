@@ -45,6 +45,7 @@ Backends
 Backend Source
 ======= =====================================================================
 GTK3    https://github.com/StefanSalewski/oldgtk3 *Domo arigato gozaimashita*
+GTK2    https://github.com/nim-lang/gtk2 *Domo arigato gozaimashita*
 ======= =====================================================================
 
 |
