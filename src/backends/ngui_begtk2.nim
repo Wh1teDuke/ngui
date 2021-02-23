@@ -14,6 +14,7 @@ template bError(str: string) =
 # Easier to copy-paste from ngui_begtk3
 type gtk2Window = gtk2.PWindow
 type gtk2Widget = gtk2.PWidget
+type gtk2Container = gtk2.PContainer
 
 proc nextID: NID =
   # ngui_begtk2.nim
@@ -64,11 +65,7 @@ proc internalSetOpacity(this: NElement, v: float) =
   when LAX_ERROR: bInfo("proc internalSetOpacity(this: NElement, v: float)")
   else: bError("proc internalSetOpacity(this: NElement, v: float)")
 
-proc internalGetParent(this: NElement): Container =
-  ## Get the parent of this element OR nil if it doesn't have one
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetParent(this: NElement): Container")
-  else: bError("proc internalGetParent(this: NElement): Container")
+proc internalGetParent(this: NElement): Container = utilParent(this)
 
 proc internalSetVisible(this: NElement, state: bool) =
   ## Set whether this element is shown or not
@@ -165,11 +162,89 @@ proc internalRemove(this: Container, that: NElement) =
   when LAX_ERROR: bInfo("proc internalRemove(this: Container, that: NElement)")
   else: bError("proc internalRemove(this: Container, that: NElement)")
 
-proc internalAdd(this: Container, that: NElement) =
-  ## Add element to this container. Element MUST not have a parent
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalAdd(this: Container, that: NElement)")
-  else: bError("proc internalAdd(this: Container, that: NElement)")
+
+proc handleMenuBarAdd(this, that: NElement) # FD
+proc handleToolsAdd(this: Tools, that: NElement) # FD
+
+proc internalAdd(this: Container, that: NElement) =    
+  doAssert that.internalGetParent == nil
+  doAssert this.id != 0 and that.id != 0
+  
+  if that of FileChoose:
+    raiseAssert("FileChoose element cannot be added to any container. Use 'run' instead")
+
+  if this of Tab:    
+    if that of Container:
+      if that in names:
+        let label = internalNewLabel()
+        internalSetText(label, names[that])
+        Tab(this).internalAdd(Container(that), label)
+        return
+
+    else:
+      let cont = internalNewBox()
+      internalAdd(cont, that)
+      internalAdd(this, cont)
+      return
+    
+  if this of Window:
+    for c in utilItems(this):
+      internalAdd(Container(c), that)
+      return
+
+    if not (that of Container):
+      let b = internalNewBox()
+      internalAdd(b, that)
+      internalAdd(this, b)
+      return
+  
+  if this of App:
+    if not(that of Window):
+      if that of Box or that of Grid:
+        for c in utilItems(this):
+          internalAdd(Container(c), that)
+          return
+
+        let w = internalNewWindow()
+        internalAdd(w, that)
+        internalAdd(this, w)
+
+      else:
+        for c in utilItems(this):
+          for c in utilItems(Container(c)):
+            internalAdd(Container(c), that)
+            return
+
+        let b = internalNewBox()
+        internalAdd(b, that)
+        internalAdd(this, b)
+
+      return
+
+    that.data(gtk2Window).showAll()
+
+  else:
+    # MENU/BAR
+    # (Complex stuff, we need to create MenuItems in the middle)
+    if (this of Menu or this of Bar) or (that of Menu):
+      handleMenuBarAdd(this, that)
+      return
+    
+    # TOOLS
+    # Again, create an adapter
+    if this of Tools:
+      handleToolsAdd(Tools(this), that)
+      return
+    
+    let (thisD, thatD) = (this.data(gtk2Container), that.data(gtk2Widget))
+    
+    # TODO if not utilTryAddChild(thisD, thatD, adapters):
+    if true:
+      thisD.add(thatD)
+
+    thatD.show()
+
+  utilChild(this, that)
 
 proc internalReplace(container: Container, this, that: NElement) =
   ## Replace child with another element
@@ -229,11 +304,8 @@ proc internalRun(this: App) =
   gtk2.main() # Blocking
 
 proc internalStop(this: App) =
-  ## Shutdown the App context
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalStop(this: App)")
-  else: bError("proc internalStop(this: App)")
-
+  utilStopRepeat()
+  gtk2.mainQuit()
 
 
 # WINDOW ----------------------------------------
@@ -246,7 +318,7 @@ proc onDestroyWin(this: Window) =
 
 proc internalNewWindow: Window =
   result = Window(kind: neWindow, id: nextID())
-  let w = window_new(gtk2.TOP_LEVEL)
+  let w = window_new(gtk2.WINDOW_TOP_LEVEL)
   result.data = w
   onCreate(result)
   onDestroyWin(result)
@@ -728,88 +800,13 @@ proc internalNewMenu(): Menu =
   when LAX_ERROR: bInfo("proc internalNewMenu(): Menu")
   else: bError("proc internalNewMenu(): Menu")
 
+proc handleMenuBarAdd(this, that: NElement) =
+  raiseAssert("Not implemented")
+
 proc internalAdd(this: NElement, that: Menu) =
-  doAssert that.internalGetParent == nil
-  doAssert this.id != 0 and that.id != 0
-  
-  if that of FileChoose:
-    raiseAssert("FileChoose element cannot be added to any container. Use 'run' instead")
-
-  if this of Tab:    
-    if that of Container:
-      if that in names:
-        let label = internalNewLabel()
-        internalSetText(label, names[that])
-        Tab(this).internalAdd(Container(that), label)
-        return
-
-    else:
-      let cont = internalNewBox()
-      internalAdd(cont, that)
-      internalAdd(this, cont)
-      return
-    
-  if this of Window:
-    for c in utilItems(this):
-      internalAdd(Container(c), that)
-      return
-
-    if not (that of Container):
-      let b = internalNewBox()
-      internalAdd(b, that)
-      internalAdd(this, b)
-      return
-  
-  if this of App:
-    if not(that of Window):
-      if that of Box or that of Grid:
-        for c in utilItems(this):
-          internalAdd(Container(c), that)
-          return
-
-        let w = internalNewWindow()
-        internalAdd(w, that)
-        internalAdd(this, w)
-
-      else:
-        for c in utilItems(this):
-          for c in utilItems(Container(c)):
-            internalAdd(Container(c), that)
-            return
-
-        let b = internalNewBox()
-        internalAdd(b, that)
-        internalAdd(this, b)
-
-      return
-
-    # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-show-all
-    that.data(gtk.Window).showAll()
-
-  else:
-    # MENU/BAR
-    # (Complex stuff, we need to create MenuItems in the middle)
-    if (this of Menu or this of Bar) or (that of Menu):
-      handleMenuBarAdd(this, that)
-      return
-    
-    # TOOLS
-    # Again, create an adapter
-    if this of Tools:
-      handleToolsAdd(Tools(this), that)
-      return
-    
-    let (thisD, thatD) = (this.data(gtk.Container), that.data(gtk.Widget))
-    
-    if not utilTryAddChild(thisD, thatD, adapters):
-      # https://developer.gnome.org/gtk3/stable/GtkContainer.html#gtk-container-add
-      thisD.add(thatD)
-    # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-show
-    thatD.show()
-
-  utilChild(this, that)
-
-
+  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
+  when LAX_ERROR: bInfo("proc internalAdd(this: NElement, that: Menu)")
+  else: bError("proc internalAdd(this: NElement, that: Menu)")
 
 
 # TABLE -----------------------------------------
@@ -1042,7 +1039,8 @@ proc internalSetOrientation(this: Tools, value: NOrientation) =
   when LAX_ERROR: bInfo("proc internalSetOrientation(this: Tools, value: NOrientation)")
   else: bError("proc internalSetOrientation(this: Tools, value: NOrientation)")
 
-
+proc handleToolsAdd(this: Tools, that: NElement) =
+  raiseAssert("Not Implemented")
 
 #proc internalAdd(this: Tools, value: NOrientation)
 
