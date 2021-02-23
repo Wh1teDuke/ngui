@@ -68,10 +68,8 @@ proc internalSetOpacity(this: NElement, v: float) =
 proc internalGetParent(this: NElement): Container = utilParent(this)
 
 proc internalSetVisible(this: NElement, state: bool) =
-  ## Set whether this element is shown or not
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetVisible(this: NElement, state: bool)")
-  else: bError("proc internalSetVisible(this: NElement, state: bool)")
+  if state: this.data(gtk2Widget).show()
+  else: this.data(gtk2Widget).hide()
 
 proc internalGetVisible(this: NElement): bool =
   ## Get whether this element is shown or not
@@ -166,85 +164,30 @@ proc internalRemove(this: Container, that: NElement) =
 proc handleMenuBarAdd(this, that: NElement) # FD
 proc handleToolsAdd(this: Tools, that: NElement) # FD
 
-proc internalAdd(this: Container, that: NElement) =    
-  doAssert that.internalGetParent == nil
-  doAssert this.id != 0 and that.id != 0
-  
-  if that of FileChoose:
-    raiseAssert("FileChoose element cannot be added to any container. Use 'run' instead")
-
-  if this of Tab:    
-    if that of Container:
-      if that in names:
-        let label = internalNewLabel()
-        internalSetText(label, names[that])
-        Tab(this).internalAdd(Container(that), label)
-        return
-
-    else:
-      let cont = internalNewBox()
-      internalAdd(cont, that)
-      internalAdd(this, cont)
-      return
-    
-  if this of Window:
-    for c in utilItems(this):
-      internalAdd(Container(c), that)
-      return
-
-    if not (that of Container):
-      let b = internalNewBox()
-      internalAdd(b, that)
-      internalAdd(this, b)
-      return
-  
-  if this of App:
-    if not(that of Window):
-      if that of Box or that of Grid:
-        for c in utilItems(this):
-          internalAdd(Container(c), that)
-          return
-
-        let w = internalNewWindow()
-        internalAdd(w, that)
-        internalAdd(this, w)
-
-      else:
-        for c in utilItems(this):
-          for c in utilItems(Container(c)):
-            internalAdd(Container(c), that)
-            return
-
-        let b = internalNewBox()
-        internalAdd(b, that)
-        internalAdd(this, b)
-
-      return
-
-    that.data(gtk2Window).showAll()
-
-  else:
-    # MENU/BAR
-    # (Complex stuff, we need to create MenuItems in the middle)
-    if (this of Menu or this of Bar) or (that of Menu):
-      handleMenuBarAdd(this, that)
-      return
-    
-    # TOOLS
-    # Again, create an adapter
-    if this of Tools:
-      handleToolsAdd(Tools(this), that)
-      return
-    
-    let (thisD, thatD) = (this.data(gtk2Container), that.data(gtk2Widget))
-    
-    # TODO if not utilTryAddChild(thisD, thatD, adapters):
-    if true:
-      thisD.add(thatD)
-
-    thatD.show()
-
+proc internalAdd(this: Container, that: NElement) =
   utilChild(this, that)
+  
+  if this of App: return
+
+  # MENU/BAR
+  # (Complex stuff, we need to create MenuItems in the middle)
+  if (this of Menu or this of Bar) or (that of Menu):
+    handleMenuBarAdd(this, that)
+    return
+  
+  # TOOLS
+  # Again, create an adapter
+  if this of Tools:
+    handleToolsAdd(Tools(this), that)
+    return
+
+  let (thisD, thatD) = (this.data(gtk2Container), that.data(gtk2Widget))
+
+  # TODO: if not utilTryAddChild(thisD, thatD, adapters):
+  if true:
+    thisD.add(thatD)
+
+  thatD.show()
 
 proc internalReplace(container: Container, this, that: NElement) =
   ## Replace child with another element
