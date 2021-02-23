@@ -797,7 +797,7 @@ proc menu*(): Menu =
   result = internalNewMenu()
   
 proc add*(this: NElement, that: Menu) =
-  handleMenuBarAdd(this, that)
+  internalAdd(this, that)
 
 
 # COMBOBOX --------------------------------------

@@ -238,7 +238,8 @@ proc internalNewBar(): Bar
 
 
 # MENU ------------------------------------------
-proc internalNewMenu(): Menu 
+proc internalNewMenu(): Menu
+proc internalAdd(this: NElement, that: Menu)
 
 
 # TABLE -----------------------------------------

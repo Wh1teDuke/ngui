@@ -1022,6 +1022,9 @@ proc handleMenuBarAdd(this, that: NElement) =
 
   utilChild(Container(this), that)
 
+proc internalAdd(this: NElement, that: Menu) =
+  handleMenuBarAdd(this, that)
+
 
 # COMBOBOX --------------------------------------
 proc internalNewComboBox(): ComboBox =
