@@ -284,6 +284,8 @@ proc internalAdd(this: Grid, that: NElement, r, c, w, h: int)
 # TAB -------------------------------------------
 proc internalNewTab(): Tab 
 proc internalAdd(this: Tab, that: Container, label: Label)
+proc internalSetReorderable(this: Tab, v: bool)
+proc internalGetReorderable(this: Tab): bool
 proc internalGetSide(this: Tab): NSide
 proc internalSetSide(this: Tab, side: NSide)
 
