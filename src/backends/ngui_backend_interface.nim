@@ -245,7 +245,6 @@ proc internalAdd(this: NElement, that: Menu)
 # TABLE -----------------------------------------
 proc internalNewTable(): NTable
 proc internalAdd(this: Table, that: NTableRow)
-proc internalAdd(this: Tab, that: Container, label: Label)
 proc internalSet(this: Table, that: NTableCell, x, y: int)
 proc internalGet(this: Table, x, y: int): NTableCell
 proc internalHeader(this: NTable, headers: openArray[string])
