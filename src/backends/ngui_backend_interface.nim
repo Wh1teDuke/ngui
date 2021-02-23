@@ -203,7 +203,11 @@ proc internalGetText(this: TextArea): string
 # CALENDAR -------------------------------------- 
 proc internalNewCalendar(): Calendar 
 proc internalGetDate(this: Calendar): DateTime 
-proc internalSetDate(this: Calendar, date: DateTime) 
+proc internalSetDate(this: Calendar, date: DateTime)
+proc internalMark(this: Calendar, day: int)
+proc internalUnmark(this: Calendar, day: int)
+proc internalMarked(this: Calendar, day: int): bool
+proc internalClear(this: Calendar)
 
 
 # SLIDER ----------------------------------------
