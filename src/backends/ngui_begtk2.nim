@@ -1,5 +1,5 @@
-#import private/backendfolder/[a,b,c]
-#includeUtils ELEMENT, CONTAINER, EVENT, TIMER, ADAPTER
+import private/gtk2/[gtk2, glib2]
+includeUtils ELEMENT, CONTAINER, EVENT, TIMER, ADAPTER
 #     v-- Set 'LAX_ERROR' to false to see fireworks
 const LAX_ERROR = true
   
@@ -9,7 +9,17 @@ template bError(str: string) =
   raiseAssert("[NGUI_ERROR] " & str & " NOT IMPLEMENTED")
 
 
-# INTERFACE
+# BASE ------------------------------------------
+
+# Easier to copy-paste from ngui_begtk3
+type gtk2Window = gtk2.PWindow
+
+proc nextID: NID =
+  # ngui_begtk2.nim
+  var pool {.global.}: NID = 100_000
+  result = pool
+  inc(pool)
+  doAssert pool != 0, "Error: Too many NElements"
 
 
 # EVENT -----------------------------------------
@@ -139,11 +149,7 @@ proc internalSetBGColor(this: NElement, color: Pixel) =
 
 
 # CONTAINER -------------------------------------
-proc internalLen(this: Container): int =
-  ## Get the amount of NElements on this container
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalLen(this: Container): int")
-  else: bError("proc internalLen(this: Container): int")
+proc internalLen(this: Container): int = utilLen(this)
 
 proc internalRemove(this: Container, that: NElement) =
   ## Remove element from this container. Element MUST be a child
@@ -170,10 +176,7 @@ proc internalIndex(this: Container, that: NElement): int =
   else: bError("proc internalIndex(this: Container, that: NElement): int")
 
 proc internalGetChild(this: Container, index: int): NElement =
-  ## Get child by index position
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetChild(this: Container, index: int): NElement")
-  else: bError("proc internalGetChild(this: Container, index: int): NElement")
+  utilNChild(this, index)
 
 proc internalGetBorder(this: Container): NBorder =
   ## Get the border size of this container
@@ -209,16 +212,13 @@ proc internalSetBorderColor(this: Container, color: Pixel) =
 
 # APP -------------------------------------------
 proc internalNewApp(): App =
-  ## Create and initialize the App context
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewApp(): App")
-  else: bError("proc internalNewApp(): App")
+  gtk2.nim_init()
+  result = App(kind: neApp, id: nextID())
 
 proc internalRun(this: App) =
-  ## Start the app. Show the elements and block the thread until requested to stop
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalRun(this: App)")
-  else: bError("proc internalRun(this: App)")
+  for c in utilItems(this):
+    c.data(gtk2Window).showAll()
+  gtk2.main() # Blocking
 
 proc internalStop(this: App) =
   ## Shutdown the App context

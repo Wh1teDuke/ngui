@@ -59,10 +59,8 @@ template bError(str: string) =
     
   addBody()  
   writeFile(beTempl, str)
-
-task addPath, "Add ngui to your user config file":
-  info "Installing in ", cfgFile
   
+proc addToUserCfg(line: string): bool =
   if not fileExists(cfgFile):
     info cfgFile, " doesn't exist, creating a new one"
     mkDir(cfgDir)
@@ -70,33 +68,60 @@ task addPath, "Add ngui to your user config file":
 
   var lines = splitLines(readFile(cfgFile))
 
-  if any(lines, proc(x: string): bool = "ngui" in x):
-    info "ngui seems to be already installed"
-    return
+  if any(lines, proc(x: string): bool = line in x):
+    return false
 
   while lines.len > 0 and lines[^1] == "": discard lines.pop
-  lines.add("path:  \"$1\" # <-- Added by nguiscript addPath" % [thisDir()])
+  lines.add(line & " # <-- Added by nguiscript")
 
   writeFile(cfgFile, join(lines, "\l") & "\l")
-  info "ngui installed"
+  return true
 
-task remPath, "Remove ngui from your user config file":
-  info "Uninstalling ngui from ", cfgFile
+type RFUCResult = enum
+  rFileNotFound rLineNotFound rLineRemoved
+
+proc remFromUserCfg(line: string): RFUCResult =
   if not fileExists(cfgFile):
-    info "File doesn't exist"
-    return
+    return rFileNotFound
   
   var lines = splitLines(readFile(cfgFile))
 
-  if not any(lines, proc(x: string): bool = "ngui" in x):
-    info "ngui wasn't installed"
-    return
+  if not any(lines, proc(x: string): bool = line in x):
+    return rLineNotFound
 
-  lines = filter(lines, proc(x: string): bool = "ngui" notin x)
+  lines = filter(lines, proc(x: string): bool = line notin x)
   while lines.len > 0 and lines[^1] == "": discard lines.pop
 
   writeFile(cfgFile, join(lines, "\l") & "\l")
-  info "ngui uninstalled"
+  return rLineRemoved
+
+task addPath, "Add ngui to your user config file":
+  info "Installing in ", cfgFile
+  
+  info(
+    if not addToUserCfg("path: \"" & thisDir() & "\""):
+      "ngui seems to be already installed"
+    else:
+      "ngui installed"
+  )
+
+task remPath, "Remove ngui from your user config file":
+  info "Uninstalling ngui from ", cfgFile
+  
+  info(
+    case remFromUserCfg("ngui"):
+    of rLineRemoved:  "ngui uninstalled"
+    of rLineNotFound: "ngui wasn't installed"
+    of rFileNotFound: "File doesn't exist"
+  )
+
+
+task defaultBackend, "Set default backend":
+  var be = paramStr(paramCount()) # paramCount() - 1 is this a bug?
+  # TODO: Get backend enum from a separate module
+  info "Setting default backend: ", be
+  discard remFromUserCfg("define:nguibackend=")
+  if startsWith(be, "be"): discard addToUserCfg("define:nguibackend=" & be)
 
 task examples, "Compile and execute all the examples in order":
   try:
