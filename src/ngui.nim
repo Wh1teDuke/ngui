@@ -798,6 +798,9 @@ proc onAdd(this: Container, that: NElement) =
   internalAdd(this, that)
 
 proc add*(this: Container, that: NElement) =
+  ## Add that element to this container. Elements con only
+  ## have one parent.
+  
   if that.id == NSEPARATOR.id: this.addSeparator()
   else:                        this.onAdd(that)
 
@@ -816,14 +819,18 @@ proc add*[N: NElement](this: Container, list: openArray[N]) =
   for that in list: this.add(that)
 
 proc remove*(this: Container, that: NElement) =
+  ## Remove that element from this container. The container must be
+  ## the parent of the element
   internalRemove(this, that)
 
 proc replace(container: Container, this, that: NElement) =
   internalReplace(container, this, that)
 
 proc index*(this: Container, that: NElement): int =
+  ## Get the position of that element relative its parent's children list
+  ## or -1 if the container is no the parent.
   internalIndex(this, that)
-  
+
 proc pop*(this: Container): NElement =
   ## Remove the last element from this container's children list and 
   ## return it, or nil if there are no elements
@@ -847,6 +854,7 @@ proc border*(top, bottom, left, right: int): NBorder =
 
 proc borderColor*(this: Container): Pixel =
   internalGetBorderColor(this)
+
 proc `borderColor=`*(this: Container, color: Pixel) =
   internalSetBorderColor(this, color)
 
@@ -882,7 +890,9 @@ proc `[]`*(this: ComboBox, i: int): string = internalGet(this, i)
 
 proc selected*(this: ComboBox): string = internalGetSelected(this)
 
-proc index*(this: ComboBox): int = internalGetSelectedIndex(this)
+proc selectedIndex*(this: ComboBox): int =
+  ## Get the index of the selected child.
+  internalGetSelectedIndex(this)
 
 
 # PROGRESS --------------------------------------
@@ -1060,8 +1070,11 @@ proc tools*: Tools =
   result = internalNewTools()
 
 proc orientation*(this: Tools): NOrientation =
+  ## Get the orientation of this Tools element
   internalGetOrientation(this)
+
 proc `orientation=`*(this: Tools, value: NOrientation) =
+  ## Set the orientation of this Tools element
   internalSetOrientation(this, value)
 
 
@@ -1171,6 +1184,9 @@ proc `$`*(this: NElement): string =
   result &= ")"
 
 proc element*(kind: NElementKind): NElement =
+  ## Create a new element of this kind. Some kinds are not valid for
+  ## Initialization using this method, like abstract kinds (Atom, Container).
+  
   case kind:
   # VALID
   of neApp:        app()
@@ -1201,6 +1217,7 @@ proc element*(kind: NElementKind): NElement =
     raiseAssert("Can't create element of " & $kind & " using this method")
 
 proc element*(this: Attributes): NElement =
+  ## Create a new element from this list of attributes.
   result = element(this[naKind].aKind)
   for attrKind in NElementAttribute:
     if attrKind == naKind: continue
