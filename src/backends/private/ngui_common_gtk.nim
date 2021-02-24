@@ -89,6 +89,28 @@ proc nextID: NID =
 
 
 # EVENTS ----------------------------------------
+proc clean(this: NElement) {.cdecl.} =
+  if not utilExists(this): return
+
+  if this of Container:
+    for c in utilItems(Container(this)):
+      clean(c)
+
+  let raw = cast[gtkWidget](this.raw)
+
+  utilDel(this)
+  utilDelParent(this)
+  del(names, this)
+  del(tags, this)
+  discard utilDelAdapter(raw, adapters)
+
+  if this of Container: utilRemChildrenList(Container(this))
+
+  utilDelEventSource(raw)
+
+proc gtkOnDestroyClean(_, data: GPointer) {.cdecl.} =
+  clean(cast[NElement](data))
+
 var setEventHandled: bool
 
 proc internalEventHandled =
@@ -202,3 +224,15 @@ proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) 
   utilSet(nguiEvent, gtkInst, action)
   # https://developer.gnome.org/gobject/stable/gobject-Signals.html#g-signal-connect
   discard signal(gtkInst, gtkEvent, nguiTrigger, gtkData)
+
+
+# WIDGET ----------------------------------------
+proc onCreate(this: NElement) =
+  doAssert this.id != 0
+  
+  # https://developer.gnome.org/gtk3/stable/GtkWidget.html#GtkWidget-destroy
+  discard signal(
+    cast[gtkWidget](this.raw),
+    "destroy",
+    SCB(gtkOnDestroyClean),
+    cast[GPointer](this))

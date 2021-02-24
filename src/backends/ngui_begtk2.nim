@@ -18,13 +18,6 @@ template bError(str: string) =
 # included
 
 # WIDGET ----------------------------------------
-proc onCreate(this: NElement) =
-  # ngui_begtk3
-  doAssert this.id != 0
-  
-  # discard gSignalConnect(
-  #  this.raw, "destroy", gCALLBACK(gtkOnDestroyClean), cast[GPointer](this))
-
 proc internalGetOpacity(this: NElement): float =
   ## Get Opacity of this element (0.0 - 1.0)
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
@@ -471,9 +464,10 @@ proc internalGetImage(this: Button): Bitmap =
 
 # RADIO -----------------------------------------
 proc internalNewRadio(): Radio =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewRadio(): Radio")
-  else: bError("proc internalNewRadio(): Radio")
+  result = Radio(kind: neRADIO, id: nextID())
+  let r = radio_button_new(nil)
+  result.data = r
+  onCreate(result)
 
 proc internalSetText(this: Radio, text: string) =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION

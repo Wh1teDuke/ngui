@@ -83,37 +83,10 @@ proc gtk3Set[T](this: NElement, prop: string, val: T) =
 
 
 # EVENTS ----------------------------------------
-proc clean(this: NElement) {.cdecl.} =
-  if not utilExists(this): return
-
-  if this of Container:
-    for c in utilItems(Container(this)):
-      clean(c)
-
-  let raw = cast[gtk.Widget](this.raw)
-
-  utilDel(this)
-  utilDelParent(this)
-  del(names, this)
-  del(tags, this)
-  discard utilDelAdapter(raw, adapters)
-
-  if this of Container: utilRemChildrenList(Container(this))
-
-  utilDelEventSource(raw)
-
-proc gtkOnDestroyClean(_, data: GPointer) {.cdecl.} =
-  clean(cast[NElement](data))
+# included
 
 
 # WIDGET ----------------------------------------
-proc onCreate(this: NElement) =
-  doAssert this.id != 0
-  
-  # https://developer.gnome.org/gtk3/stable/GtkWidget.html#GtkWidget-destroy
-  discard gSignalConnect(
-    this.raw, "destroy", gCALLBACK(gtkOnDestroyClean), cast[GPointer](this))
-
 proc internalGetOpacity(this: NElement): float =
   # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-get-opacity
   float(this.data(gtk.Widget).getOpacity())
