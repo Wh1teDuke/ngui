@@ -17,6 +17,7 @@ type gtk2Widget = gtk2.PWidget
 type gtk2Container = gtk2.PContainer
 type gtk2TextView = gtk2.PTextView
 type gtk2RadioButton = gtk2.PRadioButton
+type gtk2Button = gtk2.PButton
 type GPointer = PGpointer
 
 proc nextID: NID =
@@ -144,12 +145,6 @@ proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) 
   # https://developer.gnome.org/gobject/stable/gobject-Signals.html#g-signal-connect
   discard signalConnect(gtkInst, gtkEvent, nguiTrigger, gtkData)
 
-proc internalGetCurrentEvent: NEventArgs =
-  ## Get the args from the event that is currently being dispatched
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetCurrentEvent: NEventArgs")
-  else: bError("proc internalGetCurrentEvent: NEventArgs")
-
 
 # WIDGET ----------------------------------------
 proc onCreate(this: NElement) =
@@ -220,10 +215,7 @@ proc internalSetSize(this: NElement, size: tuple[w, h: int]) =
   else: bError("proc internalSetSize(this: NElement, size: tuple[w, h: int])")
 
 proc internalSetTooltip(this: NElement, text: string) =
-  ## Set this element's tooltip text
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetTooltip(this: NElement, text: string)")
-  else: bError("proc internalSetTooltip(this: NElement, text: string)")
+  this.data(gtk2Widget).setTooltipText(text)
 
 proc internalGetTooltip(this: NElement): string =
   ## Get this element's tooltip text
@@ -583,15 +575,12 @@ proc internalSetChecked(this: Checkbox, v: bool) =
 
 # BUTTON ----------------------------------------
 proc internalNewButton(): Button  =
-  ## Create a new Button
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewButton(): Button ")
-  else: bError("proc internalNewButton(): Button ")
+  result = Button(kind: neButton, id: nextID())
+  result.data = button_new()
+  onCreate(result)  
 
 proc internalSetText(this: Button, text: string) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetText(this: Button, text: string)")
-  else: bError("proc internalSetText(this: Button, text: string)")
+  this.data(gtk2Button).setLabel(text)
 
 proc internalGetText(this: Button): string =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
@@ -952,12 +941,11 @@ proc internalValue(this: Progress, v: float) =
   else: bError("proc internalValue(this: Progress, v: float)")
 
 
-
 # BOX ------------------------------------------- 
 proc internalNewBox(): Box  =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewBox(): Box ")
-  else: bError("proc internalNewBox(): Box ")
+  result = Box(kind: neBox, id: nextID())
+  result.data = vbox_new(true, 0)
+  onCreate(result)
 
 proc internalSetSpacing(this: Box, spacing: int)  =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
@@ -1149,3 +1137,68 @@ proc internalClipboardAsyncGet(action: NAsyncBitmapProc) =
   when LAX_ERROR: bInfo("proc internalClipboardAsyncGet(action: NAsyncBitmapProc)")
   else: bError("proc internalClipboardAsyncGet(action: NAsyncBitmapProc)")
 
+
+# EVENTS AGAIN ----------------------------------
+proc internalGetCurrentEvent: NEventArgs =
+  # https://developer.gnome.org/gtk3/stable/gtk3-General.html
+  # https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html
+  let e = getCurrentEvent()
+  if e == nil: return
+  #[ TODO
+  case e.`type`:
+  of BUTTON_PRESS, BUTTON_RELEASE, MOTION_NOTIFY:
+    template setkind(a, b) =
+      if e.`type` == a: result = NEventArgs(kind: b)
+      
+    setKind(BUTTON_PRESS,   neClick)
+    setKind(BUTTON_RELEASE, neClickRelease)
+    setKind(MOTION_NOTIFY,  neMove)
+    
+    if e.`type` in {BUTTON_PRESS, BUTTON_RELEASE}:
+      let e = cast[EventButton](e)
+      
+      if e.button == 1: result.mouse.incl(nm1)
+      if e.button == 2: result.mouse.incl(nm2)
+      if e.button == 3: result.mouse.incl(nm3)
+      
+    else:
+      var st: ModifierType
+      if e.getState(st):      
+        template setMouse(a, b) =
+          if (int(st) and int(a)) != 0: result.mouse.incl(b)
+
+        setMouse(BUTTON1_MASK, nm1)
+        setMouse(BUTTON2_MASK, nm2)
+        setMouse(BUTTON3_MASK, nm3)
+
+    result.x = e.button.x.int
+    result.y = e.button.y.int
+
+  of KEY_PRESS, KEY_RELEASE:
+    let key =
+      case e.key.keyval:
+      of KEY_ESCAPE: nkEsc
+      of KEY_a: nkA
+      of KEY_b: nkB
+      of KEY_c: nkC
+      of KEY_d: nkD
+      of KEY_v: nkV
+      of KEY_s: nkS
+      else: nkNone
+
+    result =
+      if e.`type` == KEY_PRESS: NEventArgs(kind: neKeyPress, key: key)
+      else: NEventArgs(kind: neKeyRelease, key: key)
+
+    var st: ModifierType
+    if e.getState(st):
+      template mapMod(mt: ModifierType, k: NKey) =
+        if (int(st) and int(mt)) != 0: result.mods.incl(k)
+
+      mapMod(CONTROL_MASK, nkControl)
+      mapMod(SHIFT_MASK, nkShift)
+
+  else: discard
+
+  result.element = utilElement(e.getEventWidget())
+  gdk.free(e)]#
