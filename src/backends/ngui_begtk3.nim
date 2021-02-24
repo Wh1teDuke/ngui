@@ -254,12 +254,137 @@ proc internalSetEvent(
 
 
 # WIDGET ----------------------------------------
-proc onCreate(this: NElement) =
-  doAssert this.id != 0
+proc onDestroyWin(this: Window) # FD
+
+proc internalNewNElement(kind: NElementKind): NElement =
+  result    = newElement(kind)
+  result.id = nextID()
   
+  case kind:
+  of neApp:
+    gtk.initWithArgv()
+    return
+
+  of neWindow:
+    # https://developer.gnome.org/gtk3/stable/GtkWindow.html
+    let w = newWindow(gtk.WindowType.TOP_LEVEL)
+    result.data = w
+    onDestroyWin(Window(result))
+    
+  of neGrid:
+    # https://developer.gnome.org/gtk3/unstable/GtkGrid.html
+    result.data = newGrid()
+    
+  of neLabel:
+    # https://developer.gnome.org/gtk3/stable/GtkLabel.html
+    result.data = newLabel("")
+    
+  of neEntry:
+    # https://developer.gnome.org/gtk3/stable/GtkEntry.html
+    result.data = newEntry()
+    
+  of neButton:
+    # https://developer.gnome.org/gtk3/stable/GtkButton.html
+    result.data = newButton("")
+    
+  of neRadio:
+    # https://developer.gnome.org/gtk3/stable/GtkRadioButton.html
+    result.data = newRadioButton("")
+  
+  of neBubble:
+    # https://developer.gnome.org/gtk3/stable/GtkPopover.html
+    result.data = newPopover(nil)
+  
+  of neImage:
+    # https://developer.gnome.org/gtk3/stable/GtkImage.html
+    result.data = newImage()
+    
+  of neTextArea:
+    # https://developer.gnome.org/gtk3/stable/GtkTextView.html
+    result.data = newTextView()
+    
+  of neCalendar:
+    # https://developer.gnome.org/gtk3/stable/GtkCalendar.html
+    result.data = newCalendar()
+    
+  of neSlider:
+    # https://developer.gnome.org/gtk3/stable/GtkScale.html
+    let s = newScale(Orientation.HORIZONTAL, 0, 100, 1)
+    s.setDrawValue(false)
+    result.data = s
+    
+  of neCheckbox:
+    # https://developer.gnome.org/gtk3/stable/GtkCheckButton.html
+    result.data = newCheckButton()
+  
+  of neFileChoose:
+    # https://developer.gnome.org/gtk3/stable/GtkFileChooserDialog.html
+    result.data = newFileChooserDialog(nil, nil, OPEN, nil)
+    
+  of neTab:
+    # https://developer.gnome.org/gtk3/stable/GtkNotebook.html
+    result.data = newNoteBook()
+  
+  of neBar:
+    # https://developer.gnome.org/gtk3/stable/GtkMenuBar.html
+    result.data = gtk.newMenuBar()
+  
+  of neMenu:
+    # https://developer.gnome.org/gtk3/stable/GtkMenu.html
+    result.data = gtk.newMenu()
+  
+  of neComboBox:
+    # https://developer.gnome.org/gtk3/stable/GtkComboBox.html
+    # TODO: Can handle more than text
+    let c = newComboBox(
+      cast[TreeModel](newListStore(1, G_TYPE_STRING)))
+  
+    let r = newCellRendererText()
+    cast[gtk.CellLayout](c).packStart(r, true)
+    cast[gtk.CellLayout](c).addAttribute(r, "text", 0)
+  
+    result.data = c
+    
+  of neProgress:
+    # https://developer.gnome.org/gtk3/stable/GtkProgressBar.html
+    result.data = newProgressBar()
+  
+  of neBox:
+    # https://developer.gnome.org/gtk3/stable/GtkBox.html
+    result.data = newBox(Orientation.Vertical, 0)
+    
+  of neTable:
+    # https://developer.gnome.org/gtk3/stable/GtkTreeView.html
+    # https://developer.gnome.org/gtk3/stable/GtkListStore.html
+    result.data = newTreeView()
+    
+  of neTools:
+    # https://developer.gnome.org/gtk3/stable/GtkToolbar.html
+    result.data = newToolBar()
+    
+  of neFrame:
+    # https://developer.gnome.org/gtk3/stable/GtkFrame.html
+    result.data = newFrame("")
+    
+  of neList:
+    # https://developer.gnome.org/gtk3/stable/GtkListBox.html
+    result.data = newListBox()
+  
+  of neAlert:
+    # https://developer.gnome.org/gtk3/stable/GtkMessageDialog.html
+    result.data = newMessageDialog(
+      nil,
+      gtk.DialogFlags.MODAL, # TODO: TODO
+      gtk.MessageType.OTHER,
+      gtk.ButtonsType.CLOSE,
+      nil)
+
+  else:
+    raiseAssert("Invalid kind: " & $kind)
+
   # https://developer.gnome.org/gtk3/stable/GtkWidget.html#GtkWidget-destroy
   discard gSignalConnect(
-    this.raw, "destroy", gCALLBACK(gtkOnDestroyClean), cast[GPointer](this))
+    result.raw, "destroy", gCALLBACK(gtkOnDestroyClean), cast[GPointer](result))
 
 proc internalGetOpacity(this: NElement): float =
   # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-get-opacity
@@ -468,10 +593,6 @@ proc internalAddSeparator(this: Container, dir: NOrientation) =
 
 
 # APP -------------------------------------------
-proc internalNewApp(): App =
-  gtk.initWithArgv()
-  result = App(kind: neApp, id: nextID())
-
 proc internalRun(this: App) =
   for c in utilItems(this):
     c.data(gtk.Window).showAll()
@@ -489,14 +610,6 @@ proc onDestroyWin(this: Window) =
     if utilLen(pApp) == 1: internalStop(pApp)
   discard this.data(gtk.Window).gSignalConnect(
     "destroy", gCALLBACK(cb), nil)
-
-proc internalNewWindow: Window =
-  # https://developer.gnome.org/gtk3/stable/GtkWindow.html
-  result = Window(kind: neWindow, id: nextID())
-  let w = newWindow(gtk.WindowType.TOP_LEVEL)
-  result.data = w
-  onCreate(result)
-  onDestroyWin(result)
 
 proc internalSetText(this: Window, text: string) =
   this.data(gtk.Window).title = text
@@ -552,17 +665,8 @@ proc internalGetMaximized(this: Window): bool =
   this.data(gtk.Window).isMaximized()
 
 
-# ALERT -----------------------------------------
-proc internalNewAlert(parent: Window, text: string): Alert =
-  # https://developer.gnome.org/gtk3/stable/GtkMessageDialog.html
-  result = Alert(kind: neAlert, id: nextID())
-  result.data = newMessageDialog(
-    parent.data(gtk.Window),
-    gtk.DialogFlags.MODAL, # TODO: TODO
-    gtk.MessageType.OTHER,
-    gtk.ButtonsType.CLOSE,
-    text)
-  onCreate(result)
+# ALERT -----------------------------------------  
+# SET/GET Text https://developer.gnome.org/gtk3/stable/GtkMessageDialog.html#GtkMessageDialog--text
 
 proc internalRun(this: Alert) =
   discard run(this.data(gtk.Dialog))
@@ -570,12 +674,6 @@ proc internalRun(this: Alert) =
 
 
 # LABEL -----------------------------------------
-proc internalNewLabel: Label =
-  # https://developer.gnome.org/gtk3/stable/GtkLabel.html
-  result = Label(kind: neLabel, id: nextID())
-  result.data = newLabel("")
-  onCreate(result)
-
 proc internalSetText(this: Label, text: string) =
   this.data(gtk.Label).setText(text)
 
@@ -602,12 +700,6 @@ proc internalSetYAlign(this: Label, v: float) =
 
 
 # ENTRY -----------------------------------------
-proc internalNewEntry(): Entry =
-  # https://developer.gnome.org/gtk3/stable/GtkEntry.html
-  result = Entry(kind: neEntry, id: nextID())
-  result.data = newEntry()
-  onCreate(result)
-
 proc internalGetText(this: Entry): string =
   $this.data(gtk.Entry).getText()
 
@@ -616,12 +708,6 @@ proc internalSetText(this: Entry, text: string) =
 
 
 # BUTTON ----------------------------------------
-proc internalNewButton(): Button =
-  # https://developer.gnome.org/gtk3/stable/GtkButton.html
-  result = Button(kind: neButton, id: nextID())
-  result.data = newButton("")
-  onCreate(result)
-  
 proc internalSetText(this: Button, text: string) =
   this.data(gtk.Button).setLabel(text)
   
@@ -636,13 +722,6 @@ proc internalGetImage(this: Button): Bitmap =
 
 
 # RADIO -----------------------------------------
-proc internalNewRadio(): Radio =
-  # https://developer.gnome.org/gtk3/stable/GtkRadioButton.html
-  result = Radio(kind: neRADIO, id: nextID())
-  let r = newRadioButton("")
-  result.data = r
-  onCreate(result)
-
 proc internalGetText(this: Radio): string =
   $this.data(gtk.RadioButton).getLabel()
 
@@ -656,12 +735,6 @@ proc internalSetGroup(radios: openArray[Radio]) =
 
 
 # BUBBLE ----------------------------------------
-proc internalNewBubble: Bubble =
-  # https://developer.gnome.org/gtk3/stable/GtkPopover.html
-  result = Bubble(kind: neBubble, id: nextID())
-  result.data = newPopover(nil)
-  onCreate(result)
-
 proc internalAttach(this: Bubble, that: NElement) =
   let thisD = this.data(gtk.Popover)
   thisD.setRelativeTo(that.data(gtk.Widget))
@@ -670,15 +743,6 @@ proc internalAttach(this: Bubble, that: NElement) =
 
 
 # IMAGE -----------------------------------------
-proc internalNewImage(bitmap: Bitmap): Image =
-  # https://developer.gnome.org/gtk3/stable/GtkImage.html
-  result = Image(kind: neImage, id: nextID())
-  result.data =
-    if isNil(bitmap): newImage()
-    else: newImage(cast[GDKPixbuf](bitmap.data))
-  bitmaps[result.id] = bitmap
-  onCreate(result)
-
 proc newBitmap(pixbuf: GDKPixbuf): Bitmap =
   # https://developer.gnome.org/gdk-pixbuf/2.36/
   if isNil(pixbuf): return
@@ -744,17 +808,6 @@ proc internalIconBitmap(icon: NIcon): Bitmap =
 
 
 # TEXT_AREA -------------------------------------
-proc internalNewTextArea(): TextArea =
-  # https://developer.gnome.org/gtk3/stable/GtkTextView.html
-  result = TextArea(kind: neTextArea, id: nextID())
-  let t = newTextView()
-  result.data = t
-  onCreate(result)
-  #var v: GValueObj
-  #discard v.init(G_TYPE_FLOAT)
-  #v.setFloat(0.4)
-  #t.setProperty("cursor-aspect-ratio", addr(v))
-
 proc internalSetText(this: TextArea, text: string) =
   let buffer = this.data(gtk.TextView).getBuffer()
   buffer.setText(text, text.len.cint)
@@ -767,12 +820,6 @@ proc internalGetText(this: TextArea): string =
 
 
 # CALENDAR --------------------------------------
-proc internalNewCalendar(): Calendar =
-  # https://developer.gnome.org/gtk3/stable/GtkCalendar.html
-  result = Calendar(kind: neCalendar, id: nextID())
-  result.data = newCalendar()
-  onCreate(result)
-
 proc internalGetDate(this: Calendar): DateTime =
   var d, m, y: cuint
   this.data(gtk.Calendar).getDate(y, m, d)
@@ -800,14 +847,6 @@ proc internalClear(this: Calendar) =
 
 
 # SLIDER ----------------------------------------
-proc internalNewSlider(): Slider =
-  # https://developer.gnome.org/gtk3/stable/GtkScale.html
-  result = Slider(kind: neSlider, id: nextID())
-  let s = newScale(Orientation.HORIZONTAL, 0, 100, 1)
-  s.setDrawValue(false)
-  result.data = s
-  onCreate(result)
-
 proc internalSetValue(this: Slider, value: float) =
   this.data(gtk.Scale).setValue(value.cdouble)
 
@@ -832,17 +871,8 @@ proc internalGetOrientation(this: Slider): NOrientation =
 proc internalSetOrientation(this: Slider, value: NOrientation) =
   this.data(gtk.Orientable).setOrientation(Orientation(value))
 
-# TODO: Slider getters
-
 
 # CHECKBOX --------------------------------------
-proc internalNewCheckBox(): Checkbox =
-  # https://developer.gnome.org/gtk3/stable/GtkCheckButton.html
-  result = Checkbox(kind: neCheckbox, id: nextID())
-  let c = newCheckButton()
-  result.data = c
-  onCreate(result)
-
 proc internalSetText(this: Checkbox, that: string) =
   this.data(gtk.CheckButton).setLabel(that)
 
@@ -857,13 +887,6 @@ proc internalSetChecked(this: Checkbox, v: bool) =
 
 
 # FILECHOOSE ------------------------------------
-proc internalNewFileChoose(): FileChoose =
-  # https://developer.gnome.org/gtk3/stable/GtkFileChooserDialog.html
-  result = FileChoose(kind: neFileChoose, id: nextID())
-  let f = newFileChooserDialog(nil, nil, OPEN, nil)
-  result.data = f
-  onCreate(result)
-
 proc internalSetMultiple(this: FileChoose, state: bool) =
   gtk3Set(this, "select-multiple", state)
 
@@ -894,19 +917,12 @@ proc internalRun(this: FileChoose): int =
 
 
 # BAR -------------------------------------------
-proc internalNewBar(): Bar =
-  # https://developer.gnome.org/gtk3/stable/GtkMenuBar.html
-  result = Bar(kind: neBar, id: nextID())
-  result.data = gtk.newMenuBar()
-  onCreate(result)
+# ---
 
 
 # MENU ------------------------------------------
-proc internalNewMenu(): Menu =
-  # https://developer.gnome.org/gtk3/stable/GtkMenu.html
-  result = Menu(kind: neMenu, id: nextID())
-  result.data = gtk.newMenu()
-  onCreate(result)
+# ---
+
 
 proc handleMenuBarAdd(this, that: NElement) =
   # BAR / MENU ----------------------
@@ -972,20 +988,6 @@ proc internalAdd(this: NElement, that: Menu) =
 
 
 # COMBOBOX --------------------------------------
-proc internalNewComboBox(): ComboBox =
-  # https://developer.gnome.org/gtk3/stable/GtkComboBox.html
-  # TODO: Can handle more than text
-  let c = newComboBox(
-    cast[TreeModel](newListStore(1, G_TYPE_STRING)))
-  
-  let r = newCellRendererText()
-  cast[gtk.CellLayout](c).packStart(r, true)
-  cast[gtk.CellLayout](c).addAttribute(r, "text", 0)
-  
-  result = ComboBox(kind: neComboBox, id: nextID())
-  result.data = c
-  onCreate(result)
-
 proc internalAdd(this: ComboBox, text: string) =
   let ls = cast[ListStore](this.data(gtk.ComboBox).getModel())
 
@@ -1026,12 +1028,6 @@ proc internalGetSelected(this: ComboBox): string =
   
 
 # PROGRESS --------------------------------------
-proc internalNewProgress(): Progress =
-  # https://developer.gnome.org/gtk3/stable/GtkProgressBar.html
-  result = Progress(kind: neProgress, id: nextID())
-  result.data = newProgressBar()
-  onCreate(result)
-
 proc internalValue(this: Progress): float =
   float(this.data(gtk.ProgressBar).getFraction())
 
@@ -1040,13 +1036,6 @@ proc internalValue(this: Progress, v: float) =
 
 
 # BOX -------------------------------------------
-proc internalNewBox(): Box =
-  # https://developer.gnome.org/gtk3/stable/GtkBox.html
-  result = Box(kind: neBox, id: nextID())
-  let b = newBox(Orientation.Vertical, 0)
-  result.data = b
-  onCreate(result)
-
 proc internalSetSpacing(this: Box, spacing: int) =
   this.data(gtk.Box).setSpacing(spacing.cint)
 
@@ -1064,13 +1053,6 @@ proc internalAdd(this: Box, that: NElement, expand, fill: bool, padding: int) =
 
 
 # TABLE -----------------------------------------
-proc internalNewTable(): NTable =
-  # https://developer.gnome.org/gtk3/stable/GtkTreeView.html
-  # https://developer.gnome.org/gtk3/stable/GtkListStore.html
-  result = NTable(kind: neTable, id: nextID())
-  result.data = newTreeView()
-  onCreate(result)
-  
 proc hackGetPixbufType: GType =
   var t {.global.}: GType
   once:
@@ -1188,14 +1170,7 @@ proc internalHeaders(this: NTable, v: bool) =
   this.data(gtk.TreeView).setHeadersVisible(v)
 
 
-# GRID ------------------------------------------
-proc internalNewGrid(): Grid =
-  # https://developer.gnome.org/gtk3/unstable/GtkGrid.html
-  result = Grid(kind: neGRID, id: nextID())
-  let g = newGrid()
-  result.data = g
-  onCreate(result)
-  
+# GRID ------------------------------------------  
 proc internalAdd(this: Grid, that: NElement, r, c, w, h: int) =
   doAssert that.internalGetParent == nil
 
@@ -1205,13 +1180,6 @@ proc internalAdd(this: Grid, that: NElement, r, c, w, h: int) =
 
 
 # TAB -------------------------------------------
-proc internalNewTab(): Tab =
-  # https://developer.gnome.org/gtk3/stable/GtkNotebook.html
-  result = Tab(kind: neTab, id: nextID())
-  let n = newNoteBook()
-  result.data = n
-  onCreate(result)
-
 proc internalAdd(this: Tab, that: Container, label: Label) =
   discard this.data(gtk.NoteBook).appendPage(
     that.data(gtk.Container), label.data(gtk.Label))
@@ -1240,13 +1208,6 @@ proc internalSetSide(this: Tab, side: NSide) =
 
 
 # LIST ------------------------------------------
-proc internalNewList(): List =
-  # https://developer.gnome.org/gtk3/stable/GtkListBox.html
-  result = List(kind: neList, id: nextID())
-  let li = newListBox()
-  result.data = li
-  onCreate(result)
-
 proc internalGetMode(this: List): NAmount =
   NAmount(this.data(gtk.ListBox).getSelectionMode)
 
@@ -1274,12 +1235,6 @@ proc internalSelected(this: List, that: var seq[NElement]) =
 
 
 # FRAME -----------------------------------------
-proc internalNewFrame(): Frame =
-  # https://developer.gnome.org/gtk3/stable/GtkFrame.html
-  result = Frame(kind: neFrame, id: nextID())
-  result.data = newFrame("")
-  onCreate(result)
-
 proc internalSetText(this: Frame, text: string) =
   this.data(gtk.Frame).setLabel(text)
 
@@ -1287,13 +1242,7 @@ proc internalGetText(this: Frame): string =
   $this.data(gtk.Frame).getLabel()
 
 
-# TOOLS -----------------------------------------
-proc internalNewTools(): Tools =
-  # https://developer.gnome.org/gtk3/stable/GtkToolbar.html
-  result = Tools(kind: neTools, id: nextID())
-  result.data = newToolBar()
-  onCreate(result)
-  
+# TOOLS -----------------------------------------  
 proc internalGetOrientation(this: Tools): NOrientation =
   NOrientation(this.data(gtk.Orientable).getOrientation())
 
