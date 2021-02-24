@@ -3118,6 +3118,9 @@ type
     style_set_connection*: guint
     icon_size_connection*: guint
     Toolbar_flag0*: guint16
+    
+  # NGUI
+  PToolItem* = pointer
 
   PToolbarClass* = ptr TToolbarClass
   TToolbarClass* = object of TContainerClass
@@ -10025,6 +10028,10 @@ proc get_icon_size*(toolbar: PToolbar): TIconSize{.cdecl, dynlib: lib,
     importc: "gtk_toolbar_get_icon_size".}
 proc get_tooltips*(toolbar: PToolbar): gboolean{.cdecl, dynlib: lib,
     importc: "gtk_toolbar_get_tooltips".}
+
+# NGUI
+proc toolitem_new*(): PToolItem {.cdecl, dynlib: lib, importc: "gtk_tool_item_new".}
+
 const
   bm_TGtkTree_selection_mode* = 0x0003'u16
   bp_TGtkTree_selection_mode* = 0'u16
@@ -17184,7 +17191,7 @@ proc get_state*(widget: PWidget): TStateType {.importc: "gtk_widget_get_state",
     dynlib: lib, cdecl.}
 
 type
-  TImageData* = object {.union.}
+  TImageData* {.union.} = object
      pixbuf*: PPixbuf
      stock_id*: cstring
      icon_name*: cstring
@@ -17365,4 +17372,4 @@ proc nim_init*() =
     cmdCount{.importc: "cmdCount".}: cint
   init(addr(cmdLine), addr(cmdCount))
 
-{.deprecated: [nimrod_init: nim_init].}
+# NGUI {.deprecated: [nimrod_init: nim_init].}

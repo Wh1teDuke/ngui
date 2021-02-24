@@ -1,5 +1,7 @@
-import private/gtk2/[gtk2, glib2]
-includeUtils ELEMENT, CONTAINER, EVENT, TIMER, ADAPTER
+
+include private/ngui_common_gtk
+
+
 #     v-- Set 'LAX_ERROR' to false to see fireworks
 const LAX_ERROR = true
   
@@ -11,140 +13,9 @@ template bError(str: string) =
 
 # BASE ------------------------------------------
 
-# Easier to copy-paste from ngui_begtk3
-type gtk2Window = gtk2.PWindow
-type gtk2Widget = gtk2.PWidget
-type gtk2Container = gtk2.PContainer
-type gtk2TextView = gtk2.PTextView
-type gtk2RadioButton = gtk2.PRadioButton
-type gtk2Button = gtk2.PButton
-type GPointer = PGpointer
-
-proc nextID: NID =
-  # ngui_begtk2.nim
-  var pool {.global.}: NID = 100_000
-  result = pool
-  inc(pool)
-  doAssert pool != 0, "Error: Too many NElements"
-
 
 # EVENT -----------------------------------------
-var setEventHandled: bool
-
-proc internalEventHandled =
-  setEventHandled = true
-
-proc triggerEvent(source, data: GPointer): bool {.cdecl.} =
-  let event = cast[NElementEvent](data)
-  if not utilTrigger(event, source):
-    raiseAssert("Event CallBack not found: " & $(event))
-  result = setEventHandled
-  setEventHandled = false
-
-proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) =
-  # Feast your eyes
-  # https://developer.gnome.org/gtk3/stable/GtkWidget.html#GtkWidget.signals
-  const EVENT_TO_SIGNAL = [
-    neNone: "LET'S_DANCE", neClick: "button-press-event",
-    neClickRelease: "button-release-event", neMove: "motion-notify-event",
-    neEnter: "activate",
-    neChange: "changed", neOpen: "popped-up", neFocusOn: "focus-in-event",
-    neFocusOff: "focus-out-event", neDESTROY: "destroy", neSHOW: "show",
-    neHIDE: "hide", neKeyPress: "key_press_event",
-    neKeyRelease: "key-release-event",
-  ]
-  
-  var
-    nguiEvent   = event
-    nguiTrigger = SIGNAL_FUNC(triggerEvent)
-    gtkInst     = cast[gtk2Widget](this.raw)
-    gtkEvent    = EVENT_TO_SIGNAL[nguiEvent]
-    gtkData     = cast[GPointer](nguiEvent)
-
-    #discard this.data(gtk2Window).signalConnect(
-    #"destroy", SIGNAL_FUNC(cb), nil)
-
-  # -----------------------------------
-  # Hack List, insert your hacks here -
-
-  # REASON: Special user function
-  if not (this of Button) and
-      nguiEvent in {neFocusOff, neFocusOn, neKeyPress,
-                   neKeyRelease, neClick, neClickRelease, neMove}:
-    nguiTrigger = SIGNAL_FUNC(
-      proc(s, _, d: GPointer): bool {.cdecl.} =
-        triggerEvent(s, d)
-    )
-  
-  # REASON: Hard to explain
-  if this of Image and nguiEvent in {neClick, neClickRelease, neMove}:
-    # https://developer.gnome.org/gtk3/stable/GtkImage.html#GtkImage.description
-    # "Handling button press events on a GtkImage."
-    # TODO gtkInst  = cast[gtk2Widget](utilInsertAdapter(gtkInst, adaptersEventBox))
-    doAssert false
-
-  # REASON: Different name
-  if this of FileChoose and nguiEvent == neClick:
-    # https://developer.gnome.org/gtk3/stable/GtkDialog.html#GtkDialog-response
-    gtkEvent = "response"
-  
-  elif this of Button and nguiEvent == neClick:
-    # https://developer.gnome.org/gtk3/stable/GtkButton.html#GtkButton-clicked
-    gtkEvent = "clicked"
-  
-  elif this of Slider and nguiEvent == neChange:
-    # https://developer.gnome.org/gtk3/stable/GtkRange.html#GtkRange-value-changed
-    gtkEvent = "value-changed"
-
-  elif this of Checkbox and nguiEvent == neChange:
-    # https://developer.gnome.org/gtk3/stable/GtkToggleButton.html#GtkToggleButton-toggled
-    gtkEvent = "toggled"
-  
-  elif this of List and nguiEvent in {neChange}:
-    # https://developer.gnome.org/gtk3/stable/GtkListBox.html#GtkListBox-selected-rows-changed
-    gtkEvent = "selected-rows-changed"
-
-  elif this of Calendar and nguiEvent in {neChange}:
-    # https://developer.gnome.org/gtk3/stable/GtkCalendar.html#GtkCalendar-day-selected
-    gtkEvent = "day-selected"
-
-  # REASON: Event applies only to TextBuffer
-  elif this of TextArea and nguiEvent in {neChange}:
-    # https://developer.gnome.org/gtk3/stable/GtkTextView.html#gtk-text-view-get-buffer
-    # https://developer.gnome.org/gtk3/stable/GtkTextBuffer.html#GtkTextBuffer-changed
-    gtkInst = cast[gtk2Widget](gtk2TextView(gtkInst).getBuffer())
-
-  # REASON: onClick is triggered for old/new radio
-  elif this of Radio and nguiEvent in {neClick}:
-    nguiTrigger = SIGNAL_FUNC(proc(source, data: GPointer): bool {.cdecl.} =
-      if bool(cast[gtk2RadioButton](source).getActive()):
-        return triggerEvent(source, data))
-
-  # REASON: Labels don't really have click events, but we need this for menus
-  elif this of Label and nguiEvent in {neClick}: # TODO: Handle onClick for labels outside menus
-    # https://developer.gnome.org/gtk3/stable/GtkMenuItem.html#GtkMenuItem-activate
-    gtkEvent = "activate"
-    doAssert false
-    #TODO gtkInst  =
-      #cast[gtk2Widget](utilInsertAdapter(gtkInst, adaptersMenuItem))
-  
-  # REASON: Snowflake callback, and the first time is triggered twice
-  elif this of Menu and nguiEvent in {neOpen}:
-    # https://developer.gnome.org/gtk3/stable/GtkMenu.html#GtkMenu-popped-up
-    nguiTrigger = SIGNAL_FUNC(
-        proc(
-          source, b, c: GPointer,
-          d, e: bool,
-          data: GPointer): bool {.cdecl.} =
-      once: return # Why?!
-      return triggerEvent(source, data))
-
-  # -------------------------------------
-  doAssert not utilExists(nguiEvent, gtkInst) # TODO: replace old event with new one. I added this to debug a bug.
-  utilSet(nguiEvent, gtkInst, action)
-  # https://developer.gnome.org/gobject/stable/gobject-Signals.html#g-signal-connect
-  discard signalConnect(gtkInst, gtkEvent, nguiTrigger, gtkData)
-
+# included
 
 # WIDGET ----------------------------------------
 proc onCreate(this: NElement) =
@@ -169,8 +40,8 @@ proc internalSetOpacity(this: NElement, v: float) =
 proc internalGetParent(this: NElement): Container = utilParent(this)
 
 proc internalSetVisible(this: NElement, state: bool) =
-  if state: this.data(gtk2Widget).show()
-  else: this.data(gtk2Widget).hide()
+  if state: this.data(gtkWidget).show()
+  else: this.data(gtkWidget).hide()
 
 proc internalGetVisible(this: NElement): bool =
   ## Get whether this element is shown or not
@@ -215,7 +86,7 @@ proc internalSetSize(this: NElement, size: tuple[w, h: int]) =
   else: bError("proc internalSetSize(this: NElement, size: tuple[w, h: int])")
 
 proc internalSetTooltip(this: NElement, text: string) =
-  this.data(gtk2Widget).setTooltipText(text)
+  this.data(gtkWidget).setTooltipText(text)
 
 proc internalGetTooltip(this: NElement): string =
   ## Get this element's tooltip text
@@ -280,7 +151,7 @@ proc internalAdd(this: Container, that: NElement) =
     return
 
   utilChild(this, that)
-  let (thisD, thatD) = (this.data(gtk2Container), that.data(gtk2Widget))
+  let (thisD, thatD) = (this.data(gtkContainer), that.data(gtkWidget))
 
   # TODO: if not utilTryAddChild(thisD, thatD, adapters):
   if true:
@@ -342,7 +213,7 @@ proc internalNewApp(): App =
 
 proc internalRun(this: App) =
   for c in utilItems(this):
-    c.data(gtk2Window).showAll()
+    c.data(gtkWindow).showAll()
   gtk2.main() # Blocking
 
 proc internalStop(this: App) =
@@ -353,10 +224,9 @@ proc internalStop(this: App) =
 # WINDOW ----------------------------------------
 proc onDestroyWin(this: Window) =
   # ngui_begtk3
-  proc cb(this: gtk2Widget, data: GPointer) {.cdecl.} =
+  proc cb(this: gtkWidget, data: GPointer) {.cdecl.} =
     if utilLen(pApp) == 1: internalStop(pApp)
-  discard this.data(gtk2Window).signalConnect(
-    "destroy", SIGNAL_FUNC(cb), nil)
+  discard this.data(gtkWindow).signal("destroy", SCB(cb), nil)
 
 proc internalNewWindow: Window =
   result = Window(kind: neWindow, id: nextID())
@@ -366,10 +236,10 @@ proc internalNewWindow: Window =
   onDestroyWin(result)
 
 proc internalSetText(this: Window, text: string) =
-  this.data(gtk2Window).set_title(text)
+  this.data(gtkWindow).set_title(text)
 
 proc internalGetText(this: Window): string =
-  $this.data(gtk2Window).get_title()
+  $this.data(gtkWindow).get_title()
 
 proc internalSetResizable(this: Window, state: bool) =
   ## Set whether the user can resize the window or not
@@ -580,7 +450,7 @@ proc internalNewButton(): Button  =
   onCreate(result)  
 
 proc internalSetText(this: Button, text: string) =
-  this.data(gtk2Button).setLabel(text)
+  this.data(gtkButton).setLabel(text)
 
 proc internalGetText(this: Button): string =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION

@@ -1,46 +1,11 @@
-import private/oldgtk3/[gtk, glib, gobject, gdk, cairo]
-import private/oldgtk3/gdk_pixbuf
+
+include private/ngui_common_gtk
+
 
 
 # BASE ------------------------------------------
-includeUtils ELEMENT, CONTAINER, EVENT, TIMER, ADAPTER
+var bitmaps:         STable[NID, Bitmap] # Image.bitmap
 
-let # Doesn't work with const, but one day ...
-  adapters = genAdapters(
-    cast[gtk.Widget](c).getParent()
-    ,cast[gtk.Container](p).remove(cast[gtk.Widget](c))
-    ,cast[gtk.Container](p).add(cast[gtk.Widget](c))
-  )
-
-  adaptersEventBox = genAdaptersFrom(
-    adapters,
-    block:
-      # Adapter 1 https://developer.gnome.org/gtk3/stable/GtkEventBox.html
-      let eb = newEventBox()
-      eb.addEvents(POINTER_MOTION_MASK.cint)
-      return eb
-    ,(discard objectRef(cast[gtk.Widget](c))))
-
-  adaptersMenuItem = genAdaptersFrom(
-    # Adapter 2 https://developer.gnome.org/gtk3/stable/GtkMenuItem.html
-    adapters, newMenuItem(), (discard objectRef(cast[gtk.Widget](c))))
-  
-  adaptersToolItem = genAdaptersFrom(
-    # Adapter 3 https://developer.gnome.org/gtk3/stable/GtkToolItem.html
-    adapters, newToolItem(), (discard objectRef(cast[gtk.Widget](c))))
-
-
-var
-  bitmaps:         STable[NID, Bitmap] # Image.bitmap
-  setEventHandled: bool
-
-
-
-proc nextID: NID =
-  var pool {.global.}: NID = 100_000
-  result = pool
-  inc(pool)
-  doAssert pool != 0, "Error: Too many NElements"
 
 template gtkYouAreKillingMe() {.dirty.} =
   val =
@@ -118,16 +83,6 @@ proc gtk3Set[T](this: NElement, prop: string, val: T) =
 
 
 # EVENTS ----------------------------------------
-proc internalEventHandled =
-  setEventHandled = true
-
-proc triggerEvent(source, data: GPointer): Gboolean {.cdecl.} =
-  let event = cast[NElementEvent](data)
-  if not utilTrigger(event, source):
-    raiseAssert("Event CallBack not found: " & $(event))
-  result = setEventHandled
-  setEventHandled = false
-
 proc clean(this: NElement) {.cdecl.} =
   if not utilExists(this): return
 
@@ -149,108 +104,6 @@ proc clean(this: NElement) {.cdecl.} =
 
 proc gtkOnDestroyClean(_, data: GPointer) {.cdecl.} =
   clean(cast[NElement](data))
-
-proc internalSetEvent(
-    this: NElement, event: NElementEvent, action: NEventProc) =
-  
-  # Feast your eyes
-  # https://developer.gnome.org/gtk3/stable/GtkWidget.html#GtkWidget.signals
-  const EVENT_TO_SIGNAL = [
-    neNone: "LET'S_DANCE", neClick: "button-press-event",
-    neClickRelease: "button-release-event", neMove: "motion-notify-event",
-    neEnter: "activate",
-    neChange: "changed", neOpen: "popped-up", neFocusOn: "focus-in-event",
-    neFocusOff: "focus-out-event", neDESTROY: "destroy", neSHOW: "show",
-    neHIDE: "hide", neKeyPress: "key_press_event",
-    neKeyRelease: "key-release-event",
-  ]
-  
-  var
-    nguiEvent   = event
-    nguiTrigger = gCALLBACK(triggerEvent)
-    gtkInst     = cast[gtk.Widget](this.raw)
-    gtkEvent    = EVENT_TO_SIGNAL[nguiEvent]
-    gtkData     = cast[GPointer](nguiEvent)
-
-
-  # -----------------------------------
-  # Hack List, insert your hacks here -
-
-  # REASON: Special user function
-  if not (this of Button) and
-      nguiEvent in {neFocusOff, neFocusOn, neKeyPress,
-                   neKeyRelease, neClick, neClickRelease, neMove}:
-    nguiTrigger = gCALLBACK(
-      proc(s, _, d: GPointer): Gboolean {.cdecl.} =
-        triggerEvent(s, d)
-    )
-  
-  # REASON: Hard to explain
-  if this of Image and nguiEvent in {neClick, neClickRelease, neMove}:
-    # https://developer.gnome.org/gtk3/stable/GtkImage.html#GtkImage.description
-    # "Handling button press events on a GtkImage."
-    gtkInst  = cast[gtk.Widget](utilInsertAdapter(gtkInst, adaptersEventBox))
-
-  # REASON: Different name
-  if this of FileChoose and nguiEvent == neClick:
-    # https://developer.gnome.org/gtk3/stable/GtkDialog.html#GtkDialog-response
-    gtkEvent = "response"
-  
-  elif this of Button and nguiEvent == neClick:
-    # https://developer.gnome.org/gtk3/stable/GtkButton.html#GtkButton-clicked
-    gtkEvent = "clicked"
-  
-  elif this of Slider and nguiEvent == neChange:
-    # https://developer.gnome.org/gtk3/stable/GtkRange.html#GtkRange-value-changed
-    gtkEvent = "value-changed"
-
-  elif this of Checkbox and nguiEvent == neChange:
-    # https://developer.gnome.org/gtk3/stable/GtkToggleButton.html#GtkToggleButton-toggled
-    gtkEvent = "toggled"
-  
-  elif this of List and nguiEvent in {neChange}:
-    # https://developer.gnome.org/gtk3/stable/GtkListBox.html#GtkListBox-selected-rows-changed
-    gtkEvent = "selected-rows-changed"
-
-  elif this of Calendar and nguiEvent in {neChange}:
-    # https://developer.gnome.org/gtk3/stable/GtkCalendar.html#GtkCalendar-day-selected
-    gtkEvent = "day-selected"
-
-  # REASON: Event applies only to TextBuffer
-  elif this of TextArea and nguiEvent in {neChange}:
-    # https://developer.gnome.org/gtk3/stable/GtkTextView.html#gtk-text-view-get-buffer
-    # https://developer.gnome.org/gtk3/stable/GtkTextBuffer.html#GtkTextBuffer-changed
-    gtkInst = cast[gtk.Widget](gtk.TextView(gtkInst).getBuffer())
-
-  # REASON: onClick is triggered for old/new radio
-  elif this of Radio and nguiEvent in {neClick}:
-    nguiTrigger = gCALLBACK(proc(source, data: GPointer): Gboolean {.cdecl.} =
-      if bool(cast[gtk.RadioButton](source).getActive()):
-        return triggerEvent(source, data))
-
-  # REASON: Labels don't really have click events, but we need this for menus
-  elif this of Label and nguiEvent in {neClick}: # TODO: Handle onClick for labels outside menus
-    # https://developer.gnome.org/gtk3/stable/GtkMenuItem.html#GtkMenuItem-activate
-    gtkEvent = "activate"
-    gtkInst  =
-      cast[gtk.Widget](utilInsertAdapter(gtkInst, adaptersMenuItem))
-  
-  # REASON: Snowflake callback, and the first time is triggered twice
-  elif this of Menu and nguiEvent in {neOpen}:
-    # https://developer.gnome.org/gtk3/stable/GtkMenu.html#GtkMenu-popped-up
-    nguiTrigger = gCALLBACK(
-        proc(
-          source, b, c: GPointer,
-          d, e: GBoolean,
-          data: GPointer): Gboolean {.cdecl.} =
-      once: return # Why?!
-      return triggerEvent(source, data))
-
-  # -------------------------------------
-  doAssert not utilExists(nguiEvent, gtkInst) # TODO: replace old event with new one. I added this to debug a bug.
-  utilSet(nguiEvent, gtkInst, action)
-  # https://developer.gnome.org/gobject/stable/gobject-Signals.html#g-signal-connect
-  discard gSignalConnect(gtkInst, gtkEvent, nguiTrigger, gtkData)
 
 
 # WIDGET ----------------------------------------
