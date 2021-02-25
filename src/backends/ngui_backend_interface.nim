@@ -113,11 +113,35 @@ proc internalSetMaximized(this: Window, v: bool)
   ## Set whether or not this window is maximized
 proc internalGetMaximized(this: Window): bool
   ## Get whether or not this window is maximized
+proc internalSetModal(this: Window, v: bool)
+  ## Set whether or not user can interact with other windows
+proc internalGetModal(this: Window): bool
+  ## Get whether or not user can interact with other windows
+proc internalSetTransient(this, that: Window)
+  ## Set a parent window. This window will appear on top of parent
+proc internalGetTransient(this: Window): Window
+  ## Return parent (transient) window if any
 
 
 # ALERT -----------------------------------------
 proc internalRun(this: Alert)
   ## Show this message dialog
+proc internalSetModal(this: Alert, v: bool)
+  ## Set whether or not user can interact with other windows
+proc internalGetModal(this: Alert): bool
+  ## Get whether or not user can interact with other windows
+proc internalSetTransient(this: Alert, that: Window)
+  ## Set a parent window. This alert will appear on top of parent
+proc internalGetTransient(this: Alert): Window
+  ## Return parent (transient) window if any
+proc internalSetText(this: Alert, text: string)
+  ## Set this Alert's text content
+proc internalGetText(this: Alert): string
+  ## Get this Alert's text content
+proc internalSetTitle(this: Alert, text: string)
+  ## Set this Alert's title
+proc internalGetTitle(this: Alert): string
+  ## Get this Alert's title
 
 
 # LABEL -----------------------------------------

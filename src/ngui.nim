@@ -43,16 +43,12 @@ type
     neFOCUS_ON neFOCUS_OFF neDESTROY
     neSHOW neHIDE neKEY_PRESS neKEY_RELEASE
 
-  NElementAttribute* = enum
-    naMinimized naMaximized
-    naKind naVisible naHasParent naFocus naSize naOpacity
-    naLen naText naWrap naResizable naValue naOrientation
-    naIndex naReorderable naName naSide naBGColor
-
   NKey* = enum
     nkNone nkEsc nkControl nkShift
-    nkA nkB nkC nkD nkS nkV
-    
+     nkA nkB nkC nkD nkE nkF nkG nkH nkI nkJ nkK nkL nkM nkN nkO nkP nkQ
+     nkR nkS nkT nkU nkV nkW nkX nkY nkZ
+     nk0 nk1 nk2 nk3 nk4 nk5 nk6 nk7 nk8 nk9
+
   NMouse* = enum
     nm1 nm2 nm3
   
@@ -146,6 +142,13 @@ type
 
   Pixel* = tuple[r, g, b, a: uint8]
 
+  NElementAttribute* = enum
+    naMinimized naMaximized
+    naKind naVisible naHasParent naFocus naSize naOpacity
+    naLen naText naWrap naResizable naValue naOrientation
+    naIndex naReorderable naName naSide naBGColor
+    naModal naTransient
+
   Attribute* = object
     case kind*:       NElementAttribute
     of naKind:        aKind*: NElementKind
@@ -167,6 +170,8 @@ type
     of naReorderable: aReorderable*: bool
     of naSide:        aSide*: NSide
     of naBGColor:     aBGColor*: Pixel
+    of naModal:       aModal*: bool
+    of naTransient:   aTransient*: Window
     found*:           bool
     
   Attributes* = array[NElementAttribute, Attribute]
@@ -455,6 +460,11 @@ proc maximized*(this: Window): bool = internalGetMaximized(this)
 proc `minimized=`*(this: Window, v: bool) = internalSetMinimized(this, v)
 proc `maximized=`*(this: Window, v: bool) = internalSetMaximized(this, v)
 
+proc modal*(this: Window): bool = internalGetModal(this)
+proc `modal=`*(this: Window, v: bool) = internalsetModal(this, v)
+proc transient*(this: Window): Window = internalGetTransient(this)
+proc `transient=`*(this, that: Window) = internalsetTransient(this, that)
+
 proc `[]`*(this: Window, index: int): Container =
   Container(internalGetChild(this, index))
 proc `[]`*(this: Window, index: BackwardsIndex): Container =
@@ -462,11 +472,23 @@ proc `[]`*(this: Window, index: BackwardsIndex): Container =
 
 
 # NALERT ----------------------------------------
-proc alert*(parent: Window, text: string) =
-  # TODO
-  internalRun(nguiNew(Alert))
+proc alert*(title: string = "", text: string = ""): Alert =
+  nguiNew()
+  if title != "": internalSetTitle(result, title)
+  if text != "": internalSetText(result, text)
 
-proc alert*(text: string) = alert(pApp[0], text)
+proc text*(this: Alert): string = internalGetText(this)
+proc `text=`*(this: Alert, text: string) = internalSetText(this, text)
+
+proc title*(this: Alert): string = internalGetTitle(this)
+proc `title=`*(this: Alert, text: string) = internalSetTitle(this, text)
+
+proc modal*(this: Alert): bool = internalGetModal(this)
+proc `modal=`*(this: Alert, v: bool) = internalsetModal(this, v)
+proc transient*(this: Alert): Window = internalGetTransient(this)
+proc `transient=`*(this: Alert, that: Window) = internalsetTransient(this, that)
+
+proc run*(this: Alert) = internalRun(this)
 
 
 # LABEL -----------------------------------------
@@ -1125,6 +1147,8 @@ proc get*(this: NElement, that: NElementAttribute): Attribute =
   of naLen:         gt(Container, aLen, internalLen)
   of naReorderable: gt(Tab, aReorderable, internalGetReorderable)
   of naSide:        gt(Tab, aSide, internalGetSide)
+  of naModal:       gt(Window, aModal, internalGetModal)
+  of naTransient:   gt(Window, aTransient, internalGetTransient)
   of naOrientation:
     template gt(t) = gt(t, aOrientation, internalGetOrientation)
     gt(Box); gt(Slider); gt(Tools)
@@ -1163,6 +1187,8 @@ proc set*(this: NElement, that: Attribute) =
   of naMinimized:   s(Window, internalSetMinimized, that.aMinimized)
   of naMaximized:   s(Window, internalSetMaximized, that.aMaximized)
   of naReorderable: s(Tab, internalSetReorderable, that.aReorderable)
+  of naModal:       s(Window, internalsetModal, that.aModal)
+  of naTransient:   s(Window, internalsetTransient, that.aTransient)
   of naSide:        s(Tab, internalSetSide, that.aSide)
   of naOrientation:
     s(Box,    internalSetOrientation, that.aOrientation)

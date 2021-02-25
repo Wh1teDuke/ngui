@@ -44,8 +44,9 @@ proc nextID: NID =
 
 template gtkYouAreKillingMe() {.dirty.} =
   val =
-    when val is bool:  bool(addr(v).getBoolean())
-    elif val is int:   int(addr(v).getInt())
+    when val is bool:   bool(addr(v).getBoolean())
+    elif val is int:    int(addr(v).getInt())
+    elif val is string: $(addr(v).getString())
     elif val is Pixel:
       var c: RGBA
       # https://stackoverflow.com/a/47373201
@@ -96,6 +97,9 @@ proc gtk3Get[T](this: NElement, prop: string, val: var T) =
   this.data(gtk.Widget).getProperty(prop, addr(v))
   gtkYouAreKillingMe()
 
+proc gtk3Get[T](this: NElement, prop: string): T =
+  gtk3Get(this, prop, result)
+
 proc gtk3Set[T](this: NElement, prop: string, val: T) =
   var v: GValueObj
   when val is bool:
@@ -104,6 +108,9 @@ proc gtk3Set[T](this: NElement, prop: string, val: T) =
   elif val is int:
     discard v.init(G_TYPE_INT)
     v.setInt(val.cint)
+  elif val is string:
+    discard v.init(G_TYPE_STRING)
+    v.setString(val.cstring)
   elif val is Pixel:
     var c: RGBAObj
     c.red = cdouble(val.r) / 255
@@ -664,6 +671,23 @@ proc internalSetMaximized(this: Window, v: bool) =
 proc internalGetMaximized(this: Window): bool =
   this.data(gtk.Window).isMaximized()
 
+proc internalSetModal(this: Window, v: bool) =
+  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-set-modal
+  this.data(gtk.Window).setModal(v)
+
+proc internalGetModal(this: Window): bool =
+  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-get-modal
+  this.data(gtk.Window).getModal()
+  
+proc internalSetTransient(this, that: Window) =
+  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-set-transient-for
+  this.data(gtk.Window).setTransientFor(that.data(gtk.Window))
+
+proc internalGetTransient(this: Window): Window =
+  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-get-transient-for
+  let w = this.data(gtk.Window).getTransientFor()
+  if w != nil: return Window(utilElement(w))
+
 
 # ALERT -----------------------------------------  
 # SET/GET Text https://developer.gnome.org/gtk3/stable/GtkMessageDialog.html#GtkMessageDialog--text
@@ -671,6 +695,37 @@ proc internalGetMaximized(this: Window): bool =
 proc internalRun(this: Alert) =
   discard run(this.data(gtk.Dialog))
   gtk.destroy(this.data(gtk.Widget))
+
+proc internalSetText(this: Alert, text: string) =
+  gtk3Set(this, "secondary-text", text)
+  
+proc internalGetText(this: Alert): string =
+  gtk3Get(this, "secondary-text", result)
+
+proc internalSetTitle(this: Alert, text: string) =
+  gtk3Set(this, "text", text)
+  
+proc internalGetTitle(this: Alert): string =
+  gtk3Get(this, "text", result)
+
+# From Window ****
+proc internalSetModal(this: Alert, v: bool) =
+  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-set-modal
+  this.data(gtk.Window).setModal(v)
+
+proc internalGetModal(this: Alert): bool =
+  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-get-modal
+  this.data(gtk.Window).getModal()
+  
+proc internalSetTransient(this: Alert, that: Window) =
+  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-set-transient-for
+  this.data(gtk.Window).setTransientFor(that.data(gtk.Window))
+
+proc internalGetTransient(this: Alert): Window =
+  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-get-transient-for
+  let w = this.data(gtk.Window).getTransientFor()
+  if w != nil: return Window(utilElement(w))
+# ****************
 
 
 # LABEL -----------------------------------------
@@ -1378,12 +1433,10 @@ proc internalGetCurrentEvent: NEventArgs =
     let key =
       case e.key.keyval:
       of KEY_ESCAPE: nkEsc
-      of KEY_a: nkA
-      of KEY_b: nkB
-      of KEY_c: nkC
-      of KEY_d: nkD
-      of KEY_v: nkV
-      of KEY_s: nkS
+      of KEY_a .. KEY_z:
+        NKey((int(e.key.keyval) - int(Key_a)) + int(nkA))
+      of KEY_0 .. KEY_9:
+        NKey((int(e.key.keyval) - int(Key_0)) + int(nk0))
       else: nkNone
 
     result =
