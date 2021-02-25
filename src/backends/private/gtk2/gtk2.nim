@@ -10031,6 +10031,10 @@ proc get_tooltips*(toolbar: PToolbar): gboolean{.cdecl, dynlib: lib,
 
 # NGUI
 proc toolitem_new*(): PToolItem {.cdecl, dynlib: lib, importc: "gtk_tool_item_new".}
+type PGrid* = pointer
+proc grid_new*(): PGrid {.cdecl, dynlib: lib, importc: "gtk_grid_new".}
+type PPopover* = pointer
+proc pop_over_new*(): PPopover {.cdecl, dynlib: lib, importc: "gtk_pop_over_new".}
 
 const
   bm_TGtkTree_selection_mode* = 0x0003'u16

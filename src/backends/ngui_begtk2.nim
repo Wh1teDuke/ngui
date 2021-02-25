@@ -200,10 +200,6 @@ proc internalSetBorderColor(this: Container, color: Pixel) =
 
 
 # APP -------------------------------------------
-proc internalNewApp(): App =
-  gtk2.nim_init()
-  result = App(kind: neApp, id: nextID())
-
 proc internalRun(this: App) =
   for c in utilItems(this):
     c.data(gtkWindow).showAll()
@@ -215,19 +211,6 @@ proc internalStop(this: App) =
 
 
 # WINDOW ----------------------------------------
-proc onDestroyWin(this: Window) =
-  # ngui_begtk3
-  proc cb(this: gtkWidget, data: GPointer) {.cdecl.} =
-    if utilLen(pApp) == 1: internalStop(pApp)
-  discard this.data(gtkWindow).signal("destroy", SCB(cb), nil)
-
-proc internalNewWindow: Window =
-  result = Window(kind: neWindow, id: nextID())
-  let w = window_new(gtk2.WINDOW_TOP_LEVEL)
-  result.data = w
-  onCreate(result)
-  onDestroyWin(result)
-
 proc internalSetText(this: Window, text: string) =
   this.data(gtkWindow).set_title(text)
 

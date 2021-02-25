@@ -1,8 +1,7 @@
 includeUtils ELEMENT, CONTAINER, EVENT, TIMER, ADAPTER
 
 
-
-# INCLUDE
+# INCLUDE IN ngui_begtkX.nim
 
 const
   v2: bool = backend == beGTK2
@@ -17,10 +16,18 @@ when v2:
     gtkWindow      = gtk2.PWindow
     gtkWidget      = gtk2.PWidget
     gtkContainer   = gtk2.PContainer
-    gtkTextView    = gtk2.PTextView
     gtkRadioButton = gtk2.PRadioButton
     gtkButton      = gtk2.PButton
     gtkToolItem    = gtk2.PToolItem
+    gtkGrid        = gtk2.PGrid
+    gtkLabel       = gtk2.PLabel
+    gtkPopover     = gtk2.PPopover
+    gtkImage       = gtk2.PImage
+    gtkTextView    = gtk2.PTextView
+    gtkCalendar    = gtk2.PCalendar
+    gtkScale       = gtk2.PScale
+    gtkBox         = gtk2.PBox
+    GtkCheckButton = gtk2.PCheckButton
     GPointer       = glib2.PGpointer
 
   const
@@ -31,6 +38,18 @@ when v2:
   proc newMenuItem(): auto = gtk2.menu_item_new()
   proc newEventBox(): auto = gtk2.event_box_new()
   proc newToolItem(): auto = gtk2.tool_item_new()
+  proc newWindow(): auto = gtk2.window_new(gtk2.WINDOW_TOP_LEVEL)
+  proc newGrid(): auto = cast[gtkWidget](gtk2.grid_new())
+  proc newLabel(): auto = gtk2.label_new("")
+  proc newEntry(): auto = gtk2.entry_new()
+  proc newButton(): auto = gtk2.button_new()
+  proc newRadioButton(): auto = gtk2.radio_button_new(nil)
+  proc newImage(): auto = gtk2.image_new()
+  proc newTextView(): auto = gtk2.text_view_new()
+  proc newCalendar(): auto = gtk2.calendar_new()
+  proc newScale(): auto = gtk2.hscale_new(nil) # TODO
+  proc newCheckButton(): auto = gtk2.check_button_new()
+  proc newPopover(): auto = cast[gtkWidget](gtk2.pop_over_new())
 
 
 # GTK3 START ------------------------------------  
@@ -44,6 +63,14 @@ elif v3:
     gtkTextView    = gtk.TextView
     gtkRadioButton = gtk.RadioButton
     gtkButton      = gtk.Button
+    gtkGrid        = gtk.Grid
+    gtkPopover     = gtk.PopOver
+    gtkImage       = gtk.Image
+    gtkTextView    = gtk.TextView
+    gtkCalendar    = gtk.Calendar
+    gtkScale       = gtk.Scale
+    gtkBox         = gtk.Box
+    GtkCheckButton = gtk.CheckButton
     GPointer       = glib.GPointer
   
   const
@@ -54,6 +81,12 @@ elif v3:
 
   template signal(a, b, c, d: typed): auto =
     gSignalConnect(a, b, c, d)
+  
+  proc newLabel(): auto = gtk.newLabel("")
+  proc newButton(): auto = gtk.newButton("")
+  proc newRadioButton(): auto = gtk.newRadioButton("")
+  proc newWindow(): auto = gtk.newWindow(gtk.WindowType.TOP_LEVEL)
+  proc newPopover(): auto = gtk.newPopover(nil)
 
 
 let # Doesn't work with const, but one day ...
@@ -227,12 +260,147 @@ proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) 
 
 
 # WIDGET ----------------------------------------
-proc onCreate(this: NElement) =
-  doAssert this.id != 0
+proc onDestroyWin(this: Window) # FD
+
+proc internalNewNElement(kind: NElementKind): NElement =
+  result    = newElement(kind)
+  result.id = nextID()
   
+  case kind:
+  of neApp:
+    when v2: gtk2.nim_init()
+    elif v3: gtk.initWithArgv()
+    return
+
+  of neWindow:
+    # https://developer.gnome.org/gtk3/stable/GtkWindow.html
+    let w = newWindow()
+    result.data = w
+    onDestroyWin(Window(result))
+    
+  of neGrid:
+    # https://developer.gnome.org/gtk3/unstable/GtkGrid.html
+    result.data = newGrid()
+    
+  of neLabel:
+    # https://developer.gnome.org/gtk3/stable/GtkLabel.html
+    result.data = newLabel()
+    
+  of neEntry:
+    # https://developer.gnome.org/gtk3/stable/GtkEntry.html
+    result.data = newEntry()
+    
+  of neButton:
+    # https://developer.gnome.org/gtk3/stable/GtkButton.html
+    result.data = newButton()
+    
+  of neRadio:
+    # https://developer.gnome.org/gtk3/stable/GtkRadioButton.html
+    result.data = newRadioButton()
+  
+  of neBubble:
+    # https://developer.gnome.org/gtk3/stable/GtkPopover.html
+    result.data = newPopover()
+  
+  of neImage:
+    # https://developer.gnome.org/gtk3/stable/GtkImage.html
+    result.data = newImage()
+    
+  of neTextArea:
+    # https://developer.gnome.org/gtk3/stable/GtkTextView.html
+    result.data = newTextView()
+    
+  of neCalendar:
+    # https://developer.gnome.org/gtk3/stable/GtkCalendar.html
+    result.data = newCalendar()
+    
+  of neSlider:
+    # https://developer.gnome.org/gtk3/stable/GtkScale.html
+    var s: gtkScale
+    when v3:  s = newScale(Orientation.HORIZONTAL, 0, 100, 1)
+    else:     raiseAssert("Bad luck blue eyes") # TODO
+    s.setDrawValue(false)
+    result.data = s
+    
+  of neCheckbox:
+    # https://developer.gnome.org/gtk3/stable/GtkCheckButton.html
+    result.data = newCheckButton()
+  
+  of neFileChoose:
+    # https://developer.gnome.org/gtk3/stable/GtkFileChooserDialog.html
+    result.data = newFileChooserDialog(nil, nil, OPEN, nil)
+    
+  of neTab:
+    # https://developer.gnome.org/gtk3/stable/GtkNotebook.html
+    result.data = newNoteBook()
+  
+  of neBar:
+    # https://developer.gnome.org/gtk3/stable/GtkMenuBar.html
+    result.data = gtk.newMenuBar()
+  
+  of neMenu:
+    # https://developer.gnome.org/gtk3/stable/GtkMenu.html
+    result.data = gtk.newMenu()
+  
+  of neComboBox:
+    # https://developer.gnome.org/gtk3/stable/GtkComboBox.html
+    # TODO: Can handle more than text
+    let c = newComboBox(
+      cast[TreeModel](newListStore(1, G_TYPE_STRING)))
+  
+    let r = newCellRendererText()
+    cast[gtk.CellLayout](c).packStart(r, true)
+    cast[gtk.CellLayout](c).addAttribute(r, "text", 0)
+  
+    result.data = c
+    
+  of neProgress:
+    # https://developer.gnome.org/gtk3/stable/GtkProgressBar.html
+    result.data = newProgressBar()
+  
+  of neBox:
+    # https://developer.gnome.org/gtk3/stable/GtkBox.html
+    result.data = newBox(Orientation.Vertical, 0)
+    
+  of neTable:
+    # https://developer.gnome.org/gtk3/stable/GtkTreeView.html
+    # https://developer.gnome.org/gtk3/stable/GtkListStore.html
+    result.data = newTreeView()
+    
+  of neTools:
+    # https://developer.gnome.org/gtk3/stable/GtkToolbar.html
+    result.data = newToolBar()
+    
+  of neFrame:
+    # https://developer.gnome.org/gtk3/stable/GtkFrame.html
+    result.data = newFrame("")
+    
+  of neList:
+    # https://developer.gnome.org/gtk3/stable/GtkListBox.html
+    result.data = newListBox()
+  
+  of neAlert:
+    # https://developer.gnome.org/gtk3/stable/GtkMessageDialog.html
+    result.data = newMessageDialog(
+      nil,
+      gtk.DialogFlags.MODAL, # TODO: TODO
+      gtk.MessageType.OTHER,
+      gtk.ButtonsType.CLOSE,
+      nil)
+
+  else:
+    raiseAssert("Invalid kind: " & $kind)
+  
+  doAssert result.data != nil
+
   # https://developer.gnome.org/gtk3/stable/GtkWidget.html#GtkWidget-destroy
-  discard signal(
-    cast[gtkWidget](this.raw),
-    "destroy",
-    SCB(gtkOnDestroyClean),
-    cast[GPointer](this))
+  discard gSignalConnect(
+    result.raw, "destroy", SCB(gtkOnDestroyClean), cast[GPointer](result))
+
+
+# WINDOW ----------------------------------------
+proc onDestroyWin(this: Window) =
+  # TODO: This should be optional
+  proc cb(this: gtkWidget, data: GPointer) {.cdecl.} =
+    if utilLen(pApp) == 1: internalStop(pApp)
+  discard this.data(gtkWindow).signal("destroy", SCB(cb), nil)

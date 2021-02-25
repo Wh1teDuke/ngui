@@ -43,16 +43,12 @@ type
     neFOCUS_ON neFOCUS_OFF neDESTROY
     neSHOW neHIDE neKEY_PRESS neKEY_RELEASE
 
-  NElementAttribute* = enum
-    naMinimized naMaximized
-    naKind naVisible naHasParent naFocus naSize naOpacity
-    naLen naText naWrap naResizable naValue naOrientation
-    naIndex naReorderable naName naSide naBGColor
-
   NKey* = enum
     nkNone nkEsc nkControl nkShift
-    nkA nkB nkC nkD nkS nkV
-    
+     nkA nkB nkC nkD nkE nkF nkG nkH nkI nkJ nkK nkL nkM nkN nkO nkP nkQ
+     nkR nkS nkT nkU nkV nkW nkX nkY nkZ
+     nk0 nk1 nk2 nk3 nk4 nk5 nk6 nk7 nk8 nk9
+
   NMouse* = enum
     nm1 nm2 nm3
   
@@ -146,6 +142,13 @@ type
 
   Pixel* = tuple[r, g, b, a: uint8]
 
+  NElementAttribute* = enum
+    naMinimized naMaximized
+    naKind naVisible naHasParent naFocus naSize naOpacity
+    naLen naText naWrap naResizable naValue naOrientation
+    naIndex naReorderable naName naSide naBGColor
+    naModal naTransient
+
   Attribute* = object
     case kind*:       NElementAttribute
     of naKind:        aKind*: NElementKind
@@ -167,6 +170,8 @@ type
     of naReorderable: aReorderable*: bool
     of naSide:        aSide*: NSide
     of naBGColor:     aBGColor*: Pixel
+    of naModal:       aModal*: bool
+    of naTransient:   aTransient*: Window
     found*:           bool
     
   Attributes* = array[NElementAttribute, Attribute]
@@ -217,6 +222,7 @@ proc pixel*(r, g, b: uint8, a: uint8 = 255): Pixel =
   (r, g, b, a)
 proc pixel*(r, g, b: float, a: float = 1.0): Pixel =
   (uint8(r * 255), uint8(g * 255), uint8(b * 255), uint8(a * 255))
+proc newElement(kind: NElementKind): NElement # FD
 
 var
   tags:  STable[NElement, STable[string, string]]
@@ -366,6 +372,25 @@ proc `of`*(this: NElement, that: NElementKind): bool =
 
   genOfProc()
 
+proc newElement(kind: NElementKind): NElement =
+  macro genNewProc: untyped =
+    result = newStmtList()
+    for k in NElementKind:
+      if k == neKindInvalid: continue
+      let (k, t) = (ident(system.`$`(k)), ident($k))
+      result.add quote do:
+        if kind == `k`: return `t`()
+  
+  genNewProc()
+  
+template nguiNew() {.dirty.} =
+  const kind = parseEnum[NElementKind](
+    if typeOf(result) is NTable: "neTable" else: "ne" & $(typeOf(result)))
+  result = typeOf(result)(internalNewNElement(kind))
+
+proc nguiNew[N: NElement](_: typedesc[N]): N =
+  nguiNew()
+
 
 # APP -------------------------------------------
 proc getApp*: App =
@@ -378,7 +403,7 @@ proc app*(): App =
   ## You can only call this procedure once
 
   doAssert pApp == nil
-  result = internalNewApp()
+  nguiNew()
   pApp = result
 
 proc run*(this: App) =
@@ -395,7 +420,7 @@ proc `[]`*(this: App, index: BackwardsIndex): Window =
 
 # WINDOW ----------------------------------------
 proc window*(text: string = "NGUI"): Window =
-  result = internalNewWindow()
+  nguiNew()
   internalSetText(result, text)
   
 proc text*(this: Window): string = internalGetText(this)
@@ -435,6 +460,11 @@ proc maximized*(this: Window): bool = internalGetMaximized(this)
 proc `minimized=`*(this: Window, v: bool) = internalSetMinimized(this, v)
 proc `maximized=`*(this: Window, v: bool) = internalSetMaximized(this, v)
 
+proc modal*(this: Window): bool = internalGetModal(this)
+proc `modal=`*(this: Window, v: bool) = internalsetModal(this, v)
+proc transient*(this: Window): Window = internalGetTransient(this)
+proc `transient=`*(this, that: Window) = internalsetTransient(this, that)
+
 proc `[]`*(this: Window, index: int): Container =
   Container(internalGetChild(this, index))
 proc `[]`*(this: Window, index: BackwardsIndex): Container =
@@ -442,15 +472,28 @@ proc `[]`*(this: Window, index: BackwardsIndex): Container =
 
 
 # NALERT ----------------------------------------
-proc alert*(parent: Window, text: string) =
-  internalRun(internalNewAlert(parent, text))
+proc alert*(title: string = "", text: string = ""): Alert =
+  nguiNew()
+  if title != "": internalSetTitle(result, title)
+  if text != "": internalSetText(result, text)
 
-proc alert*(text: string) = alert(pApp[0], text)
+proc text*(this: Alert): string = internalGetText(this)
+proc `text=`*(this: Alert, text: string) = internalSetText(this, text)
+
+proc title*(this: Alert): string = internalGetTitle(this)
+proc `title=`*(this: Alert, text: string) = internalSetTitle(this, text)
+
+proc modal*(this: Alert): bool = internalGetModal(this)
+proc `modal=`*(this: Alert, v: bool) = internalsetModal(this, v)
+proc transient*(this: Alert): Window = internalGetTransient(this)
+proc `transient=`*(this: Alert, that: Window) = internalsetTransient(this, that)
+
+proc run*(this: Alert) = internalRun(this)
 
 
 # LABEL -----------------------------------------
 proc label*(text: string = ""): Label =
-  result = internalNewLabel()
+  nguiNew()
   internalSetText(result, text)
   
 proc text*(this: Label): string = internalGetText(this)
@@ -468,7 +511,7 @@ proc `yAlign=`*(this: Label, v: float) = internalSetYAlign(this, v)
 
 # ENTRY -----------------------------------------
 proc entry*(text: string = ""): Entry =
-  result = internalNewEntry()
+  nguiNew()
   internalSetText(result, text)
 
 proc text*(this: Entry): string = internalGetText(this)
@@ -477,12 +520,12 @@ proc `text=`*(this: Entry, text: string) = internalSetText(this, text)
 
 # BUTTON ----------------------------------------
 proc button*(text: string = "", onEventClick: NEventProc = nil): Button =
-  result = internalNewButton()
+  nguiNew()
   internalSetText(result, text)
   if onEventClick != nil: result.onClick(onEventClick)
 
 proc button*(img: Bitmap, onEventClick: NEventProc = nil): Button =
-  result = internalNewButton()
+  nguiNew()
   internalSetImage(result, img)
   if onEventClick != nil: result.onClick(onEventClick)
 
@@ -504,7 +547,7 @@ proc `img=`*(this: Button, img: Bitmap) = internalSetImage(this, img)
 
 # RADIO -----------------------------------------
 proc radio*(text: string = ""): Radio =
-  result = internalNewRadio()
+  nguiNew()
   if text != "": internalSetText(result, text)
 
 proc text*(this: Radio): string = internalGetText(this)
@@ -515,11 +558,11 @@ proc group*(list: varargs[Radio]) = internalSetGroup(list)
 
 # BUBBLE ----------------------------------------
 proc bubble*(text: string = ""): Bubble =
-  result = internalNewBubble()
+  nguiNew()
   if text != "": add(result, label(text))
 
 proc bubble*(child: NElement): Bubble =
-  result = internalNewBubble()
+  nguiNew()
   add(result, child)
 
 proc attach*(this: Bubble, that: NElement) =
@@ -593,11 +636,9 @@ proc save*(this: Bitmap): bool =
   return save(this, this.path)
 
 # NElement ------------------
-proc image*: Image =
-  result = internalNewImage(nil)
-
-proc image*(bitmap: Bitmap): Image =
-  result = internalNewImage(bitmap)
+proc image*(bitmap: Bitmap = nil): Image =
+  nguiNew()
+  if bitmap != nil: internalUpdate(result, bitmap)
   
 proc image*(file: string): Image = image(bitmap(file))
 
@@ -608,7 +649,7 @@ proc bitmap*(this: Image): Bitmap = internalGetBitmap(this)
   
 # TEXT_AREA -------------------------------------
 proc textArea*(text: string = ""): TextArea =
-  result = internalNewTextArea()
+  nguiNew()
   if text != "": internalSetText(result, text)
 
 proc text*(this: TextArea): string = internalGetText(this)
@@ -618,7 +659,7 @@ proc `text=`*(this: TextArea, text: string) = internalSetText(this, text)
 # CALENDAR --------------------------------------
 proc calendar*(
     date: DateTime = now(), onChangeEvent: NEventProc = nil): Calendar =
-  result = internalNewCalendar()
+  nguiNew()
   internalSetDate(result, date)
   if onChangeEvent != nil: result.onChange(onChangeEvent)
 
@@ -644,7 +685,7 @@ proc slider*(
     orientation: NOrientation = noHORIZONTAL,
     decimals: int = 0,
     step: float = 1): Slider =
-  result = internalNewSlider()
+  nguiNew()
   internalSetRange(result, range)
   internalSetValue(result, value)
   internalSetStep(result, step)
@@ -673,7 +714,7 @@ proc `orientation`*(this: Slider, value: NOrientation) =
 
 # FILECHOOSE ------------------------------------
 proc fileChoose*(button: string, buttons: varargs[string]): FileChoose =
-  result = internalNewFileChoose()
+  nguiNew()
   internalSetButton(result, button, 0)
   for i, button in buttons: internalSetButton(result, button, i + 1)
 
@@ -698,7 +739,7 @@ proc file*(this: FileChoose): string =
 
 # CHECKBOX --------------------------------------
 proc checkbox*(text: string = "", checked: bool = false): Checkbox =
-  result = internalNewCheckBox()
+  nguiNew()
   internalSetChecked(result, checked)
   if text != "": internalSetText(result, text)
 
@@ -748,15 +789,15 @@ proc onAdd(this: Container, that: NElement) =
   if this of Tab:    
     if that of Container:
       if that in names:
-        let label = internalNewLabel()
+        let label = nguiNew(Label)
         internalSetText(label, names[that])
         Tab(this).internalAdd(Container(that), label)
         return
 
     else:
-      let cont = internalNewBox()
-      onAdd(cont, that)
-      onAdd(this, cont)
+      let box = nguiNew(Box)
+      onAdd(box, that)
+      onAdd(this, box)
       return
 
   if this of Window:
@@ -765,9 +806,9 @@ proc onAdd(this: Container, that: NElement) =
       return
 
     if not (that of Container):
-      let b = internalNewBox()
-      onAdd(b, that)
-      onAdd(this, b)
+      let box = nguiNew(Box)
+      onAdd(box, that)
+      onAdd(this, box)
       return
   
   if this of App:
@@ -777,7 +818,7 @@ proc onAdd(this: Container, that: NElement) =
           onAdd(Container(c), that)
           return
 
-        let w = internalNewWindow()
+        let w =  nguiNew(Window)
         onAdd(w, that)
         onAdd(this, w)
 
@@ -787,7 +828,7 @@ proc onAdd(this: Container, that: NElement) =
             onAdd(Container(c), that)
             return
 
-        let b = internalNewBox()
+        let b = nguiNew(Box)
         onAdd(b, that)
         onAdd(this, b)
 
@@ -809,8 +850,7 @@ proc add*(this: Container, text: string) = this.add(label(text))
 proc add*(this: Container, one, two: NElement, list: varargs[NElement]) =
   # Edge case: I want to add one box and some elements AFTER said box
   # TODO: if this of Window/App ?
-  if one of Container: this.add(internalNewBox())
-  
+  if one of Container: this.add(nguiNew(Box))
   this.add(one)
   this.add(two)
   for that in list: this.add(that)
@@ -861,7 +901,7 @@ proc `borderColor=`*(this: Container, color: Pixel) =
 
 # BAR -------------------------------------------
 proc bar*(): Bar =
-  result = internalNewBar()
+  nguiNew()
 
 #proc add*(this: Bar, label: NElement, menu: Menu) =
   #internalAdd()
@@ -869,7 +909,7 @@ proc bar*(): Bar =
 
 # MENU ------------------------------------------
 proc menu*(): Menu =
-  result = internalNewMenu()
+  nguiNew()
   
 proc add*(this: NElement, that: Menu) =
   internalAdd(this, that)
@@ -881,7 +921,7 @@ proc add*(this: ComboBox, text: string, selected: bool = false) =
   if selected: internalSetSelectedIndex(this, internalLen(this) - 1)
 
 proc comboBox*(textList: varargs[string], selected: int = -1): ComboBox =
-  result = internalNewComboBox()
+  nguiNew()
   for text in textList: result.add(text)
   internalSetSelectedIndex(result, selected)
 
@@ -897,7 +937,7 @@ proc selectedIndex*(this: ComboBox): int =
 
 # PROGRESS --------------------------------------
 proc progress*(v: float = 0.0): Progress =
-  result = internalNewProgress()
+  nguiNew()
   internalValue(result, v)
 
 proc value*(this: Progress): float = internalValue(this)
@@ -910,7 +950,7 @@ proc box*(
     orientation: NOrientation = noVERTICAL,
     spacing: int = 0): Box =
 
-  result = internalNewBox()
+  nguiNew()
   internalSetOrientation(result, orientation)
   internalSetSpacing(result, spacing)
   for e in elements: result.add(e)
@@ -930,7 +970,7 @@ proc add*(this: Box, that: NElement, expand, fill: bool, padding: int) =
 
 # TABLE -----------------------------------------
 proc table*(): NTable =
-  result = internalNewTable()
+  nguiNew()
 
 proc addRow(this: NTable, values: varargs[NTableCell]) =
   var
@@ -1016,14 +1056,14 @@ proc grid*(
     firstColumn: int = 0,
     width: int = 1,
     height: int = 1): Grid =
-  result = internalNewGrid()
+  nguiNew()
   result.add(elements, row, firstColumn, width, height)
 
 
 # TAB -------------------------------------------
 proc tab*(reorderable: bool = false): Tab =
   ## Creates a new Tab element (Menu of Tabs)
-  result = internalNewTab()
+  nguiNew()
   internalSetReorderable(result, reorderable)
 
 proc add*(this: Tab, that: Container, label: Label) =
@@ -1038,7 +1078,7 @@ proc `side=`*(this: Tab, side: NSide) = internalSetSide(this, side)
 
 # LIST ------------------------------------------
 proc list*(mode: NAmount = naOne): List =
-  result = internalNewList()
+  nguiNew()
   internalSetMode(result, mode)
 
 proc mode*(this: List): NAmount = internalGetMode(this)
@@ -1054,7 +1094,7 @@ proc selected*(this: List): seq[NElement] = selected(this, result)
 
 # FRAME -----------------------------------------
 proc frame*(text: string, list: varargs[NElement]): Frame =
-  result = internalNewFrame()
+  nguiNew()
   if text != "": internalSetText(result, text)
   for element in list: result.add(element)
 
@@ -1067,7 +1107,7 @@ proc `text=`*(this: Frame, text: string) = internalSetText(this, text)
 
 # TOOLS -----------------------------------------
 proc tools*: Tools =
-  result = internalNewTools()
+  nguiNew()
 
 proc orientation*(this: Tools): NOrientation =
   ## Get the orientation of this Tools element
@@ -1107,6 +1147,8 @@ proc get*(this: NElement, that: NElementAttribute): Attribute =
   of naLen:         gt(Container, aLen, internalLen)
   of naReorderable: gt(Tab, aReorderable, internalGetReorderable)
   of naSide:        gt(Tab, aSide, internalGetSide)
+  of naModal:       gt(Window, aModal, internalGetModal)
+  of naTransient:   gt(Window, aTransient, internalGetTransient)
   of naOrientation:
     template gt(t) = gt(t, aOrientation, internalGetOrientation)
     gt(Box); gt(Slider); gt(Tools)
@@ -1145,6 +1187,8 @@ proc set*(this: NElement, that: Attribute) =
   of naMinimized:   s(Window, internalSetMinimized, that.aMinimized)
   of naMaximized:   s(Window, internalSetMaximized, that.aMaximized)
   of naReorderable: s(Tab, internalSetReorderable, that.aReorderable)
+  of naModal:       s(Window, internalsetModal, that.aModal)
+  of naTransient:   s(Window, internalsetTransient, that.aTransient)
   of naSide:        s(Tab, internalSetSide, that.aSide)
   of naOrientation:
     s(Box,    internalSetOrientation, that.aOrientation)

@@ -11,7 +11,9 @@ proc main =
   let button = button("Show Alert")
   
   button.onClickDo:
-    alert(parent = window, "Hello stranger")
+    let a = alert("Alert", "Hello stranger")
+    a.transient = window
+    run(a)
 
   window.add(button)
   app.add(window)
