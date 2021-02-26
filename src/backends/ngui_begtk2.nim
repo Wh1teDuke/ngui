@@ -340,17 +340,6 @@ proc internalSetYAlign(this: Label, v: float) =
 
 
 # ENTRY -----------------------------------------
-proc internalGetText(this: Entry): string =
-  ## Get this Entry's content
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetText(this: Entry): string")
-  else: bError("proc internalGetText(this: Entry): string")
-
-proc internalSetText(this: Entry, text: string) =
-  ## Set this Entry's content
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetText(this: Entry, text: string)")
-  else: bError("proc internalSetText(this: Entry, text: string)")
 
 
 

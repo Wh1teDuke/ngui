@@ -362,11 +362,7 @@ proc internalSetYAlign(this: Label, v: float) =
 
 
 # ENTRY -----------------------------------------
-proc internalGetText(this: Entry): string =
-  $this.data(gtk.Entry).getText()
 
-proc internalSetText(this: Entry, text: string) =
-  this.data(gtk.Entry).setText(text)
 
 
 # BUTTON ----------------------------------------

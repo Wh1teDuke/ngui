@@ -21,6 +21,7 @@ when v2:
     gtkToolItem    = gtk2.PToolItem
     gtkGrid        = gtk2.PTable
     gtkLabel       = gtk2.PLabel
+    gtkEntry       = gtk2.PEntry
     # gtkPopover     = gtk2.PPopover TODO
     gtkImage       = gtk2.PImage
     gtkTextView    = gtk2.PTextView
@@ -98,6 +99,7 @@ elif v3:
     gtkRadioButton = gtk.RadioButton
     gtkButton      = gtk.Button
     gtkLabel       = gtk.Label
+    gtkEntry       = gtk.Entry
     gtkGrid        = gtk.Grid
     gtkPopover     = gtk.PopOver
     gtkImage       = gtk.Image
@@ -554,6 +556,14 @@ proc internalSetText(this: Label, text: string) =
 
 proc internalGetText(this: Label): string =
   $this.data(gtkLabel).getText()
+
+
+# ENTRY -----------------------------------------
+proc internalGetText(this: Entry): string =
+  $this.data(gtkEntry).getText()
+
+proc internalSetText(this: Entry, text: string) =
+  this.data(gtkEntry).setText(text)
 
 
 # BUTTON ----------------------------------------
