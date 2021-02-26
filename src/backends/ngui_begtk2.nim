@@ -121,34 +121,6 @@ proc internalRemove(this: Container, that: NElement) =
   else: bError("proc internalRemove(this: Container, that: NElement)")
 
 
-proc handleToolsAdd(this: Tools, that: NElement) # FD
-
-proc internalAdd(this: Container, that: NElement) =  
-  if this of App:
-    utilChild(this, that)
-    return
-
-  # MENU/BAR
-  # (Complex stuff, we need to create MenuItems in the middle)
-  if (this of Menu or this of Bar) or (that of Menu):
-    handleMenuBarAdd(this, that)
-    return
-  
-  # TOOLS
-  # Again, create an adapter
-  if this of Tools:
-    handleToolsAdd(Tools(this), that)
-    return
-
-  utilChild(this, that)
-  let (thisD, thatD) = (this.data(gtkContainer), that.data(gtkWidget))
-
-  # TODO: if not utilTryAddChild(thisD, thatD, adapters):
-  if true:
-    thisD.add(thatD)
-
-  thatD.show()
-
 proc internalGetBorder(this: Container): NBorder =
   ## Get the border size of this container
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
@@ -586,21 +558,6 @@ proc handleToolsAdd(this: Tools, that: NElement) =
 
 
 # TIMERS -----------------------------------------
-proc internalRepeat(event: NRepeatProc, ms: int): NRepeatHandle =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalRepeat(event: NRepeatProc, ms: int): NRepeatHandle")
-  else: bError("proc internalRepeat(event: NRepeatProc, ms: int): NRepeatHandle")
-
-proc internalStop(this: NRepeatHandle) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalStop(this: NRepeatHandle)")
-  else: bError("proc internalStop(this: NRepeatHandle)")
-
-proc internalSetTime(this: var NRepeatHandle, ms: int) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetTime(this: var NRepeatHandle, ms: int)")
-  else: bError("proc internalSetTime(this: var NRepeatHandle, ms: int)")
-
 
 
 # CLIPBOARD -------------------------------------
@@ -638,69 +595,3 @@ proc internalClipboardAsyncGet(action: NAsyncBitmapProc) =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalClipboardAsyncGet(action: NAsyncBitmapProc)")
   else: bError("proc internalClipboardAsyncGet(action: NAsyncBitmapProc)")
-
-
-# EVENTS AGAIN ----------------------------------
-proc internalGetCurrentEvent: NEventArgs =
-  # https://developer.gnome.org/gtk3/stable/gtk3-General.html
-  # https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html
-  let e = getCurrentEvent()
-  if e == nil: return
-  #[ TODO
-  case e.`type`:
-  of BUTTON_PRESS, BUTTON_RELEASE, MOTION_NOTIFY:
-    template setkind(a, b) =
-      if e.`type` == a: result = NEventArgs(kind: b)
-      
-    setKind(BUTTON_PRESS,   neClick)
-    setKind(BUTTON_RELEASE, neClickRelease)
-    setKind(MOTION_NOTIFY,  neMove)
-    
-    if e.`type` in {BUTTON_PRESS, BUTTON_RELEASE}:
-      let e = cast[EventButton](e)
-      
-      if e.button == 1: result.mouse.incl(nm1)
-      if e.button == 2: result.mouse.incl(nm2)
-      if e.button == 3: result.mouse.incl(nm3)
-      
-    else:
-      var st: ModifierType
-      if e.getState(st):      
-        template setMouse(a, b) =
-          if (int(st) and int(a)) != 0: result.mouse.incl(b)
-
-        setMouse(BUTTON1_MASK, nm1)
-        setMouse(BUTTON2_MASK, nm2)
-        setMouse(BUTTON3_MASK, nm3)
-
-    result.x = e.button.x.int
-    result.y = e.button.y.int
-
-  of KEY_PRESS, KEY_RELEASE:
-    let key =
-      case e.key.keyval:
-      of KEY_ESCAPE: nkEsc
-      of KEY_a: nkA
-      of KEY_b: nkB
-      of KEY_c: nkC
-      of KEY_d: nkD
-      of KEY_v: nkV
-      of KEY_s: nkS
-      else: nkNone
-
-    result =
-      if e.`type` == KEY_PRESS: NEventArgs(kind: neKeyPress, key: key)
-      else: NEventArgs(kind: neKeyRelease, key: key)
-
-    var st: ModifierType
-    if e.getState(st):
-      template mapMod(mt: ModifierType, k: NKey) =
-        if (int(st) and int(mt)) != 0: result.mods.incl(k)
-
-      mapMod(CONTROL_MASK, nkControl)
-      mapMod(SHIFT_MASK, nkShift)
-
-  else: discard
-
-  result.element = utilElement(e.getEventWidget())
-  gdk.free(e)]#

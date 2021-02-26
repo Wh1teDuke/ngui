@@ -185,34 +185,6 @@ proc internalRemove(this: Container, that: NElement) =
   adjustSize(this)
   utilRemove(this, that)
 
-proc handleMenuBarAdd(this, that: NElement) # FD
-proc handleToolsAdd(this: Tools, that: NElement) # FD
-
-proc internalAdd(this: Container, that: NElement) =  
-  if this of App:
-    utilChild(this, that)
-    return
-
-  # MENU/BAR
-  # (Complex stuff, we need to create MenuItems in the middle)
-  if (this of Menu or this of Bar) or (that of Menu):
-    handleMenuBarAdd(this, that)
-    return
-  
-  # TOOLS
-  # Again, create an adapter
-  if this of Tools:
-    handleToolsAdd(Tools(this), that)
-    return
-  
-  utilChild(this, that)
-  let (thisD, thatD) = (this.data(gtk.Container), that.data(gtk.Widget))
-  
-  if not utilTryAddChild(thisD, thatD, adapters):
-    # https://developer.gnome.org/gtk3/stable/GtkContainer.html#gtk-container-add
-    thisD.add(thatD)
-  # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-show
-  thatD.show()
 
 proc internalGetBorder(this: Container): NBorder =
   # https://developer.gnome.org/gtk3/stable/chap-css-properties.html
@@ -654,27 +626,6 @@ proc handleToolsAdd(this: Tools, that: NElement) =
 
 
 # TIMERS ----------------------------------------
-proc internalRepeat(event: NRepeatProc, ms: int): NRepeatHandle =  
-  # https://developer.gnome.org/gtk-tutorial/stable/c1759.html
-  proc cb(a: GPointer): GBoolean {.cdecl.} = utilTrigger(cast[int](a))
-  
-  let rid = utilNextRepeatID()
-  result = timeoutAdd(
-    interval = cuint(ms),
-    function = GSourceFunc(cb),
-    data     = cast[GPointer](rid),
-  ).NRepeatHandle
-
-  utilRepeatAdd(event, result, rid)
-
-proc internalStop(this: NRepeatHandle) =
-  discard sourceRemove(this.cuint)
-  utilDel(this)
-
-proc internalSetTime(this: var NRepeatHandle, ms: int) =
-  let event = utilGet(this)
-  internalStop(this)
-  this = internalRepeat(event, ms)
 
 
 # CLIPBOARD -------------------------------------
@@ -729,69 +680,6 @@ proc internalClipboardAsyncGet(action: NAsyncBitmapProc) =
   asyncCB(requestImage, GdkPixBuf, ClipboardImageReceivedFunc,
     (if data == nil: nil else: newBitmap(cast[GdkPixBuf](data))))
 
-
-# EVENTS: THE SECOND COMING ---------------------
-proc internalGetCurrentEvent: NEventArgs =
-  # https://developer.gnome.org/gtk3/stable/gtk3-General.html
-  # https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html
-  let e = getCurrentEvent()
-  if e == nil: return
-  
-  case e.`type`:
-  of BUTTON_PRESS, BUTTON_RELEASE, MOTION_NOTIFY:
-    template setkind(a, b) =
-      if e.`type` == a: result = NEventArgs(kind: b)
-      
-    setKind(BUTTON_PRESS,   neClick)
-    setKind(BUTTON_RELEASE, neClickRelease)
-    setKind(MOTION_NOTIFY,  neMove)
-    
-    if e.`type` in {BUTTON_PRESS, BUTTON_RELEASE}:
-      let e = cast[EventButton](e)
-      
-      if e.button == 1: result.mouse.incl(nm1)
-      if e.button == 2: result.mouse.incl(nm2)
-      if e.button == 3: result.mouse.incl(nm3)
-      
-    else:
-      var st: ModifierType
-      if e.getState(st):      
-        template setMouse(a, b) =
-          if (int(st) and int(a)) != 0: result.mouse.incl(b)
-
-        setMouse(BUTTON1_MASK, nm1)
-        setMouse(BUTTON2_MASK, nm2)
-        setMouse(BUTTON3_MASK, nm3)
-
-    result.x = e.button.x.int
-    result.y = e.button.y.int
-
-  of KEY_PRESS, KEY_RELEASE:
-    let key =
-      case e.key.keyval:
-      of KEY_ESCAPE: nkEsc
-      of KEY_a .. KEY_z:
-        NKey((int(e.key.keyval) - int(Key_a)) + int(nkA))
-      of KEY_0 .. KEY_9:
-        NKey((int(e.key.keyval) - int(Key_0)) + int(nk0))
-      else: nkNone
-
-    result =
-      if e.`type` == KEY_PRESS: NEventArgs(kind: neKeyPress, key: key)
-      else: NEventArgs(kind: neKeyRelease, key: key)
-
-    var st: ModifierType
-    if e.getState(st):
-      template mapMod(mt: ModifierType, k: NKey) =
-        if (int(st) and int(mt)) != 0: result.mods.incl(k)
-
-      mapMod(CONTROL_MASK, nkControl)
-      mapMod(SHIFT_MASK, nkShift)
-
-  else: discard
-
-  result.element = utilElement(e.getEventWidget())
-  gdk.free(e)
 
 
 # I was a flower of the mountain yes when I put the rose in my hair like

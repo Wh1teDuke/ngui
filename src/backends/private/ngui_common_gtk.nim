@@ -39,7 +39,7 @@ when v2:
     gtkCheckButton = gtk2.PCheckButton
     gtkFileChooserDialog = gtk2.PFileChooser
     gtkCellLayout  = gtk2.PPGtkCellLayout
-    GPointer       = glib2.PGpointer
+    GPointer       = glib2.gpointer
     gtkOrientable  = gtk2.PWidget
     Orientation    = gtk2.TOrientation
     GValueObj      = glib2.TGValue
@@ -128,6 +128,7 @@ elif v3:
     gtkListStore   = gtk.ListStore
     gtkTreeIterObj = gtk.TreeIterObj
     gtkTreeModel   = gtk.TreeModel
+    gtkToolBar     = gtk.ToolBar
     gtkOrientable  = gtk.Orientable
     GPointer       = glib.GPointer
   
@@ -582,6 +583,35 @@ proc internalAddSeparator(this: Container, dir: NOrientation) =
     when v2: tools.add(newSeparator(Orientation(dir)))
     else:    tools.add(newSeparatorToolItem())
 
+proc handleMenuBarAdd(this, that: NElement) # FD
+proc handleToolsAdd(this: Tools, that: NElement) # FD
+
+proc internalAdd(this: Container, that: NElement) =  
+  if this of App:
+    utilChild(this, that)
+    return
+
+  # MENU/BAR
+  # (Complex stuff, we need to create MenuItems in the middle)
+  if (this of Menu or this of Bar) or (that of Menu):
+    handleMenuBarAdd(this, that)
+    return
+  
+  # TOOLS
+  # Again, create an adapter
+  if this of Tools:
+    handleToolsAdd(Tools(this), that)
+    return
+  
+  utilChild(this, that)
+  let (thisD, thatD) = (this.data(gtkContainer), that.data(gtkWidget))
+  
+  if not utilTryAddChild(thisD, thatD, adapters):
+    # https://developer.gnome.org/gtk3/stable/GtkContainer.html#gtk-container-add
+    thisD.add(thatD)
+  # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-show
+  thatD.show()
+
 
 # COMBOBOX --------------------------------------
 proc internalGetSelectedIndex(this: ComboBox): int = # TODO 
@@ -902,3 +932,105 @@ proc handleMenuBarAdd(this, that: NElement) =
 
 proc internalAdd(this: NElement, that: Menu) =
   handleMenuBarAdd(this, that)
+
+
+# TIMERS ----------------------------------------
+proc internalRepeat(event: NRepeatProc, ms: int): NRepeatHandle =  
+  # https://developer.gnome.org/gtk-tutorial/stable/c1759.html
+  proc cb(a: GPointer): (when v2: bool else: GBoolean) {.cdecl.} =
+    utilTrigger(cast[int](a))
+  when v2: (const timeoutAdd = gtimeoutAdd)
+  
+  let rid = utilNextRepeatID()
+  result = timeoutAdd(
+    interval = cuint(ms),
+    function = when v2: cast[gtk2.TFunction](cb) else: GSourceFunc(cb),
+    data     = cast[GPointer](rid),
+  ).NRepeatHandle
+
+  utilRepeatAdd(event, result, rid)
+
+proc internalStop(this: NRepeatHandle) =
+  when v2: (const sourceRemove = gSourceRemove)
+  discard sourceRemove(this.cuint)
+  utilDel(this)
+
+proc internalSetTime(this: var NRepeatHandle, ms: int) =
+  let event = utilGet(this)
+  internalStop(this)
+  this = internalRepeat(event, ms)
+
+
+# EVENTS: THE SECOND COMING ---------------------
+proc internalGetCurrentEvent: NEventArgs =
+  # https://developer.gnome.org/gtk3/stable/gtk3-General.html
+  # https://developer.gnome.org/gdk3/stable/gdk3-Event-Structures.html
+  let e = getCurrentEvent()
+  if e == nil: return
+
+  let eventType =
+    when v2: cast[PEventAny](e).`type`
+    else: e.`type`
+  
+  case eventType:
+  of BUTTON_PRESS, BUTTON_RELEASE, MOTION_NOTIFY:
+    template setkind(a, b) =
+      if eventType == a: result = NEventArgs(kind: b)
+      
+    setKind(BUTTON_PRESS,   neClick)
+    setKind(BUTTON_RELEASE, neClickRelease)
+    setKind(MOTION_NOTIFY,  neMove)
+    
+    if eventType in {BUTTON_PRESS, BUTTON_RELEASE}:
+      let e = cast[(when v2: PEventButton else: EventButton)](e)
+      
+      if e.button == 1: result.mouse.incl(nm1)
+      if e.button == 2: result.mouse.incl(nm2)
+      if e.button == 3: result.mouse.incl(nm3)
+      
+    else:
+      var st: (when v2: TModifierType else: ModifierType)
+      if e.getState((when v2: st.addr else: st)):
+        template setMouse(a, b) =
+          if (int(st) and int(a)) != 0: result.mouse.incl(b)
+
+        setMouse(BUTTON1_MASK, nm1)
+        setMouse(BUTTON2_MASK, nm2)
+        setMouse(BUTTON3_MASK, nm3)
+
+    when v2:
+      let e = cast[PEventButton](e)
+      result.x = e.x.int
+      result.y = e.y.int
+    else:
+      result.x = e.button.x.int
+      result.y = e.button.y.int
+
+  of KEY_PRESS, KEY_RELEASE:    
+    let
+      keyVal = (when v2: cast[PEventKey](e) else: e.key).keyval
+      key    =
+        case keyVal:
+        of KEY_ESCAPE: nkEsc
+        of KEY_a .. KEY_z:
+          NKey((int(keyVal) - int(Key_a)) + int(nkA))
+        of KEY_0 .. KEY_9:
+          NKey((int(keyVal) - int(Key_0)) + int(nk0))
+        else: nkNone
+
+    result =
+      if eventType == KEY_PRESS: NEventArgs(kind: neKeyPress, key: key)
+      else: NEventArgs(kind: neKeyRelease, key: key)
+
+    var st: (when v2: TModifierType else: ModifierType)
+    if e.getState((when v2: st.addr else: st)):
+      template mapMod(mt: typed, k: NKey) =
+        if (int(st) and int(mt)) != 0: result.mods.incl(k)
+
+      mapMod(CONTROL_MASK, nkControl)
+      mapMod(SHIFT_MASK, nkShift)
+
+  else: discard
+
+  result.element = utilElement(e.getEventWidget())
+  free(e)
