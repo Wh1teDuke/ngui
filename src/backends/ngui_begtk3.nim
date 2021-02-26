@@ -235,20 +235,6 @@ proc internalSetBorderColor(this: Container, color: Pixel) =
   let (r,g,b,a) = color
   discard invokeSatanSet(this, "*{border-color:rgba($1,$2,$3,$4);}", r, g, b, a)
 
-proc internalAddSeparator(this: Container, dir: NOrientation) =
-  # https://developer.gnome.org/gtk3/stable/GtkSeparator.html
-  # https://developer.gnome.org/gtk3/stable/GtkSeparatorMenuItem.html
-  # https://developer.gnome.org/gtk3/stable/GtkSeparatorToolItem.html
-  if this of Box:
-    let box = this.data(gtk.Box)
-    box.add(newSeparator(Orientation(dir)))
-  elif this of Menu:
-    let menu = this.data(gtk.Menu)
-    menu.add(newSeparatorMenuItem())
-  elif this of Tools:
-    let tools = this.data(gtk.ToolBar)
-    tools.add(newSeparatorToolItem())
-
 
 # APP -------------------------------------------
 proc internalRun(this: App) =
@@ -437,70 +423,6 @@ proc internalRun(this: FileChoose): int =
 
 
 # MENU ------------------------------------------
-# ---
-
-
-proc handleMenuBarAdd(this, that: NElement) =
-  # BAR / MENU ----------------------
-  # GTKMenuBar/GTKMenu hierarchy:
-  # MenuBar -> [MenuItem] -> Menu -> [MenuItem] -> Widgets
-  # https://developer.gnome.org/gtk3/stable/GtkMenuItem.html
-  # ---------------------------------
-
-  let (thisD, thatD) = (this.data(gtk.Container), that.data(gtk.Widget))
-
-  if this of Bar:
-    # MenuBar -> CREATE(MenuItem) -> Menu
-    if that of Menu:
-      
-      # Maybe 'this' has a MenuItem attached already somewhere ...
-      let
-        last  = utilNChild(Bar(this), utilLen(Bar(this)) - 1)
-        lastD = cast[gtk.Widget](last.raw)
-        
-      if last != nil:
-        # TODO: What if returns EventBox?
-        let mItem = cast[gtk.MenuItem](
-          utilGetOrAddAdapter(lastD, adaptersMenuItem))
-        gtk.MenuItem(mItem).setSubmenu(that.data(gtk.Menu))
-        return
-
-      # Sorry, but in between Bar and Menu, we need
-      # a label or something, now you will die
-      raiseAssert(
-        "Cannot add Menu directly to Bar. Add Menu to label and " &
-        "that label to Bar instead")
-
-    # MenuBar -> CREATE(MenuItem->Menu) -> That
-    else:      
-      # Maybe 'that' already has a MenuItem attached
-      discard utilInsertAdapter(thisD, thatD, adaptersMenuItem)
-
-  # Menu -> CREATE(MenuItem) -> That  
-  elif this of Menu:
-    discard utilInsertAdapter(thisD, thatD, adaptersMenuItem)
-  
-  # CREATE(MenuItem) -> This -> That
-  elif that of Menu:
-    let mItem = cast[gtk.MenuItem](
-      utilGetOrAddAdapter(thisD, adaptersMenuItem))
-    mItem.setSubmenu(gtk.Menu(thatD))
-
-    if utilExists(neClick, thisD) and not utilExists(neClick, mItem):
-      utilSet(neClick, mItem, utilGet(neClick, thisD))
-      discard gSignalConnect(
-        mItem, "activate", gCALLBACK(triggerEvent), cast[pointer](neClick))
-
-    return
-
-  else:
-    # Should never by triggered by client code
-    raiseAssert("NOOOOOOOOOOOOOOOOOOOOOO!")
-
-  utilChild(Container(this), that)
-
-proc internalAdd(this: NElement, that: Menu) =
-  handleMenuBarAdd(this, that)
 
 
 # COMBOBOX --------------------------------------

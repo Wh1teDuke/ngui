@@ -29,10 +29,13 @@ when v2:
     gtkEntry       = gtk2.PEntry
     # gtkPopover     = gtk2.PPopover TODO
     gtkImage       = gtk2.PImage
+    gtkToolBar     = gtk2.PToolBar
     gtkTextView    = gtk2.PTextView
     gtkCalendar    = gtk2.PCalendar
     gtkScale       = gtk2.PScale
     gtkBox         = gtk2.PBox
+    gtkMenuItem    = gtk2.PMenuItem
+    gtkMenu        = gtk2.PMenu
     gtkCheckButton = gtk2.PCheckButton
     gtkFileChooserDialog = gtk2.PFileChooser
     gtkCellLayout  = gtk2.PPGtkCellLayout
@@ -80,6 +83,9 @@ when v2:
   proc newFrame(): auto = gtk2.frame_new("")
   proc newListBox(): auto = gtk2.list_new() # https://developer.gnome.org/gtk2/2.24/GtkList.html
   proc newTreePath(a, b: int): auto = gtk2.tree_path_new_from_string($a & ":" & $b)
+  proc newSeparator(o: Orientation): gtkWidget =
+    if int(o) == 1: vseparator_new() else: hseparator_new()
+  proc newSeparatorMenuItem(): gtkWidget = separator_menu_item_new()
   proc newMessageDialog(): auto = gtk2.message_dialog_new(
     nil,
     0, # https://developer.gnome.org/gtk2/2.24/GtkDialog.html#GtkDialogFlags # TODO: TODO
@@ -102,6 +108,8 @@ elif v3:
     gtkDialog      = gtk.Dialog
     gtkWidget      = gtk.Widget
     gtkContainer   = gtk.Container
+    gtkMenuItem    = gtk.MenuItem
+    gtkMenu        = gtk.Menu
     gtkTextView    = gtk.TextView
     gtkRadioButton = gtk.RadioButton
     gtkButton      = gtk.Button
@@ -559,6 +567,21 @@ proc internalGetChild(this: Container, index: int): NElement =
 
 proc internalLen(this: Container): int = utilLen(this)
 
+proc internalAddSeparator(this: Container, dir: NOrientation) =
+  # https://developer.gnome.org/gtk3/stable/GtkSeparator.html
+  # https://developer.gnome.org/gtk3/stable/GtkSeparatorMenuItem.html
+  # https://developer.gnome.org/gtk3/stable/GtkSeparatorToolItem.html
+  if this of Box:
+    let box = this.data(gtkBox)
+    box.add(newSeparator(Orientation(dir)))
+  elif this of Menu:
+    let menu = this.data(gtkMenu)
+    menu.add(newSeparatorMenuItem())
+  elif this of Tools:
+    let tools = this.data(gtkToolBar)
+    when v2: tools.add(newSeparator(Orientation(dir)))
+    else:    tools.add(newSeparatorToolItem())
+
 
 # COMBOBOX --------------------------------------
 proc internalGetSelectedIndex(this: ComboBox): int = # TODO 
@@ -815,3 +838,67 @@ proc internalIconBitmap(icon: NIcon): Bitmap =
     of niFileOpen:   "document-open"
     of niExecutable: "application-x-executable"
   )
+
+
+# MENU ------------------------------------------
+proc handleMenuBarAdd(this, that: NElement) =
+  # BAR / MENU ----------------------
+  # GTKMenuBar/GTKMenu hierarchy:
+  # MenuBar -> [MenuItem] -> Menu -> [MenuItem] -> Widgets
+  # https://developer.gnome.org/gtk3/stable/GtkMenuItem.html
+  # ---------------------------------
+
+  let (thisD, thatD) = (this.data(gtkContainer), that.data(gtkWidget))
+
+  if this of Bar:
+    # MenuBar -> CREATE(MenuItem) -> Menu
+    if that of Menu:
+      
+      # Maybe 'this' has a MenuItem attached already somewhere ...
+      let
+        last  = utilNChild(Bar(this), utilLen(Bar(this)) - 1)
+        lastD = cast[gtkWidget](last.raw)
+        
+      if last != nil:
+        # TODO: What if returns EventBox?
+        let mItem = cast[gtkMenuItem](
+          utilGetOrAddAdapter(lastD, adaptersMenuItem))
+        gtkMenuItem(mItem).setSubmenu(that.data(gtkMenu))
+        return
+
+      # Sorry, but in between Bar and Menu, we need
+      # a label or something, now you will die
+      raiseAssert(
+        "Cannot add Menu directly to Bar. Add Menu to label and " &
+        "that label to Bar instead")
+
+    # MenuBar -> CREATE(MenuItem->Menu) -> That
+    else:      
+      # Maybe 'that' already has a MenuItem attached
+      discard utilInsertAdapter(thisD, thatD, adaptersMenuItem)
+
+  # Menu -> CREATE(MenuItem) -> That  
+  elif this of Menu:
+    discard utilInsertAdapter(thisD, thatD, adaptersMenuItem)
+  
+  # CREATE(MenuItem) -> This -> That
+  elif that of Menu:
+    let mItem = cast[gtkMenuItem](
+      utilGetOrAddAdapter(thisD, adaptersMenuItem))
+    mItem.setSubmenu(gtkMenu(thatD))
+
+    if utilExists(neClick, thisD) and not utilExists(neClick, mItem):
+      utilSet(neClick, mItem, utilGet(neClick, thisD))
+      discard signal(
+        mItem, "activate", SCB(triggerEvent), cast[pointer](neClick))
+
+    return
+
+  else:
+    # Should never by triggered by client code
+    raiseAssert("NOOOOOOOOOOOOOOOOOOOOOO!")
+
+  utilChild(Container(this), that)
+
+proc internalAdd(this: NElement, that: Menu) =
+  handleMenuBarAdd(this, that)

@@ -121,7 +121,6 @@ proc internalRemove(this: Container, that: NElement) =
   else: bError("proc internalRemove(this: Container, that: NElement)")
 
 
-proc handleMenuBarAdd(this, that: NElement) # FD
 proc handleToolsAdd(this: Tools, that: NElement) # FD
 
 proc internalAdd(this: Container, that: NElement) =  
@@ -162,11 +161,6 @@ proc internalSetBorder(this: Container, b: NBorder) =
   when LAX_ERROR: bInfo("proc internalSetBorder(this: Container, b: NBorder)")
   else: bError("proc internalSetBorder(this: Container, b: NBorder)")
 
-proc internalAddSeparator(this: Container, dir: NOrientation) =
-  ## Add a visual separator after the last added child
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalAddSeparator(this: Container, dir: NOrientation)")
-  else: bError("proc internalAddSeparator(this: Container, dir: NOrientation)")
 
 proc internalGetBorderColor(this: Container): Pixel =
   ## Get the color of this container's border
@@ -433,18 +427,10 @@ proc internalRun(this: FileChoose): int =
   else: bError("proc internalRun(this: FileChoose): int")
 
 
-
 # BAR -------------------------------------------
 
 
 # MENU ------------------------------------------
-proc handleMenuBarAdd(this, that: NElement) =
-  raiseAssert("Not implemented")
-
-proc internalAdd(this: NElement, that: Menu) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalAdd(this: NElement, that: Menu)")
-  else: bError("proc internalAdd(this: NElement, that: Menu)")
 
 
 # TABLE -----------------------------------------
