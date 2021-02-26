@@ -411,14 +411,6 @@ proc internalSetChecked(this: Checkbox, v: bool) =
 
 
 # BUTTON ----------------------------------------
-proc internalSetText(this: Button, text: string) =
-  this.data(gtkButton).setLabel(text)
-
-proc internalGetText(this: Button): string =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetText(this: Button): string")
-  else: bError("proc internalGetText(this: Button): string")
-
 proc internalSetImage(this: Button, img: Bitmap) =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalSetImage(this: Button, img: Bitmap)")
@@ -665,21 +657,6 @@ proc internalValue(this: Progress, v: float) =
 
 
 # BOX ------------------------------------------- 
-proc internalSetSpacing(this: Box, spacing: int)  =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetSpacing(this: Box, spacing: int) ")
-  else: bError("proc internalSetSpacing(this: Box, spacing: int) ")
-
-proc internalGetOrientation(this: Box): NOrientation =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetOrientation(this: Box): NOrientation")
-  else: bError("proc internalGetOrientation(this: Box): NOrientation")
-
-proc internalSetOrientation(this: Box, value: NOrientation) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetOrientation(this: Box, value: NOrientation)")
-  else: bError("proc internalSetOrientation(this: Box, value: NOrientation)")
-
 proc internalAdd(this: Box, that: NElement, expand, fill: bool, padding: int)  =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalAdd(this: Box, that: NElement, expand, fill: bool, padding: int) ")

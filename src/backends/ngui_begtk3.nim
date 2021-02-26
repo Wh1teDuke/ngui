@@ -390,12 +390,6 @@ proc internalSetText(this: Entry, text: string) =
 
 
 # BUTTON ----------------------------------------
-proc internalSetText(this: Button, text: string) =
-  this.data(gtkButton).setLabel(text)
-  
-proc internalGetText(this: Button): string =
-  $this.data(gtkButton).getLabel()
-
 proc internalSetImage(this: Button, img: Bitmap) =
   this.data(gtkButton).setImage(newImage(cast[GDKPixbuf](img.data)))
 
@@ -647,15 +641,6 @@ proc internalValue(this: Progress, v: float) =
 
 
 # BOX -------------------------------------------
-proc internalSetSpacing(this: Box, spacing: int) =
-  this.data(gtk.Box).setSpacing(spacing.cint)
-
-proc internalGetOrientation(this: Box): NOrientation =
-  NOrientation(this.data(gtk.Orientable).getOrientation())
-
-proc internalSetOrientation(this: Box, value: NOrientation) =
-  this.data(gtk.Orientable).setOrientation(Orientation(value))
-
 proc internalAdd(this: Box, that: NElement, expand, fill: bool, padding: int) =
   doAssert that.internalGetParent == nil
   this.data(gtk.Box).packStart(

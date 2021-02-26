@@ -17379,6 +17379,10 @@ proc load_icon*(theme: pointer, name: string, size: cint, flags: uint8, error: v
 proc iconThemeGetDefault*(): pointer {.cdecl,
                    dynlib: lib, importc: "gtk_icon_theme_get_default".}
 const GENERIC_FALLBACK* = 3
+proc set_orientation*(orientable: PWidget, orientation: TOrientation){.
+    cdecl, dynlib: lib, importc: "gtk_orientable_set_orientation".}
+proc get_orientation*(orientable: PWidget): TOrientation{.
+    cdecl, dynlib: lib, importc: "gtk_orientable_get_orientation".}
 # -------------------
 
 

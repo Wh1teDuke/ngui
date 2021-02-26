@@ -32,6 +32,8 @@ when v2:
     gtkTreeModel   = gtk2.PTreeModel
     gtkCellLayout  = gtk2.PPGtkCellLayout
     GPointer       = glib2.PGpointer
+    gtkOrientable  = gtk2.PWidget
+    Orientation    = gtk2.TOrientation
     GValueObj      = glib2.TGValue
     
     GDKPixbuf      = gdk2pixbuf.PPixbuf
@@ -106,6 +108,7 @@ elif v3:
     gtkTreeModel   = gtk.TreeModel
     gtkCellLayout  = gtk.CellLayout
     gtkComboBox    = gtk.ComboBox
+    gtkOrientable  = gtk.Orientable
     GPointer       = glib.GPointer
   
   const
@@ -526,6 +529,25 @@ proc internalGetTransient(this: Window): Window =
   # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-get-transient-for
   let w = this.data(gtkWindow).getTransientFor()
   if w != nil: return Window(utilElement(w))
+
+
+# BUTTON ----------------------------------------
+proc internalSetText(this: Button, text: string) =
+  this.data(gtkButton).setLabel(text)
+  
+proc internalGetText(this: Button): string =
+  $this.data(gtkButton).getLabel()
+
+
+# BOX -------------------------------------------
+proc internalGetOrientation(this: Box): NOrientation =
+  NOrientation(this.data(gtkOrientable).getOrientation())
+
+proc internalSetOrientation(this: Box, value: NOrientation) =
+  this.data(gtkOrientable).setOrientation(Orientation(value))
+
+proc internalSetSpacing(this: Box, spacing: int) =
+  this.data(gtkBox).setSpacing(spacing.cint)
 
 
 # RADIO -----------------------------------------
