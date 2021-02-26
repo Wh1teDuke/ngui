@@ -341,13 +341,7 @@ proc internalGetTransient(this: Alert): Window =
 # ****************
 
 
-# LABEL -----------------------------------------
-proc internalSetWrap(this: Label, state: bool) =
-  this.data(gtk.Label).setLineWrap(state)
-
-proc internalGetWrap(this: Label): bool =
-  this.data(gtk.Label).getLineWrap()
-  
+# LABEL -----------------------------------------  
 proc internalGetXAlign(this: Label): float =
   this.data(gtk.Label).getXAlign()
 
@@ -401,30 +395,6 @@ proc internalGetText(this: TextArea): string =
 
 
 # CALENDAR --------------------------------------
-proc internalGetDate(this: Calendar): DateTime =
-  var d, m, y: cuint
-  this.data(gtk.Calendar).getDate(y, m, d)
-
-  return initDateTime(
-    monthday = MonthdayRange(d), month = Month(m + 1), year = int(y),
-    0, 0, 0, 0)
-
-proc internalSetDate(this: Calendar, date: DateTime) =
-  let c = this.data(gtk.Calendar)
-  c.selectMonth((date.month.int - 1).cuint, date.year.cuint)
-  c.selectDay(date.monthday.cuint)
-
-proc internalMark(this: Calendar, day: int) =
-  this.data(gtk.Calendar).markDay(day.cuint)
-
-proc internalUnmark(this: Calendar, day: int) =
-  this.data(gtk.Calendar).unmarkDay(day.cuint)
-
-proc internalMarked(this: Calendar, day: int): bool =
-  this.data(gtk.Calendar).getDayIsMarked(day.cuint)
-
-proc internalClear(this: Calendar) =
-  this.data(gtk.Calendar).clearMarks()
 
 
 # SLIDER ----------------------------------------

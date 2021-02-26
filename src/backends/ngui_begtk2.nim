@@ -279,10 +279,6 @@ proc internalGetMaximized(this: Window): bool =
   else: bError("proc internalGetMaximized(this: Window): bool")
 
 
-
-
-
-
 # ALERT -----------------------------------------
 proc internalRun(this: Alert) =
   ## Show this message dialog
@@ -303,20 +299,7 @@ proc internalGetTransient(this: Alert): Window =
   raiseAssert("GET TRANSIENT TODO")
 
 
-
 # LABEL -----------------------------------------
-proc internalSetWrap(this: Label, state: bool) =
-  ## Set whether or not this element is allowed to wrap the content if it becomes too big
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetWrap(this: Label, state: bool)")
-  else: bError("proc internalSetWrap(this: Label, state: bool)")
-
-proc internalGetWrap(this: Label): bool =
-  ## Get whether or not this element is allowed to wrap the content if it becomes too big
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetWrap(this: Label): bool")
-  else: bError("proc internalGetWrap(this: Label): bool")
-
 proc internalGetXAlign(this: Label): float =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalGetXAlign(this: Label): float")
@@ -385,36 +368,6 @@ proc internalGetText(this: TextArea): string =
 
 
 # CALENDAR -------------------------------------- 
-proc internalGetDate(this: Calendar): DateTime  =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetDate(this: Calendar): DateTime ")
-  else: bError("proc internalGetDate(this: Calendar): DateTime ")
-
-proc internalSetDate(this: Calendar, date: DateTime) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetDate(this: Calendar, date: DateTime)")
-  else: bError("proc internalSetDate(this: Calendar, date: DateTime)")
-
-proc internalMark(this: Calendar, day: int) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalMark(this: Calendar, day: int)")
-  else: bError("proc internalMark(this: Calendar, day: int)")
-
-proc internalUnmark(this: Calendar, day: int) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalUnmark(this: Calendar, day: int)")
-  else: bError("proc internalUnmark(this: Calendar, day: int)")
-
-proc internalMarked(this: Calendar, day: int): bool =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalMarked(this: Calendar, day: int): bool")
-  else: bError("proc internalMarked(this: Calendar, day: int): bool")
-
-proc internalClear(this: Calendar) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalClear(this: Calendar)")
-  else: bError("proc internalClear(this: Calendar)")
-
 
 
 # SLIDER ----------------------------------------

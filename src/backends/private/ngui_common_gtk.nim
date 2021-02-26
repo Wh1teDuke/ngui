@@ -617,6 +617,12 @@ proc internalSetText(this: Label, text: string) =
 proc internalGetText(this: Label): string =
   $this.data(gtkLabel).getText()
 
+proc internalSetWrap(this: Label, state: bool) =
+  this.data(gtkLabel).setLineWrap(state)
+
+proc internalGetWrap(this: Label): bool =
+  this.data(gtkLabel).getLineWrap()
+
 
 # ENTRY -----------------------------------------
 proc internalGetText(this: Entry): string =
@@ -656,6 +662,49 @@ proc internalSetGroup(radios: openArray[Radio]) =
   if len(radios) <= 1: return
   let r1 = radios[0].data(gtkRadioButton)
   for r2 in radios[1..^1]: r2.data(gtkRadioButton).joinGroup(r1)
+
+
+# CALENDAR --------------------------------------
+proc internalGetDate(this: Calendar): DateTime =
+  var d, m, y: cuint
+  
+  when v2:
+    this.data(gtkCalendar).getDate(y.addr, m.addr, d.addr)
+  else:
+    this.data(gtkCalendar).getDate(y, m, d)
+
+  return initDateTime(
+    monthday = MonthdayRange(d), month = Month(m + 1), year = int(y),
+    0, 0, 0, 0)
+
+template discardVal(op) =
+  when v2: discard op else: op
+
+proc internalSetDate(this: Calendar, date: DateTime) =
+  let c = this.data(gtkCalendar)
+  discardVal c.selectMonth((date.month.int - 1).cuint, date.year.cuint)
+  c.selectDay(date.monthday.cuint)
+
+when v2:
+  var marks: STable[Calendar, set[1 .. 31]]
+
+proc internalMark(this: Calendar, day: int) =
+  when v2:
+    if this notin marks: marks[this] = {}
+    incl(marks[this], day)
+  discardVal this.data(gtkCalendar).markDay(day.cuint)
+
+proc internalUnmark(this: Calendar, day: int) =
+  when v2: excl(marks[this], day)
+  discardVal this.data(gtkCalendar).unmarkDay(day.cuint)
+
+proc internalClear(this: Calendar) =
+  when v2: del(marks, this)
+  this.data(gtkCalendar).clearMarks()
+
+proc internalMarked(this: Calendar, day: int): bool =
+  when v2: day in getOrDefault(marks, this)
+  else:    this.data(gtkCalendar).getDayIsMarked(day.cuint)
 
 
 # ALERT -----------------------------------------
