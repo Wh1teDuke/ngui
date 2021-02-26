@@ -297,28 +297,31 @@ proc internalGetMaximized(this: Window): bool =
 
 
 
-# ALERT -----------------------------------------
-proc internalNewAlert(parent: Window, text: string): Alert =
-  ## Create a new message dialog
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewAlert(parent: Window, text: string): Alert")
-  else: bError("proc internalNewAlert(parent: Window, text: string): Alert")
 
+
+
+# ALERT -----------------------------------------
 proc internalRun(this: Alert) =
   ## Show this message dialog
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalRun(this: Alert)")
   else: bError("proc internalRun(this: Alert)")
 
+proc internalSetModal(this: Alert, v: bool) =
+  raiseAssert("SET MODAL TODO")
+
+proc internalGetModal(this: Alert): bool =
+  raiseAssert("GET MODAL TODO")
+  
+proc internalSetTransient(this: Alert, that: Window) =
+  raiseAssert("SET TRANSIENT TODO")
+
+proc internalGetTransient(this: Alert): Window =
+  raiseAssert("GET TRANSIENT TODO")
+
 
 
 # LABEL -----------------------------------------
-proc internalNewLabel: Label =
-  ## Create a new Label element
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewLabel: Label")
-  else: bError("proc internalNewLabel: Label")
-
 proc internalSetText(this: Label, text: string) =
   ## Set this Label's content
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
@@ -366,12 +369,6 @@ proc internalSetYAlign(this: Label, v: float) =
 
 
 # ENTRY -----------------------------------------
-proc internalNewEntry(): Entry =
-  ## Create a new Entry element
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewEntry(): Entry")
-  else: bError("proc internalNewEntry(): Entry")
-
 proc internalGetText(this: Entry): string =
   ## Get this Entry's content
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
@@ -387,12 +384,6 @@ proc internalSetText(this: Entry, text: string) =
 
 
 # CHECKBOX --------------------------------------
-proc internalNewCheckBox(): Checkbox =
-  ## Create a new CheckBox element
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewCheckBox(): Checkbox")
-  else: bError("proc internalNewCheckBox(): Checkbox")
-
 proc internalSetText(this: Checkbox, that: string) =
   ## Set this CheckBox's text
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
@@ -420,11 +411,6 @@ proc internalSetChecked(this: Checkbox, v: bool) =
 
 
 # BUTTON ----------------------------------------
-proc internalNewButton(): Button  =
-  result = Button(kind: neButton, id: nextID())
-  result.data = button_new()
-  onCreate(result)  
-
 proc internalSetText(this: Button, text: string) =
   this.data(gtkButton).setLabel(text)
 
@@ -446,35 +432,9 @@ proc internalGetImage(this: Button): Bitmap =
 
 
 # RADIO -----------------------------------------
-proc internalNewRadio(): Radio =
-  result = Radio(kind: neRADIO, id: nextID())
-  let r = radio_button_new(nil)
-  result.data = r
-  onCreate(result)
-
-proc internalSetText(this: Radio, text: string) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetText(this: Radio, text: string)")
-  else: bError("proc internalSetText(this: Radio, text: string)")
-
-proc internalGetText(this: Radio): string =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetText(this: Radio): string")
-  else: bError("proc internalGetText(this: Radio): string")
-
-proc internalSetGroup(radios: openArray[Radio]) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetGroup(radios: openArray[Radio])")
-  else: bError("proc internalSetGroup(radios: openArray[Radio])")
-
 
 
 # BUBBLE ----------------------------------------
-proc internalNewBubble(): Bubble =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewBubble(): Bubble")
-  else: bError("proc internalNewBubble(): Bubble")
-
 proc internalAttach(this: Bubble, that: NElement) =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalAttach(this: Bubble, that: NElement)")
@@ -483,54 +443,10 @@ proc internalAttach(this: Bubble, that: NElement) =
 
 
 # IMAGE -----------------------------------------
-proc internalNewImage(bitmap: Bitmap): Image =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewImage(bitmap: Bitmap): Image")
-  else: bError("proc internalNewImage(bitmap: Bitmap): Image")
-
-proc internalNewBitmap(file: string): Bitmap =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewBitmap(file: string): Bitmap")
-  else: bError("proc internalNewBitmap(file: string): Bitmap")
-
-proc internalGetBitmap(this: Image): Bitmap =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetBitmap(this: Image): Bitmap")
-  else: bError("proc internalGetBitmap(this: Image): Bitmap")
-
-proc internalUpdate(this: Image, that: Bitmap) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalUpdate(this: Image, that: Bitmap)")
-  else: bError("proc internalUpdate(this: Image, that: Bitmap)")
-
-proc internalCopy(this: Bitmap): Bitmap =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalCopy(this: Bitmap): Bitmap")
-  else: bError("proc internalCopy(this: Bitmap): Bitmap")
-
-proc internalSave(this: Bitmap, path, format: string): bool =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSave(this: Bitmap, path, format: string): bool")
-  else: bError("proc internalSave(this: Bitmap, path, format: string): bool")
-
-proc internalIconBitmap(name: string): Bitmap =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalIconBitmap(name: string): Bitmap")
-  else: bError("proc internalIconBitmap(name: string): Bitmap")
-
-proc internalIconBitmap(icon: NIcon): Bitmap =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalIconBitmap(icon: NIcon): Bitmap")
-  else: bError("proc internalIconBitmap(icon: NIcon): Bitmap")
 
 
 
 # TEXTAREA --------------------------------------
-proc internalNewTextArea(): TextArea  =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewTextArea(): TextArea ")
-  else: bError("proc internalNewTextArea(): TextArea ")
-
 proc internalSetText(this: TextArea, text: string) =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalSetText(this: TextArea, text: string)")
@@ -544,11 +460,6 @@ proc internalGetText(this: TextArea): string =
 
 
 # CALENDAR -------------------------------------- 
-proc internalNewCalendar(): Calendar  =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewCalendar(): Calendar ")
-  else: bError("proc internalNewCalendar(): Calendar ")
-
 proc internalGetDate(this: Calendar): DateTime  =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalGetDate(this: Calendar): DateTime ")
@@ -582,11 +493,6 @@ proc internalClear(this: Calendar) =
 
 
 # SLIDER ----------------------------------------
-proc internalNewSlider(): Slider =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewSlider(): Slider")
-  else: bError("proc internalNewSlider(): Slider")
-
 proc internalSetDecimals(this: Slider, decimals: int) =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalSetDecimals(this: Slider, decimals: int)")
@@ -630,11 +536,6 @@ proc internalSetOrientation(this: Slider, value: NOrientation) =
 
 
 # FILECHOOSE ------------------------------------
-proc internalNewFileChoose(): FileChoose =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewFileChoose(): FileChoose")
-  else: bError("proc internalNewFileChoose(): FileChoose")
-
 proc internalSetMultiple(this: FileChoose, state: bool) =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalSetMultiple(this: FileChoose, state: bool)")
@@ -673,19 +574,9 @@ proc internalRun(this: FileChoose): int =
 
 
 # BAR -------------------------------------------
-proc internalNewBar(): Bar  =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewBar(): Bar ")
-  else: bError("proc internalNewBar(): Bar ")
-
 
 
 # MENU ------------------------------------------
-proc internalNewMenu(): Menu =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewMenu(): Menu")
-  else: bError("proc internalNewMenu(): Menu")
-
 proc handleMenuBarAdd(this, that: NElement) =
   raiseAssert("Not implemented")
 
@@ -696,11 +587,6 @@ proc internalAdd(this: NElement, that: Menu) =
 
 
 # TABLE -----------------------------------------
-proc internalNewTable(): NTable =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewTable(): NTable")
-  else: bError("proc internalNewTable(): NTable")
-
 proc internalAdd(this: Table, that: NTableRow) =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalAdd(this: Table, that: NTableRow)")
@@ -734,11 +620,6 @@ proc internalHeaders(this: NTable, v: bool) =
 
 
 # COMBOBOX --------------------------------------
-proc internalNewComboBox(): ComboBox  =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewComboBox(): ComboBox ")
-  else: bError("proc internalNewComboBox(): ComboBox ")
-
 proc internalAdd(this: ComboBox, text: string)  =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalAdd(this: ComboBox, text: string) ")
@@ -772,11 +653,6 @@ proc internalSetSelectedIndex(this: ComboBox, i: int) =
 
 
 # PROGRESS --------------------------------------
-proc internalNewProgress(): Progress  =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewProgress(): Progress ")
-  else: bError("proc internalNewProgress(): Progress ")
-
 proc internalValue(this: Progress): float  =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalValue(this: Progress): float ")
@@ -789,11 +665,6 @@ proc internalValue(this: Progress, v: float) =
 
 
 # BOX ------------------------------------------- 
-proc internalNewBox(): Box  =
-  result = Box(kind: neBox, id: nextID())
-  result.data = vbox_new(true, 0)
-  onCreate(result)
-
 proc internalSetSpacing(this: Box, spacing: int)  =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalSetSpacing(this: Box, spacing: int) ")
@@ -817,11 +688,6 @@ proc internalAdd(this: Box, that: NElement, expand, fill: bool, padding: int)  =
 
 
 # GRID ------------------------------------------
-proc internalNewGrid(): Grid  =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewGrid(): Grid ")
-  else: bError("proc internalNewGrid(): Grid ")
-
 proc internalAdd(this: Grid, that: NElement, r, c, w, h: int)  =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalAdd(this: Grid, that: NElement, r, c, w, h: int) ")
@@ -830,11 +696,6 @@ proc internalAdd(this: Grid, that: NElement, r, c, w, h: int)  =
 
 
 # TAB -------------------------------------------
-proc internalNewTab(): Tab  =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewTab(): Tab ")
-  else: bError("proc internalNewTab(): Tab ")
-
 proc internalAdd(this: Tab, that: Container, label: Label) =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalAdd(this: Tab, that: Container, label: Label)")
@@ -863,11 +724,6 @@ proc internalSetSide(this: Tab, side: NSide) =
 
 
 # LIST ------------------------------------------
-proc internalNewList(): List  =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewList(): List ")
-  else: bError("proc internalNewList(): List ")
-
 proc internalGetMode(this: List): NAmount  =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalGetMode(this: List): NAmount ")
@@ -891,11 +747,6 @@ proc internalSelected(this: List, that: var seq[NElement])  =
 
 
 # FRAME -----------------------------------------
-proc internalNewFrame(): Frame  =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewFrame(): Frame ")
-  else: bError("proc internalNewFrame(): Frame ")
-
 proc internalSetText(this: Frame, text: string)  =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalSetText(this: Frame, text: string) ")
@@ -909,11 +760,6 @@ proc internalGetText(this: Frame): string =
 
 
 # TOOLS -----------------------------------------
-proc internalNewTools(): Tools =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalNewTools(): Tools")
-  else: bError("proc internalNewTools(): Tools")
-
 proc internalGetOrientation(this: Tools): NOrientation =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalGetOrientation(this: Tools): NOrientation")

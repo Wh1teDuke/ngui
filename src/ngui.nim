@@ -210,6 +210,7 @@ type
 
 
 proc `$`*(this: NElementKind): string = system.`$`(this)[2..^1]
+proc `$`*(this: NElement): string # FD
 proc hash*(this: NElement): Hash = hash(this.id)
 proc hash*(this: Bitmap): Hash = hash(cast[pointer](this))
 proc hash*(this: NRepeatHandle): Hash = hash(int(this))
@@ -379,7 +380,7 @@ proc newElement(kind: NElementKind): NElement =
       if k == neKindInvalid: continue
       let (k, t) = (ident(system.`$`(k)), ident($k))
       result.add quote do:
-        if kind == `k`: return `t`()
+        if kind == `k`: return `t`(kind: kind)
   
   genNewProc()
   

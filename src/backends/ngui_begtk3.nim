@@ -4,9 +4,6 @@ include private/ngui_common_gtk
 
 
 # BASE ------------------------------------------
-var bitmaps:         STable[NID, Bitmap] # Image.bitmap
-
-
 template gtkYouAreKillingMe() {.dirty.} =
   val =
     when val is bool:   bool(addr(v).getBoolean())
@@ -54,39 +51,6 @@ proc invokeSatanGet[T](this: NElement, prop: string, val: var T) =
     var v: GValueObj
     context.getProperty(prop, thisD.getStateFlags(), v.addr)
     gtkYouAreKillingMe()
-
-proc gtk3Get[T](this: NElement, prop: string, val: var T) =
-  # https://developer.gnome.org/gobject/stable/gobject-Standard-Parameter-and-Value-Types.html
-  # https://developer.gnome.org/gobject/stable/gobject-The-Base-Object-Type.html#g-object-get-property
-  var v: GValueObj
-  this.data(gtk.Widget).getProperty(prop, addr(v))
-  gtkYouAreKillingMe()
-
-proc gtk3Get[T](this: NElement, prop: string): T =
-  gtk3Get(this, prop, result)
-
-proc gtk3Set[T](this: NElement, prop: string, val: T) =
-  var v: GValueObj
-  when val is bool:
-    discard v.init(G_TYPE_BOOLEAN)
-    v.setBoolean(val)
-  elif val is int:
-    discard v.init(G_TYPE_INT)
-    v.setInt(val.cint)
-  elif val is string:
-    discard v.init(G_TYPE_STRING)
-    v.setString(val.cstring)
-  elif val is Pixel:
-    var c: RGBAObj
-    c.red = cdouble(val.r) / 255
-    c.green = cdouble(val.g) / 255
-    c.blue = cdouble(val.b) / 255
-    c.alpha = cdouble(val.a) / 255
-    this.data(gtk.Widget).setProperty(prop, addr(c))
-    return
-
-  # https://developer.gnome.org/gobject/stable/gobject-The-Base-Object-Type.html#g-object-set-property
-  this.data(gtk.Widget).setProperty(prop, addr(v))
 
 
 # EVENTS ----------------------------------------
@@ -337,8 +301,6 @@ proc internalGetFocused(this: Window): NElement =
   if widget == nil: return
   return utilElement(widget)
 
-proc newBitmap(pixbuf: GDKPixbuf): Bitmap
-
 proc internalGetIcon(this: Window): Bitmap =
   newBitmap(this.data(gtk.Window).getIcon())
 
@@ -365,23 +327,6 @@ proc internalSetMaximized(this: Window, v: bool) =
 proc internalGetMaximized(this: Window): bool =
   this.data(gtk.Window).isMaximized()
 
-proc internalSetModal(this: Window, v: bool) =
-  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-set-modal
-  this.data(gtk.Window).setModal(v)
-
-proc internalGetModal(this: Window): bool =
-  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-get-modal
-  this.data(gtk.Window).getModal()
-  
-proc internalSetTransient(this, that: Window) =
-  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-set-transient-for
-  this.data(gtk.Window).setTransientFor(that.data(gtk.Window))
-
-proc internalGetTransient(this: Window): Window =
-  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-get-transient-for
-  let w = this.data(gtk.Window).getTransientFor()
-  if w != nil: return Window(utilElement(w))
-
 
 # ALERT -----------------------------------------  
 # SET/GET Text https://developer.gnome.org/gtk3/stable/GtkMessageDialog.html#GtkMessageDialog--text
@@ -389,18 +334,6 @@ proc internalGetTransient(this: Window): Window =
 proc internalRun(this: Alert) =
   discard run(this.data(gtk.Dialog))
   gtk.destroy(this.data(gtk.Widget))
-
-proc internalSetText(this: Alert, text: string) =
-  gtk3Set(this, "secondary-text", text)
-  
-proc internalGetText(this: Alert): string =
-  gtk3Get(this, "secondary-text", result)
-
-proc internalSetTitle(this: Alert, text: string) =
-  gtk3Set(this, "text", text)
-  
-proc internalGetTitle(this: Alert): string =
-  gtk3Get(this, "text", result)
 
 # From Window ****
 proc internalSetModal(this: Alert, v: bool) =
@@ -458,29 +391,19 @@ proc internalSetText(this: Entry, text: string) =
 
 # BUTTON ----------------------------------------
 proc internalSetText(this: Button, text: string) =
-  this.data(gtk.Button).setLabel(text)
+  this.data(gtkButton).setLabel(text)
   
 proc internalGetText(this: Button): string =
-  $this.data(gtk.Button).getLabel()
+  $this.data(gtkButton).getLabel()
 
 proc internalSetImage(this: Button, img: Bitmap) =
-  this.data(gtk.Button).setImage(newImage(cast[GDKPixbuf](img.data)))
+  this.data(gtkButton).setImage(newImage(cast[GDKPixbuf](img.data)))
 
 proc internalGetImage(this: Button): Bitmap =
-  newBitmap(this.data(gtk.Button).getImage().getPixbuf())
+  newBitmap(this.data(gtkButton).getImage().getPixbuf())
 
 
 # RADIO -----------------------------------------
-proc internalGetText(this: Radio): string =
-  $this.data(gtk.RadioButton).getLabel()
-
-proc internalSetText(this: Radio, text: string) =
-  this.data(gtk.RadioButton).setLabel(text)
-
-proc internalSetGroup(radios: openArray[Radio]) =
-  if len(radios) <= 1: return
-  let r1 = radios[0].data(gtk.RadioButton)
-  for r2 in radios[1..^1]: r2.data(RadioButton).joinGroup(r1)
 
 
 # BUBBLE ----------------------------------------
@@ -492,68 +415,7 @@ proc internalAttach(this: Bubble, that: NElement) =
 
 
 # IMAGE -----------------------------------------
-proc newBitmap(pixbuf: GDKPixbuf): Bitmap =
-  # https://developer.gnome.org/gdk-pixbuf/2.36/
-  if isNil(pixbuf): return
-  
-  discard objectRef(pixbuf)
-  
-  var
-    data   = pixbuf
-    pixels = getPixels(pixbuf)
-    (w, h) = (getWidth(pixbuf), getHeight(pixbuf))
-    c      = getNChannels(pixbuf)
-    
-  doAssert c in 3 .. 4
-    
-  if c == 3:
-    data   = pixbuf.addAlpha(false, 0.cuchar, 0.cuchar, 0.cuchar)
-    pixels = data.getPixels()
-
-  return Bitmap(
-    width: w, height: h,
-    pixels: cast[ptr[UncheckedArray[Pixel]]](pixels),
-    data: pointer(data),
-    channels: 4)
-
-proc internalNewBitmap(file: string): Bitmap =
-  var error: glib.GError
-  result = newBitmap(newPixbufFromFile(file, error))
-  if not isNil(result): result.path = file
-
-proc internalGetBitmap(this: Image): Bitmap =
-  bitmaps[this.id]
-
-proc internalUpdate(this: Image, that: Bitmap) =
-  bitmaps[this.id] = that
-  setFromPixbuf(this.data(gtk.Image), cast[GDKPixbuf](that.data))
-
-proc internalCopy(this: Bitmap): Bitmap =
-  newBitmap(cast[GDKPixbuf](this.data).copy())
-
-proc internalSave(this: Bitmap, path, format: string): bool =
-  var error: GError
-  return cast[GDKPixbuf](this.data).save(path, format, error, nil)
-
-proc internalIconBitmap(name: string): Bitmap =
-  # https://developer.gnome.org/gtk3/stable/GtkIconTheme.html#gtk-icon-theme-load-icon
-  var error: GError
-  return newBitmap(loadIcon(
-    iconThemeGetDefault(),
-    cstring(name),
-    15.cint,
-    GENERIC_FALLBACK,
-    error))
-
-proc internalIconBitmap(icon: NIcon): Bitmap =
-  internalIconBitmap(
-    # https://developer.gnome.org/icon-naming-spec/#names
-    case icon:
-    of niFolder:     "folder"
-    of niFile:       "text-x-generic"
-    of niFileOpen:   "document-open"
-    of niExecutable: "application-x-executable"
-  )
+# INCLUDED
 
 
 # TEXT_AREA -------------------------------------
@@ -623,24 +485,24 @@ proc internalSetOrientation(this: Slider, value: NOrientation) =
 
 # CHECKBOX --------------------------------------
 proc internalSetText(this: Checkbox, that: string) =
-  this.data(gtk.CheckButton).setLabel(that)
+  this.data(gtkCheckButton).setLabel(that)
 
 proc internalGetText(this: Checkbox): string =
-  $this.data(gtk.CheckButton).getLabel()
+  $this.data(gtkCheckButton).getLabel()
 
 proc internalGetChecked(this: Checkbox): bool =
-  this.data(gtk.CheckButton).getActive()
+  this.data(gtkCheckButton).getActive()
 
 proc internalSetChecked(this: Checkbox, v: bool) =
-  this.data(gtk.CheckButton).setActive(v)
+  this.data(gtkCheckButton).setActive(v)
 
 
 # FILECHOOSE ------------------------------------
 proc internalSetMultiple(this: FileChoose, state: bool) =
-  gtk3Set(this, "select-multiple", state)
+  gtkSet(this, "select-multiple", state)
 
 proc internalGetMultiple(this: FileChoose): bool =
-  gtk3Get(this, "select-multiple", result)
+  gtkGet(this, "select-multiple", result)
 
 proc internalGetFiles(this: FileChoose): seq[string] =
   var list = this.data(FileChooser).getFilenames()
@@ -738,7 +600,7 @@ proc internalAdd(this: NElement, that: Menu) =
 
 # COMBOBOX --------------------------------------
 proc internalAdd(this: ComboBox, text: string) =
-  let ls = cast[ListStore](this.data(gtk.ComboBox).getModel())
+  let ls = cast[ListStore](this.data(gtkComboBox).getModel())
 
   var ti: TreeIterObj
   ls.append(ti.addr)
@@ -747,7 +609,7 @@ proc internalAdd(this: ComboBox, text: string) =
 template comboBoxWithIndex(
     this: ComboBox, idx: int, body: untyped) {.dirty.} =
   let ls =
-    cast[ListStore](this.data(gtk.ComboBox).getModel())
+    cast[ListStore](this.data(gtkComboBox).getModel())
 
   var i = idx.cint
   var ti: TreeIterObj
@@ -766,11 +628,11 @@ proc internalGet(this: ComboBox, i: int): string =
     result = $getString(v.addr)
     unset(v.addr)
 
-proc internalGetSelectedIndex(this: ComboBox): int =
-  int(this.data(gtk.ComboBox).getActive())
+proc internalGetSelectedIndex(this: ComboBox): int = # TODO 
+  int(this.data(gtkComboBox).getActive())
 
 proc internalSetSelectedIndex(this: ComboBox, i: int) =
-  this.data(gtk.ComboBox).setActive(i.cint)
+  this.data(gtkComboBox).setActive(i.cint)
 
 proc internalGetSelected(this: ComboBox): string =
   internalGet(this, internalGetSelectedIndex(this))

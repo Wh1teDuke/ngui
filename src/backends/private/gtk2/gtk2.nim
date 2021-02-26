@@ -2228,6 +2228,7 @@ type
   PMessageType* = ptr TMessageType
   TMessageType* = enum
     MESSAGE_INFO, MESSAGE_WARNING, MESSAGE_QUESTION, MESSAGE_ERROR
+    MESSAGE_OTHER # NGUI
   PButtonsType* = ptr TButtonsType
   TButtonsType* = enum
     BUTTONS_NONE, BUTTONS_OK, BUTTONS_CLOSE, BUTTONS_CANCEL, BUTTONS_YES_NO,
@@ -10031,10 +10032,7 @@ proc get_tooltips*(toolbar: PToolbar): gboolean{.cdecl, dynlib: lib,
 
 # NGUI
 proc toolitem_new*(): PToolItem {.cdecl, dynlib: lib, importc: "gtk_tool_item_new".}
-type PGrid* = pointer
-proc grid_new*(): PGrid {.cdecl, dynlib: lib, importc: "gtk_grid_new".}
-type PPopover* = pointer
-proc pop_over_new*(): PPopover {.cdecl, dynlib: lib, importc: "gtk_pop_over_new".}
+# .................
 
 const
   bm_TGtkTree_selection_mode* = 0x0003'u16
@@ -17367,6 +17365,21 @@ proc LINK_BUTTON_GET_CLASS*(anObject: pointer): PLinkButtonClass =
 
 proc show_uri* (screen: gdk2.PScreen, uri: cstring, timestamp: guint32,
   error: pointer): gboolean {.cdecl, importc: "gtk_show_uri", dynlib: lib.}
+
+# NGUI
+proc pack_start*(cell: PPGtkCellLayout, cell_renderer: PCellRenderer,
+                 expand: gboolean){.
+    cdecl, dynlib: lib, importc: "gtk_cell_layout_pack_start".}
+proc add_attribute*(cell: PPGtkCellLayout,
+                                     cell_renderer: PCellRenderer,
+                                     attribute: cstring, column: gint){.cdecl,
+    dynlib: lib, importc: "gtk_tree_view_column_add_attribute".}
+proc load_icon*(theme: pointer, name: string, size: cint, flags: uint8, error: var pointer): pointer {.cdecl,
+                   dynlib: lib, importc: "gtk_icon_theme_load_icon".}
+proc iconThemeGetDefault*(): pointer {.cdecl,
+                   dynlib: lib, importc: "gtk_icon_theme_get_default".}
+const GENERIC_FALLBACK* = 3
+# -------------------
 
 
 {.pop.}

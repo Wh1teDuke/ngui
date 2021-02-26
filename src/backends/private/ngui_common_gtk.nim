@@ -10,7 +10,7 @@ const
 
 # GTK2 START ------------------------------------
 when v2:
-  import gtk2/[gtk2, gdk2, glib2]
+  import gtk2/[gtk2, gdk2, glib2, gdk2, gdk2pixbuf, cairo]
 
   type
     gtkWindow      = gtk2.PWindow
@@ -19,27 +19,34 @@ when v2:
     gtkRadioButton = gtk2.PRadioButton
     gtkButton      = gtk2.PButton
     gtkToolItem    = gtk2.PToolItem
-    gtkGrid        = gtk2.PGrid
+    gtkGrid        = gtk2.PTable
     gtkLabel       = gtk2.PLabel
-    gtkPopover     = gtk2.PPopover
+    # gtkPopover     = gtk2.PPopover TODO
     gtkImage       = gtk2.PImage
     gtkTextView    = gtk2.PTextView
     gtkCalendar    = gtk2.PCalendar
     gtkScale       = gtk2.PScale
     gtkBox         = gtk2.PBox
-    GtkCheckButton = gtk2.PCheckButton
+    gtkCheckButton = gtk2.PCheckButton
+    gtkFileChooserDialog = gtk2.PFileChooser
+    gtkTreeModel   = gtk2.PTreeModel
+    gtkCellLayout  = gtk2.PPGtkCellLayout
     GPointer       = glib2.PGpointer
+    GValueObj      = glib2.TGValue
+    
+    GDKPixbuf      = gdk2pixbuf.PPixbuf
 
   const
     SCB          = gtk2.SIGNAL_FUNC
     signal       = gtk2.signalConnect
 
   proc gtkRef(w: PWidget): auto = reference(w)
+  proc gtkRef(w: GPointer): auto = gObjectRef(w)
   proc newMenuItem(): auto = gtk2.menu_item_new()
   proc newEventBox(): auto = gtk2.event_box_new()
   proc newToolItem(): auto = gtk2.tool_item_new()
   proc newWindow(): auto = gtk2.window_new(gtk2.WINDOW_TOP_LEVEL)
-  proc newGrid(): auto = cast[gtkWidget](gtk2.grid_new())
+  proc newGrid(): auto = gtk2.table_new(1, 1, true)
   proc newLabel(): auto = gtk2.label_new("")
   proc newEntry(): auto = gtk2.entry_new()
   proc newButton(): auto = gtk2.button_new()
@@ -47,9 +54,34 @@ when v2:
   proc newImage(): auto = gtk2.image_new()
   proc newTextView(): auto = gtk2.text_view_new()
   proc newCalendar(): auto = gtk2.calendar_new()
-  proc newScale(): auto = gtk2.hscale_new(nil) # TODO
   proc newCheckButton(): auto = gtk2.check_button_new()
-  proc newPopover(): auto = cast[gtkWidget](gtk2.pop_over_new())
+  proc newPopover(): gtkWidget = raiseAssert("TODO") # cast[gtkWidget](gtk2.pop_over_new())
+  proc newFileChooser(): auto = gtk2.file_chooser_dialog_new(
+    nil, nil, FILE_CHOOSER_ACTION_OPEN, nil)
+  proc newNoteBook(): auto = gtk2.notebook_new()
+  proc newMenuBar(): auto = gtk2.menu_bar_new()
+  proc newMenu(): auto = gtk2.menu_new()
+  proc newComboBox(): auto = gtk2.comboBox_new_with_model(
+    cast[gtkTreeModel](gtk2.list_store_new(1, G_TYPE_STRING)))
+  proc newCellRendererText(): auto = gtk2.cell_renderer_text_new()
+  proc newProgressBar(): auto = gtk2.progress_bar_new()
+  proc newScale(): auto = gtk2.hscale_new(nil) # TODO change orientation
+  proc newBox(): auto = gtk2.vbox_new(true, 0) # TODO change Orientation
+  proc newTreeView(): auto = gtk2.tree_view_new()
+  proc newToolBar(): auto = gtk2.tool_bar_new()
+  proc newFrame(): auto = gtk2.frame_new("")
+  proc newListBox(): auto = gtk2.list_new() # https://developer.gnome.org/gtk2/2.24/GtkList.html
+  proc newMessageDialog(): auto = gtk2.message_dialog_new(
+    nil,
+    0, # https://developer.gnome.org/gtk2/2.24/GtkDialog.html#GtkDialogFlags # TODO: TODO
+    MESSAGE_OTHER, # https://developer.gnome.org/gtk2/2.24/GtkMessageDialog.html#GtkMessageType
+    BUTTONS_CLOSE, # https://developer.gnome.org/gtk2/2.24/GtkMessageDialog.html#GtkButtonsType
+    nil)
+  proc loadPixbuf(file: string): GDKPixbuf =
+    var error: pointer
+    return pixbuf_new_from_file(file, error)
+  proc joinGroup(a, b: gtkRadioButton) =
+    a.setGroup(b.getGroup())
 
 
 # GTK3 START ------------------------------------  
@@ -66,11 +98,14 @@ elif v3:
     gtkGrid        = gtk.Grid
     gtkPopover     = gtk.PopOver
     gtkImage       = gtk.Image
-    gtkTextView    = gtk.TextView
     gtkCalendar    = gtk.Calendar
     gtkScale       = gtk.Scale
     gtkBox         = gtk.Box
-    GtkCheckButton = gtk.CheckButton
+    gtkCheckButton = gtk.CheckButton
+    gtkFileChooserDialog = gtk.FileChooser
+    gtkTreeModel   = gtk.TreeModel
+    gtkCellLayout  = gtk.CellLayout
+    gtkComboBox    = gtk.ComboBox
     GPointer       = glib.GPointer
   
   const
@@ -84,9 +119,23 @@ elif v3:
   
   proc newLabel(): auto = gtk.newLabel("")
   proc newButton(): auto = gtk.newButton("")
-  proc newRadioButton(): auto = gtk.newRadioButton("")
+  proc newRadioButton(): auto = gtk.newRadioButton(group = nil)
   proc newWindow(): auto = gtk.newWindow(gtk.WindowType.TOP_LEVEL)
   proc newPopover(): auto = gtk.newPopover(nil)
+  proc newFileChooser(): auto = gtk.newFileChooserDialog(nil, nil, OPEN, nil)
+  proc newComboBox(): auto = gtk.newComboBox(
+    cast[gtkTreeModel](gtk.newListStore(1, G_TYPE_STRING)))
+  proc newBox(): auto = gtk.newBox(Orientation.Vertical, 0)
+  proc newFrame(): auto = gtk.newFrame("")
+  proc newMessageDialog(): auto = gtk.newMessageDialog(
+    nil,
+    gtk.DialogFlags.MODAL, # TODO: TODO
+    gtk.MessageType.OTHER,
+    gtk.ButtonsType.CLOSE,
+    nil)
+  proc loadPixbuf(file: string): GDKPixbuf =
+    var error: glib.GError
+    return newPixbufFromFile(file, error)
 
 
 let # Doesn't work with const, but one day ...
@@ -119,6 +168,60 @@ proc nextID: NID =
   result = pool
   inc(pool)
   doAssert pool != 0, "Error: Too many NElements"
+  
+
+# ETC -------------------------------------------
+template gtkYouAreKillingMe() {.dirty.} =
+  val =
+    when val is bool:   bool(addr(v).getBoolean())
+    elif val is int:    int(addr(v).getInt())
+    elif val is string: $(addr(v).getString())
+    elif val is Pixel:
+      var c: RGBA
+      # https://stackoverflow.com/a/47373201
+      context.get(thisD.getStateFlags(), prop, c.addr, nil)
+      let p = pixel(c.red, c.green, c.blue, c.alpha)
+      rgbaFree(c)
+      p
+      
+    else: discard
+  unset(v.addr)
+
+proc gtkGet[T](this: NElement, prop: string, val: var T) =
+  # https://developer.gnome.org/gobject/stable/gobject-Standard-Parameter-and-Value-Types.html
+  # https://developer.gnome.org/gobject/stable/gobject-The-Base-Object-Type.html#g-object-get-property
+  var v: GValueObj
+  this.data(gtkWidget).getProperty(prop, addr(v))
+  gtkYouAreKillingMe()
+
+proc gtkGet[T](this: NElement, prop: string): T =
+  gtkGet(this, prop, result)
+
+proc gtkSet[T](this: NElement, prop: string, val: T) =
+  var v: GValueObj
+  template getV: auto =
+    when v2: addr(v) else: v
+  
+  when val is bool:
+    discard getV.init(G_TYPE_BOOLEAN)
+    v.setBoolean(val)
+  elif val is int:
+    discard getV.init(G_TYPE_INT)
+    v.setInt(val.cint)
+  elif val is string:
+    discard getV.init(G_TYPE_STRING)
+    getV.setString(val.cstring)
+  elif val is Pixel:
+    var c: RGBAObj
+    c.red = cdouble(val.r) / 255
+    c.green = cdouble(val.g) / 255
+    c.blue = cdouble(val.b) / 255
+    c.alpha = cdouble(val.a) / 255
+    this.data(gtkWidget).setProperty(prop, addr(c))
+    return
+
+  # https://developer.gnome.org/gobject/stable/gobject-The-Base-Object-Type.html#g-object-set-property
+  this.data(gtkWidget).setProperty(prop, addr(v))
 
 
 # EVENTS ----------------------------------------
@@ -156,7 +259,8 @@ proc triggerEvent(source, data: GPointer): bool {.cdecl.} =
   result = setEventHandled
   setEventHandled = false
 
-proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) =
+proc internalSetEvent(
+    this: NElement, event: NElementEvent, action: NEventProc) =
   # Feast your eyes
   # https://developer.gnome.org/gtk3/stable/GtkWidget.html#GtkWidget.signals
   const EVENT_TO_SIGNAL = [
@@ -168,7 +272,7 @@ proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) 
     neHIDE: "hide", neKeyPress: "key_press_event",
     neKeyRelease: "key-release-event",
   ]
-  
+
   var
     nguiEvent   = event
     nguiTrigger = SCB(triggerEvent)
@@ -176,8 +280,6 @@ proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) 
     gtkEvent    = EVENT_TO_SIGNAL[nguiEvent]
     gtkData     = cast[GPointer](nguiEvent)
 
-    #discard this.data(gtk2Window).signalConnect(
-    #"destroy", SCB(cb), nil)
 
   # -----------------------------------
   # Hack List, insert your hacks here -
@@ -229,10 +331,10 @@ proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) 
     gtkInst = cast[gtkWidget](gtkTextView(gtkInst).getBuffer())
 
   # REASON: onClick is triggered for old/new radio
-  elif this of Radio and nguiEvent in {neClick}:
-    nguiTrigger = SCB(proc(source, data: GPointer): bool {.cdecl.} =
-      if bool(cast[gtkRadioButton](source).getActive()):
-        return triggerEvent(source, data))
+  # elif this of Radio and nguiEvent in {neClick}: No longer a bug?!
+    #nguiTrigger = SCB(proc(source, data: GPointer): bool {.cdecl.} =
+      #if bool(cast[gtkRadioButton](source).getActive()):
+        #return triggerEvent(source, data))
 
   # REASON: Labels don't really have click events, but we need this for menus
   elif this of Label and nguiEvent in {neClick}: # TODO: Handle onClick for labels outside menus
@@ -263,8 +365,12 @@ proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) 
 proc onDestroyWin(this: Window) # FD
 
 proc internalNewNElement(kind: NElementKind): NElement =
+  doAssert kind != neKindInvalid
+  
   result    = newElement(kind)
   result.id = nextID()
+
+  doAssert result.kind != neKindInvalid
   
   case kind:
   of neApp:
@@ -328,7 +434,7 @@ proc internalNewNElement(kind: NElementKind): NElement =
   
   of neFileChoose:
     # https://developer.gnome.org/gtk3/stable/GtkFileChooserDialog.html
-    result.data = newFileChooserDialog(nil, nil, OPEN, nil)
+    result.data = newFileChooser()
     
   of neTab:
     # https://developer.gnome.org/gtk3/stable/GtkNotebook.html
@@ -336,21 +442,22 @@ proc internalNewNElement(kind: NElementKind): NElement =
   
   of neBar:
     # https://developer.gnome.org/gtk3/stable/GtkMenuBar.html
-    result.data = gtk.newMenuBar()
+    result.data = newMenuBar()
   
   of neMenu:
     # https://developer.gnome.org/gtk3/stable/GtkMenu.html
-    result.data = gtk.newMenu()
+    result.data = newMenu()
   
   of neComboBox:
     # https://developer.gnome.org/gtk3/stable/GtkComboBox.html
     # TODO: Can handle more than text
-    let c = newComboBox(
-      cast[TreeModel](newListStore(1, G_TYPE_STRING)))
-  
-    let r = newCellRendererText()
-    cast[gtk.CellLayout](c).packStart(r, true)
-    cast[gtk.CellLayout](c).addAttribute(r, "text", 0)
+    let
+      c  = newComboBox()
+      r  = newCellRendererText()
+      cl = cast[gtkCellLayout](c)
+
+    cl.packStart(r, true)
+    cl.addAttribute(r, "text", 0)
   
     result.data = c
     
@@ -360,7 +467,7 @@ proc internalNewNElement(kind: NElementKind): NElement =
   
   of neBox:
     # https://developer.gnome.org/gtk3/stable/GtkBox.html
-    result.data = newBox(Orientation.Vertical, 0)
+    result.data = newBox()
     
   of neTable:
     # https://developer.gnome.org/gtk3/stable/GtkTreeView.html
@@ -373,7 +480,7 @@ proc internalNewNElement(kind: NElementKind): NElement =
     
   of neFrame:
     # https://developer.gnome.org/gtk3/stable/GtkFrame.html
-    result.data = newFrame("")
+    result.data = newFrame()
     
   of neList:
     # https://developer.gnome.org/gtk3/stable/GtkListBox.html
@@ -381,21 +488,19 @@ proc internalNewNElement(kind: NElementKind): NElement =
   
   of neAlert:
     # https://developer.gnome.org/gtk3/stable/GtkMessageDialog.html
-    result.data = newMessageDialog(
-      nil,
-      gtk.DialogFlags.MODAL, # TODO: TODO
-      gtk.MessageType.OTHER,
-      gtk.ButtonsType.CLOSE,
-      nil)
+    result.data = newMessageDialog()
 
   else:
     raiseAssert("Invalid kind: " & $kind)
   
-  doAssert result.data != nil
+  doAssert result.raw != nil
 
   # https://developer.gnome.org/gtk3/stable/GtkWidget.html#GtkWidget-destroy
-  discard gSignalConnect(
-    result.raw, "destroy", SCB(gtkOnDestroyClean), cast[GPointer](result))
+  discard signal(
+    result.data(gtkWidget),
+    "destroy",
+    SCB(gtkOnDestroyClean),
+    cast[GPointer](result))
 
 
 # WINDOW ----------------------------------------
@@ -404,3 +509,116 @@ proc onDestroyWin(this: Window) =
   proc cb(this: gtkWidget, data: GPointer) {.cdecl.} =
     if utilLen(pApp) == 1: internalStop(pApp)
   discard this.data(gtkWindow).signal("destroy", SCB(cb), nil)
+
+proc internalSetModal(this: Window, v: bool) =
+  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-set-modal
+  this.data(gtkWindow).setModal(v)
+
+proc internalGetModal(this: Window): bool =
+  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-get-modal
+  this.data(gtkWindow).getModal()
+  
+proc internalSetTransient(this, that: Window) =
+  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-set-transient-for
+  this.data(gtkWindow).setTransientFor(that.data(gtkWindow))
+
+proc internalGetTransient(this: Window): Window =
+  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-get-transient-for
+  let w = this.data(gtkWindow).getTransientFor()
+  if w != nil: return Window(utilElement(w))
+
+
+# RADIO -----------------------------------------
+proc internalGetText(this: Radio): string =
+  $this.data(gtkRadioButton).getLabel()
+
+proc internalSetText(this: Radio, text: string) =
+  this.data(gtkRadioButton).setLabel(text)
+
+proc internalSetGroup(radios: openArray[Radio]) =
+  if len(radios) <= 1: return
+  let r1 = radios[0].data(gtkRadioButton)
+  for r2 in radios[1..^1]: r2.data(gtkRadioButton).joinGroup(r1)
+
+
+# ALERT -----------------------------------------
+proc internalSetText(this: Alert, text: string) =
+  gtkSet(this, "secondary-text", text)
+  
+proc internalGetText(this: Alert): string =
+  gtkGet(this, "secondary-text", result)
+
+proc internalSetTitle(this: Alert, text: string) =
+  gtkSet(this, "text", text)
+  
+proc internalGetTitle(this: Alert): string =
+  gtkGet(this, "text", result)
+
+
+# IMAGE -----------------------------------------
+var bitmaps: STable[NID, Bitmap] # Image.bitmap
+
+proc newBitmap(pixbuf: GDKPixbuf): Bitmap =
+  # https://developer.gnome.org/gdk-pixbuf/2.36/
+  if isNil(pixbuf): return
+  
+  discard gtkRef(cast[GPointer](pixbuf))
+  
+  var
+    data   = pixbuf
+    pixels = getPixels(pixbuf)
+    (w, h) = (getWidth(pixbuf), getHeight(pixbuf))
+    c      = getNChannels(pixbuf)
+    
+  doAssert c in 3 .. 4
+    
+  if c == 3:
+    const Z = when v2: 0 else: 0.cuchar
+    data   = pixbuf.addAlpha(false, Z, Z, Z)
+    pixels = data.getPixels()
+
+  return Bitmap(
+    width: w, height: h,
+    pixels: cast[ptr[UncheckedArray[Pixel]]](pixels),
+    data: pointer(data),
+    channels: 4)
+
+proc internalNewBitmap(file: string): Bitmap =
+  result = newBitmap(loadPixbuf(file))
+  if not isNil(result): result.path = file
+
+proc internalGetBitmap(this: Image): Bitmap =
+  bitmaps[this.id]
+
+proc internalUpdate(this: Image, that: Bitmap) =
+  bitmaps[this.id] = that
+  setFromPixbuf(this.data(gtkImage), cast[GDKPixbuf](that.data))
+
+proc internalCopy(this: Bitmap): Bitmap =
+  newBitmap(copy(pixbuf = cast[GDKPixbuf](this.data)))
+
+proc internalSave(this: Bitmap, path, format: string): bool =
+  when v2: (var error: pointer)
+  else:    (var error: GError)
+  return cast[GDKPixbuf](this.data).save(path, format, error, nil)
+
+proc internalIconBitmap(name: string): Bitmap =
+  # https://developer.gnome.org/gtk3/stable/GtkIconTheme.html#gtk-icon-theme-load-icon
+  when v2: (var error: pointer)
+  else:    (var error: GError)
+  return newBitmap(loadIcon(
+    iconThemeGetDefault(),
+    name,
+    15.cint,
+    GENERIC_FALLBACK,
+    error))
+
+proc internalIconBitmap(icon: NIcon): Bitmap =
+  internalIconBitmap(
+    # https://developer.gnome.org/icon-naming-spec/#names
+    case icon:
+    of niFolder:     "folder"
+    of niFile:       "text-x-generic"
+    of niFileOpen:   "document-open"
+    of niExecutable: "application-x-executable"
+  )
