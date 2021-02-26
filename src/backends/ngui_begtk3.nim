@@ -454,17 +454,6 @@ proc internalSetOrientation(this: Slider, value: NOrientation) =
 
 
 # CHECKBOX --------------------------------------
-proc internalSetText(this: Checkbox, that: string) =
-  this.data(gtkCheckButton).setLabel(that)
-
-proc internalGetText(this: Checkbox): string =
-  $this.data(gtkCheckButton).getLabel()
-
-proc internalGetChecked(this: Checkbox): bool =
-  this.data(gtkCheckButton).getActive()
-
-proc internalSetChecked(this: Checkbox, v: bool) =
-  this.data(gtkCheckButton).setActive(v)
 
 
 # FILECHOOSE ------------------------------------
@@ -569,43 +558,6 @@ proc internalAdd(this: NElement, that: Menu) =
 
 
 # COMBOBOX --------------------------------------
-proc internalAdd(this: ComboBox, text: string) =
-  let ls = cast[ListStore](this.data(gtkComboBox).getModel())
-
-  var ti: TreeIterObj
-  ls.append(ti.addr)
-  ls.set(ti.addr, 0, cstring(text), -1)
-
-template comboBoxWithIndex(
-    this: ComboBox, idx: int, body: untyped) {.dirty.} =
-  let ls =
-    cast[ListStore](this.data(gtkComboBox).getModel())
-
-  var i = idx.cint
-  var ti: TreeIterObj
-
-  if cast[TreeModel](ls).getIter(ti.addr, newTreePath(i, 1)):
-    body
-
-proc internalSet(this: ComboBox, text: string, i: int) =
-  comboBoxWithIndex(this, i):
-    ls.set(ti.addr, 0, cstring(text), -1)
-
-proc internalGet(this: ComboBox, i: int): string =
-  comboBoxWithIndex(this, i):
-    var v: GValueObj
-    cast[TreeModel](ls).getValue(ti.addr, 0, v.addr)
-    result = $getString(v.addr)
-    unset(v.addr)
-
-proc internalGetSelectedIndex(this: ComboBox): int = # TODO 
-  int(this.data(gtkComboBox).getActive())
-
-proc internalSetSelectedIndex(this: ComboBox, i: int) =
-  this.data(gtkComboBox).setActive(i.cint)
-
-proc internalGetSelected(this: ComboBox): string =
-  internalGet(this, internalGetSelectedIndex(this))
   
 
 # PROGRESS --------------------------------------

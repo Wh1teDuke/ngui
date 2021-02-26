@@ -16,6 +16,10 @@ when v2:
     gtkWindow      = gtk2.PWindow
     gtkWidget      = gtk2.PWidget
     gtkContainer   = gtk2.PContainer
+    gtkComboBox    = gtk2.PComboBox
+    gtkListStore   = gtk2.PListStore
+    gtkTreeIterObj = gtk2.TTreeIter
+    gtkTreeModel   = gtk2.PTreeModel
     gtkRadioButton = gtk2.PRadioButton
     gtkButton      = gtk2.PButton
     gtkToolItem    = gtk2.PToolItem
@@ -30,7 +34,6 @@ when v2:
     gtkBox         = gtk2.PBox
     gtkCheckButton = gtk2.PCheckButton
     gtkFileChooserDialog = gtk2.PFileChooser
-    gtkTreeModel   = gtk2.PTreeModel
     gtkCellLayout  = gtk2.PPGtkCellLayout
     GPointer       = glib2.PGpointer
     gtkOrientable  = gtk2.PWidget
@@ -74,6 +77,7 @@ when v2:
   proc newToolBar(): auto = gtk2.tool_bar_new()
   proc newFrame(): auto = gtk2.frame_new("")
   proc newListBox(): auto = gtk2.list_new() # https://developer.gnome.org/gtk2/2.24/GtkList.html
+  proc newTreePath(a, b: int): auto = gtk2.tree_path_new_from_string($a & ":" & $b)
   proc newMessageDialog(): auto = gtk2.message_dialog_new(
     nil,
     0, # https://developer.gnome.org/gtk2/2.24/GtkDialog.html#GtkDialogFlags # TODO: TODO
@@ -108,9 +112,11 @@ elif v3:
     gtkBox         = gtk.Box
     gtkCheckButton = gtk.CheckButton
     gtkFileChooserDialog = gtk.FileChooser
-    gtkTreeModel   = gtk.TreeModel
     gtkCellLayout  = gtk.CellLayout
     gtkComboBox    = gtk.ComboBox
+    gtkListStore   = gtk.ListStore
+    gtkTreeIterObj = gtk.TreeIterObj
+    gtkTreeModel   = gtk.TreeModel
     gtkOrientable  = gtk.Orientable
     GPointer       = glib.GPointer
   
@@ -548,6 +554,60 @@ proc internalGetChild(this: Container, index: int): NElement =
   utilNChild(this, index)
 
 proc internalLen(this: Container): int = utilLen(this)
+
+
+# COMBOBOX --------------------------------------
+proc internalGetSelectedIndex(this: ComboBox): int = # TODO 
+  int(this.data(gtkComboBox).getActive())
+
+proc internalSetSelectedIndex(this: ComboBox, i: int) =
+  this.data(gtkComboBox).setActive(i.cint)
+
+proc internalGetSelected(this: ComboBox): string =
+  internalGet(this, internalGetSelectedIndex(this))
+
+proc internalAdd(this: ComboBox, text: string) =
+  let ls = cast[gtkListStore](this.data(gtkComboBox).getModel())
+
+  var ti: gtkTreeIterObj
+  ls.append(ti.addr)
+  ls.set(ti.addr, 0, cstring(text), -1)
+
+template comboBoxWithIndex(
+    this: ComboBox, idx: int, body: untyped) {.dirty.} =
+  let ls =
+    cast[gtkListStore](this.data(gtkComboBox).getModel())
+
+  var i = idx.cint
+  var ti: gtkTreeIterObj
+
+  if cast[gtkTreeModel](ls).getIter(ti.addr, newTreePath(i, 1)):
+    body
+
+proc internalSet(this: ComboBox, text: string, i: int) =
+  comboBoxWithIndex(this, i):
+    ls.set(ti.addr, 0, cstring(text), -1)
+
+proc internalGet(this: ComboBox, i: int): string =
+  comboBoxWithIndex(this, i):
+    var v: GValueObj
+    cast[gtkTreeModel](ls).getValue(ti.addr, 0, v.addr)
+    result = $getString(v.addr)
+    unset(v.addr)
+
+
+# CHECKBOX --------------------------------------
+proc internalSetText(this: Checkbox, that: string) =
+  this.data(gtkCheckButton).setLabel(that)
+
+proc internalGetText(this: Checkbox): string =
+  $this.data(gtkCheckButton).getLabel()
+
+proc internalGetChecked(this: Checkbox): bool =
+  this.data(gtkCheckButton).getActive()
+
+proc internalSetChecked(this: Checkbox, v: bool) =
+  this.data(gtkCheckButton).setActive(v)
 
 
 # LABEL -----------------------------------------

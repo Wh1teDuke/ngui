@@ -344,30 +344,6 @@ proc internalSetYAlign(this: Label, v: float) =
 
 
 # CHECKBOX --------------------------------------
-proc internalSetText(this: Checkbox, that: string) =
-  ## Set this CheckBox's text
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetText(this: Checkbox, that: string)")
-  else: bError("proc internalSetText(this: Checkbox, that: string)")
-
-proc internalGetText(this: Checkbox): string =
-  ## Get this CheckBox's text
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetText(this: Checkbox): string")
-  else: bError("proc internalGetText(this: Checkbox): string")
-
-proc internalGetChecked(this: Checkbox): bool =
-  ## Get whether or not this CheckBox is checked
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetChecked(this: Checkbox): bool")
-  else: bError("proc internalGetChecked(this: Checkbox): bool")
-
-proc internalSetChecked(this: Checkbox, v: bool) =
-  ## Set whether or not this CheckBox is checked
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetChecked(this: Checkbox, v: bool)")
-  else: bError("proc internalSetChecked(this: Checkbox, v: bool)")
-
 
 
 # BUTTON ----------------------------------------
@@ -382,7 +358,6 @@ proc internalGetImage(this: Button): Bitmap =
   else: bError("proc internalGetImage(this: Button): Bitmap")
 
 
-
 # RADIO -----------------------------------------
 
 
@@ -393,9 +368,7 @@ proc internalAttach(this: Bubble, that: NElement) =
   else: bError("proc internalAttach(this: Bubble, that: NElement)")
 
 
-
 # IMAGE -----------------------------------------
-
 
 
 # TEXTAREA --------------------------------------
@@ -570,38 +543,7 @@ proc internalHeaders(this: NTable, v: bool) =
   else: bError("proc internalHeaders(this: NTable, v: bool)")
 
 
-
 # COMBOBOX --------------------------------------
-proc internalAdd(this: ComboBox, text: string)  =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalAdd(this: ComboBox, text: string) ")
-  else: bError("proc internalAdd(this: ComboBox, text: string) ")
-
-proc internalSet(this: ComboBox, text: string, i: int) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSet(this: ComboBox, text: string, i: int)")
-  else: bError("proc internalSet(this: ComboBox, text: string, i: int)")
-
-proc internalGet(this: ComboBox, i: int): string =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGet(this: ComboBox, i: int): string")
-  else: bError("proc internalGet(this: ComboBox, i: int): string")
-
-proc internalGetSelected(this: ComboBox): string  =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetSelected(this: ComboBox): string ")
-  else: bError("proc internalGetSelected(this: ComboBox): string ")
-
-proc internalGetSelectedIndex(this: ComboBox): int  =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetSelectedIndex(this: ComboBox): int ")
-  else: bError("proc internalGetSelectedIndex(this: ComboBox): int ")
-
-proc internalSetSelectedIndex(this: ComboBox, i: int) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetSelectedIndex(this: ComboBox, i: int)")
-  else: bError("proc internalSetSelectedIndex(this: ComboBox, i: int)")
-
 
 
 # PROGRESS --------------------------------------
