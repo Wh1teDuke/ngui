@@ -97,6 +97,7 @@ elif v3:
     gtkTextView    = gtk.TextView
     gtkRadioButton = gtk.RadioButton
     gtkButton      = gtk.Button
+    gtkLabel       = gtk.Label
     gtkGrid        = gtk.Grid
     gtkPopover     = gtk.PopOver
     gtkImage       = gtk.Image
@@ -529,6 +530,30 @@ proc internalGetTransient(this: Window): Window =
   # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-get-transient-for
   let w = this.data(gtkWindow).getTransientFor()
   if w != nil: return Window(utilElement(w))
+
+
+# CONTAINER -------------------------------------
+proc reinsert(this: NElement) = utilChildrenReinsert(this.internalGetParent())
+
+proc internalReplace(container: Container, this, that: NElement) =
+  # TODO
+  raiseAssert("Not implemented YET")
+
+proc internalIndex(this: Container, that: NElement): int =
+  utilChildIndex(this, that)
+
+proc internalGetChild(this: Container, index: int): NElement =
+  utilNChild(this, index)
+
+proc internalLen(this: Container): int = utilLen(this)
+
+
+# LABEL -----------------------------------------
+proc internalSetText(this: Label, text: string) =
+  this.data(gtkLabel).setText(text)
+
+proc internalGetText(this: Label): string =
+  $this.data(gtkLabel).getText()
 
 
 # BUTTON ----------------------------------------

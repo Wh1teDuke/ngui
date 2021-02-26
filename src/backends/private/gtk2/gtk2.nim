@@ -17383,6 +17383,8 @@ proc set_orientation*(orientable: PWidget, orientation: TOrientation){.
     cdecl, dynlib: lib, importc: "gtk_orientable_set_orientation".}
 proc get_orientation*(orientable: PWidget): TOrientation{.
     cdecl, dynlib: lib, importc: "gtk_orientable_get_orientation".}
+proc get_size*(table: PTable, r, c: var guint) {.cdecl, dynlib: lib,
+    importc: "gtk_table_get_size".}
 # -------------------
 
 

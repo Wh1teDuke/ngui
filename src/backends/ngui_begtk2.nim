@@ -114,8 +114,6 @@ proc internalSetBGColor(this: NElement, color: Pixel) =
 
 
 # CONTAINER -------------------------------------
-proc internalLen(this: Container): int = utilLen(this)
-
 proc internalRemove(this: Container, that: NElement) =
   ## Remove element from this container. Element MUST be a child
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
@@ -151,21 +149,6 @@ proc internalAdd(this: Container, that: NElement) =
     thisD.add(thatD)
 
   thatD.show()
-
-proc internalReplace(container: Container, this, that: NElement) =
-  ## Replace child with another element
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalReplace(container: Container, this, that: NElement)")
-  else: bError("proc internalReplace(container: Container, this, that: NElement)")
-
-proc internalIndex(this: Container, that: NElement): int =
-  ## Get the position of this child
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalIndex(this: Container, that: NElement): int")
-  else: bError("proc internalIndex(this: Container, that: NElement): int")
-
-proc internalGetChild(this: Container, index: int): NElement =
-  utilNChild(this, index)
 
 proc internalGetBorder(this: Container): NBorder =
   ## Get the border size of this container
@@ -322,18 +305,6 @@ proc internalGetTransient(this: Alert): Window =
 
 
 # LABEL -----------------------------------------
-proc internalSetText(this: Label, text: string) =
-  ## Set this Label's content
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetText(this: Label, text: string)")
-  else: bError("proc internalSetText(this: Label, text: string)")
-
-proc internalGetText(this: Label): string =
-  ## Get this Label's content
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetText(this: Label): string")
-  else: bError("proc internalGetText(this: Label): string")
-
 proc internalSetWrap(this: Label, state: bool) =
   ## Set whether or not this element is allowed to wrap the content if it becomes too big
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
@@ -663,13 +634,21 @@ proc internalAdd(this: Box, that: NElement, expand, fill: bool, padding: int)  =
   else: bError("proc internalAdd(this: Box, that: NElement, expand, fill: bool, padding: int) ")
 
 
-
 # GRID ------------------------------------------
 proc internalAdd(this: Grid, that: NElement, r, c, w, h: int)  =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalAdd(this: Grid, that: NElement, r, c, w, h: int) ")
-  else: bError("proc internalAdd(this: Grid, that: NElement, r, c, w, h: int) ")
+  let
+    thisD         = this.data(gtkGrid)
+    (r, c, w, h)  = (guint(r), guint(c), guint(w), guint(h))
 
+  var tR, tC: guint
+  # https://developer.gnome.org/gtk2/2.24/GtkTable.html#gtk-table-get-size
+  thisD.getSize(tR, tC)
+  # https://developer.gnome.org/gtk2/2.24/GtkTable.html#gtk-table-resize
+  if r + h > tR or c + w > tC: thisD.resize(max(tR, r + h), max(tC, c + w))
+  # https://developer.gnome.org/gtk2/2.24/GtkTable.html#gtk-table-attach
+
+  thisD.attachDefaults(that.data(gtkWidget), c, c + w, r, r + h)
+  utilChild(this, that)
 
 
 # TAB -------------------------------------------

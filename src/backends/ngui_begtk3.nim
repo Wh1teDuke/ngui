@@ -214,20 +214,6 @@ proc internalAdd(this: Container, that: NElement) =
   # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-show
   thatD.show()
 
-proc reinsert(this: NElement) = utilChildrenReinsert(this.internalGetParent())
-
-proc internalReplace(container: Container, this, that: NElement) =
-  # TODO
-  raiseAssert("Not implemented YET")
-
-proc internalIndex(this: Container, that: NElement): int =
-  utilChildIndex(this, that)
-
-proc internalGetChild(this: Container, index: int): NElement =
-  utilNChild(this, index)
-
-proc internalLen(this: Container): int = utilLen(this)
-
 proc internalGetBorder(this: Container): NBorder =
   # https://developer.gnome.org/gtk3/stable/chap-css-properties.html
   # "Table 7. Box properties" Not sure this always works
@@ -356,12 +342,6 @@ proc internalGetTransient(this: Alert): Window =
 
 
 # LABEL -----------------------------------------
-proc internalSetText(this: Label, text: string) =
-  this.data(gtk.Label).setText(text)
-
-proc internalGetText(this: Label): string =
-  $this.data(gtk.Label).getText()
-
 proc internalSetWrap(this: Label, state: bool) =
   this.data(gtk.Label).setLineWrap(state)
 
