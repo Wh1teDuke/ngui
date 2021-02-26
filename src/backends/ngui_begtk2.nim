@@ -280,23 +280,6 @@ proc internalGetMaximized(this: Window): bool =
 
 
 # ALERT -----------------------------------------
-proc internalRun(this: Alert) =
-  ## Show this message dialog
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalRun(this: Alert)")
-  else: bError("proc internalRun(this: Alert)")
-
-proc internalSetModal(this: Alert, v: bool) =
-  raiseAssert("SET MODAL TODO")
-
-proc internalGetModal(this: Alert): bool =
-  raiseAssert("GET MODAL TODO")
-  
-proc internalSetTransient(this: Alert, that: Window) =
-  raiseAssert("SET TRANSIENT TODO")
-
-proc internalGetTransient(this: Alert): Window =
-  raiseAssert("GET TRANSIENT TODO")
 
 
 # LABEL -----------------------------------------

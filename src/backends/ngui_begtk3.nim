@@ -315,30 +315,6 @@ proc internalGetMaximized(this: Window): bool =
 
 
 # ALERT -----------------------------------------  
-# SET/GET Text https://developer.gnome.org/gtk3/stable/GtkMessageDialog.html#GtkMessageDialog--text
-
-proc internalRun(this: Alert) =
-  discard run(this.data(gtk.Dialog))
-  gtk.destroy(this.data(gtk.Widget))
-
-# From Window ****
-proc internalSetModal(this: Alert, v: bool) =
-  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-set-modal
-  this.data(gtk.Window).setModal(v)
-
-proc internalGetModal(this: Alert): bool =
-  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-get-modal
-  this.data(gtk.Window).getModal()
-  
-proc internalSetTransient(this: Alert, that: Window) =
-  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-set-transient-for
-  this.data(gtk.Window).setTransientFor(that.data(gtk.Window))
-
-proc internalGetTransient(this: Alert): Window =
-  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-get-transient-for
-  let w = this.data(gtk.Window).getTransientFor()
-  if w != nil: return Window(utilElement(w))
-# ****************
 
 
 # LABEL -----------------------------------------  

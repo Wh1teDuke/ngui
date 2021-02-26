@@ -14,6 +14,7 @@ when v2:
 
   type
     gtkWindow      = gtk2.PWindow
+    gtkDialog      = gtk2.PDialog
     gtkWidget      = gtk2.PWidget
     gtkContainer   = gtk2.PContainer
     gtkComboBox    = gtk2.PComboBox
@@ -45,6 +46,7 @@ when v2:
   const
     SCB          = gtk2.SIGNAL_FUNC
     signal       = gtk2.signalConnect
+    gtkDestroy   = proc(w: gtkWidget) = gtk2.destroy(w)
 
   proc gtkRef(w: PWidget): auto = reference(w)
   proc gtkRef(w: GPointer): auto = gObjectRef(w)
@@ -97,6 +99,7 @@ elif v3:
   
   type
     gtkWindow      = gtk.Window
+    gtkDialog      = gtk.Dialog
     gtkWidget      = gtk.Widget
     gtkContainer   = gtk.Container
     gtkTextView    = gtk.TextView
@@ -125,6 +128,7 @@ elif v3:
     newToolItem  = gtk.newToolItem
     newMenuItem  = proc: Widget = gtk.newMenuItem()
     gtkRef       = gobject.objectRef
+    gtkDestroy   = proc(w: gtkWidget) = gtk.destroy(w)
 
   template signal(a, b, c, d: typed): auto =
     gSignalConnect(a, b, c, d)
@@ -708,6 +712,12 @@ proc internalMarked(this: Calendar, day: int): bool =
 
 
 # ALERT -----------------------------------------
+# SET/GET Text https://developer.gnome.org/gtk3/stable/GtkMessageDialog.html#GtkMessageDialog--text
+
+proc internalRun(this: Alert) =
+  discard run(this.data(gtkDialog))
+  gtkDestroy(this.data(gtkWidget))
+
 proc internalSetText(this: Alert, text: string) =
   gtkSet(this, "secondary-text", text)
   
@@ -719,6 +729,23 @@ proc internalSetTitle(this: Alert, text: string) =
   
 proc internalGetTitle(this: Alert): string =
   gtkGet(this, "text", result)
+
+proc internalSetModal(this: Alert, v: bool) =
+  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-set-modal
+  this.data(gtkWindow).setModal(v)
+
+proc internalGetModal(this: Alert): bool =
+  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-get-modal
+  this.data(gtkWindow).getModal()
+  
+proc internalSetTransient(this: Alert, that: Window) =
+  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-set-transient-for
+  this.data(gtkWindow).setTransientFor(that.data(gtkWindow))
+
+proc internalGetTransient(this: Alert): Window =
+  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-get-transient-for
+  let w = this.data(gtkWindow).getTransientFor()
+  if w != nil: return Window(utilElement(w))
 
 
 # IMAGE -----------------------------------------
