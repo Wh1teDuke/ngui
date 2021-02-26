@@ -23,12 +23,12 @@ from os import `/`, ParDir, dirExists
 template withBackend(
     kind: NguiBackEnd,
     dModule: untyped,
-    testDir, fixMsg: string) =
+    testDir: string) =
 
   when backend == kind:
     const d: string = currentSourcePath() / ParDir / "private" / testDir
     when not dirExists(d):
-      {.fatal: d & " backend folder doesn't exist.\lFix: " & fixMsg.}
+      {.fatal: d & " backend folder doesn't exist.".}
     include dModule
     static: DEP_TRUE = on
     
@@ -51,15 +51,13 @@ include ngui_backend_interface
 withBackend(
   kind    = beGTK3,
   dModule = ngui_begtk3,
-  testDir = "oldgtk3",
-  fixMsg  = "git clone --depth 1 https://github.com/StefanSalewski/oldgtk3.git [NGUI_FOLDER]/src/backend/private/")
+  testDir = "oldgtk3")
 # -----------------------------------------------------------------------------
 # GTK2
 withBackend(
   kind    = beGTK2,
   dModule = ngui_begtk2,
-  testDir = "gtk2",
-  fixMsg  = "git clone --depth 1 https://github.com/nim-lang/gtk2.git [NGUI_FOLDER]/src/backend/private/")
+  testDir = "gtk2")
 # -----------------------------------------------------------------------------
 
 when not(DEP_TRUE): {.fatal: "Backend not implemented: " & $backend.}
