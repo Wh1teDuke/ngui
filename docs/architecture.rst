@@ -34,5 +34,15 @@ As an example of an implementation, checkout the module
 
 GTK3 Backend
 ============
-  
-TODO
+
+Adapters
+--------  
+TODO (Label, img, menu/menubar)
+
+Events
+------
+TODO (Event names, closure callbacks, stop propagation, get current event)
+
+Style
+-----
+TODO (Satanic rituals, object inspection)
