@@ -866,6 +866,9 @@ type
       cdecl.}
   TClipboardTextReceivedFunc* = proc (clipboard: PClipboard, text: cstring,
                                       data: gpointer){.cdecl.}
+  # NGUI
+  TClipboardImageReceivedFunc* = proc (clipboard: PClipboard, pixbuf: PPixbuf,
+                                      data: gpointer){.cdecl.}
   TClipboardGetFunc* = proc (clipboard: PClipboard,
                              selection_data: PSelectionData, info: guint,
                              user_data_or_owner: gpointer){.cdecl.}
@@ -5137,6 +5140,9 @@ proc item_get_inconsistent*(check_menu_item: PCheckMenuItem): gboolean{.
     cdecl, dynlib: lib, importc: "gtk_check_menu_item_get_inconsistent".}
 proc clipboard_get_for_display*(display: gdk2.PDisplay, selection: gdk2.TAtom): PClipboard{.
     cdecl, dynlib: lib, importc: "gtk_clipboard_get_for_display".}
+# NGUI
+proc clipboard_get*(selection: gdk2.TAtom): PClipboard{.
+    cdecl, dynlib: lib, importc: "gtk_clipboard_get".}
 proc get_display*(clipboard: PClipboard): gdk2.PDisplay{.cdecl,
     dynlib: lib, importc: "gtk_clipboard_get_display".}
 proc set_with_data*(clipboard: PClipboard, targets: PTargetEntry,
@@ -5154,6 +5160,9 @@ proc clear*(clipboard: PClipboard){.cdecl, dynlib: lib,
     importc: "gtk_clipboard_clear".}
 proc set_text*(clipboard: PClipboard, text: cstring, len: gint){.
     cdecl, dynlib: lib, importc: "gtk_clipboard_set_text".}
+# NGUI
+proc set_image*(clipboard: PClipboard, pixbuf: PPixbuf){.
+    cdecl, dynlib: lib, importc: "gtk_clipboard_set_image".}
 proc request_contents*(clipboard: PClipboard, target: gdk2.TAtom,
                                  callback: TClipboardReceivedFunc,
                                  user_data: gpointer){.cdecl, dynlib: lib,
@@ -5164,8 +5173,16 @@ proc request_text*(clipboard: PClipboard,
     importc: "gtk_clipboard_request_text".}
 proc wait_for_contents*(clipboard: PClipboard, target: gdk2.TAtom): PSelectionData{.
     cdecl, dynlib: lib, importc: "gtk_clipboard_wait_for_contents".}
+# NGUI
+proc request_image*(clipboard: PClipboard,
+                             callback: TClipboardImageReceivedFunc,
+                             user_data: gpointer){.cdecl, dynlib: lib,
+    importc: "gtk_clipboard_request_image".}
 proc wait_for_text*(clipboard: PClipboard): cstring{.cdecl,
     dynlib: lib, importc: "gtk_clipboard_wait_for_text".}
+# NGUI
+proc wait_for_image*(clipboard: PClipboard): PPixbuf{.cdecl,
+    dynlib: lib, importc: "gtk_clipboard_wait_for_image".}
 proc wait_is_text_available*(clipboard: PClipboard): gboolean{.cdecl,
     dynlib: lib, importc: "gtk_clipboard_wait_is_text_available".}
 const
@@ -5258,6 +5275,9 @@ proc set_shadow_type*(clist: PCList, thetype: TShadowType){.cdecl,
     dynlib: lib, importc: "gtk_clist_set_shadow_type".}
 proc set_selection_mode*(clist: PCList, mode: TSelectionMode){.cdecl,
     dynlib: lib, importc: "gtk_clist_set_selection_mode".}
+# NGUI
+proc get_selection_mode*(clist: PCList): TSelectionMode{.cdecl,
+    dynlib: lib, importc: "gtk_clist_get_selection_mode".}
 proc set_reorderable*(clist: PCList, reorderable: gboolean){.cdecl,
     dynlib: lib, importc: "gtk_clist_set_reorderable".}
 proc set_use_drag_icons*(clist: PCList, use_icons: gboolean){.cdecl,
@@ -17378,7 +17398,7 @@ proc load_icon*(theme: pointer, name: string, size: cint, flags: uint8, error: v
                    dynlib: lib, importc: "gtk_icon_theme_load_icon".}
 proc iconThemeGetDefault*(): pointer {.cdecl,
                    dynlib: lib, importc: "gtk_icon_theme_get_default".}
-const GENERIC_FALLBACK* = 3
+const GENERIC_FALLBACK* = 3.uint8
 proc set_orientation*(orientable: PWidget, orientation: TOrientation){.
     cdecl, dynlib: lib, importc: "gtk_orientable_set_orientation".}
 proc get_orientation*(orientable: PWidget): TOrientation{.

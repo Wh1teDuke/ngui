@@ -526,6 +526,8 @@ proc button*(text: string = "", onEventClick: NEventProc = nil): Button =
   if onEventClick != nil: result.onClick(onEventClick)
 
 proc button*(img: Bitmap, onEventClick: NEventProc = nil): Button =
+  doAssert img != nil
+  
   nguiNew()
   internalSetImage(result, img)
   if onEventClick != nil: result.onClick(onEventClick)
@@ -1084,8 +1086,6 @@ proc list*(mode: NAmount = naOne): List =
 
 proc mode*(this: List): NAmount = internalGetMode(this)
 proc `mode=`*(this: List, mode: NAmount) = internalSetMode(this, mode)
-
-proc sort*(this: List, cmp: NCMPPRoc) = internalCmp(this, cmp)
 
 proc selected*(this: List, that: var seq[NElement]) =
   internalSelected(this, that)

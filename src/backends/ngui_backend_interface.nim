@@ -289,14 +289,13 @@ proc internalSetSide(this: Tab, side: NSide)
 
 
 # LIST ------------------------------------------
-proc internalGetMode(this: List): NAmount 
-proc internalSetMode(this: List, mode: NAmount) 
-proc internalCmp(this: List, that: NCMPProc) 
-proc internalSelected(this: List, that: var seq[NElement]) 
+proc internalGetMode(this: List): NAmount
+proc internalSetMode(this: List, mode: NAmount)
+proc internalSelected(this: List, that: var seq[NElement])
 
 
 # FRAME -----------------------------------------
-proc internalSetText(this: Frame, text: string) 
+proc internalSetText(this: Frame, text: string)
 proc internalGetText(this: Frame): string
 
 

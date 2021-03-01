@@ -2,68 +2,13 @@
 include private/ngui_common_gtk
 
 
-
-# BASE ------------------------------------------
-template gtkYouAreKillingMe() {.dirty.} =
-  val =
-    when val is bool:   bool(addr(v).getBoolean())
-    elif val is int:    int(addr(v).getInt())
-    elif val is string: $(addr(v).getString())
-    elif val is Pixel:
-      var c: RGBA
-      # https://stackoverflow.com/a/47373201
-      context.get(thisD.getStateFlags(), prop, c.addr, nil)
-      let p = pixel(c.red, c.green, c.blue, c.alpha)
-      rgbaFree(c)
-      p
-      
-    else: discard
-  unset(v.addr)
-
-proc invokeSatanSet(
-    this: NElement, css: string, args: varargs[string, `$`]): bool =
-  let
-    # The evil that men do lives on and on
-    # https://developer.gnome.org/gtk3/stable/chap-css-properties.html
-    # https://developer.gnome.org/gtk3/stable/GtkStyleContext.html
-    context  = this.data(gtk.Widget).getStyleContext()
-    provider = newCssProvider()
-    css      = css % args
-
-  var error: GError
-  result = provider.loadFromData(css, css.len, error)
-  context.addProvider(
-    cast[StyleProvider](provider), STYLE_PROVIDER_PRIORITY_USER)
-
-proc invokeSatanGet[T](this: NElement, prop: string, val: var T) =
-  let
-    thisD    = this.data(gtk.Widget)
-    context  = thisD.getStyleContext()
-
-  when val is Pixel:
-    var c: RGBA
-    # https://stackoverflow.com/a/47373201
-    context.get(thisD.getStateFlags(), prop, c.addr, nil)
-    val = pixel(c.red, c.green, c.blue, c.alpha)
-    rgbaFree(c)
-    
-  else:
-    var v: GValueObj
-    context.getProperty(prop, thisD.getStateFlags(), v.addr)
-    gtkYouAreKillingMe()
-
-
-# EVENTS ----------------------------------------
-# included
-
-
 # WIDGET ----------------------------------------
 proc internalGetOpacity(this: NElement): float =
   # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-get-opacity
-  float(this.data(gtk.Widget).getOpacity())
+  float(this.data(gtkWidget).getOpacity())
   
 proc internalSetOpacity(this: NElement, v: float) =
-  let w = this.data(gtk.Widget)
+  let w = this.data(gtkWidget)
   
   # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-set-opacity
   w.setOpacity(v.cdouble)
@@ -71,96 +16,20 @@ proc internalSetOpacity(this: NElement, v: float) =
 
   # Transparent window
   # https://stackoverflow.com/a/3909283
-  proc onScreenChanged(this: gtk.Widget, _: (GPointer, GPointer)) {.cdecl.} =
+  proc onScreenChanged(this: gtkWidget, _: (GPointer, GPointer)) {.cdecl.} =
     this.setVisual(this.getScreen().getRGBAVisual())
 
-  proc onDraw(t: gtk.Widget, c: cairo.Context, _: GPointer): GBoolean {.cdecl.} =
+  proc onDraw(t: gtkWidget, c: cairo.Context, _: GPointer): GBoolean {.cdecl.} =
     c.setSourceRGBA(0.0, 1.0, 0.0, 0.5)
     c.setOPerator(SOURCE)
     c.paint()
     return false
   
-  discard gSignalConnect(w, "screen-changed", gCALLBACK(onScreenChanged), nil)
-  discard gSignalConnect(w, "draw", gCALLBACK(onDraw), nil)
+  discard signal(w, "screen-changed", gCALLBACK(onScreenChanged), nil)
+  discard signal(w, "draw", gCALLBACK(onDraw), nil)
   w.setAppPaintable(true)
   w.onScreenChanged((nil, nil))
   # Doesn't work on my computer, why?
-
-proc internalSetVisible(this: NElement, state: bool) =
-  # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-set-visible
-  this.data(Widget).setVisible(state)
-  
-proc internalGetVisible(this: NElement): bool =
-  # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-get-visible
-  if this of App: return
-  return bool(this.data(Widget).getVisible())
-
-proc internalGetNext(this: NElement): NElement = utilNext(this)
-
-proc internalGetPrev(this: NElement): NElement = utilPrev(this)
-
-proc internalGetFocus(this: NElement): bool =
-  # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-is-focus
-  this.data(gtk.Widget).isFocus()
-
-proc internalSetFocus(this: NElement) =
-  let thisD = this.data(gtk.Widget)
-  # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-grab-focus
-  thisD.setCanFocus(true)
-  thisD.grabFocus()
-
-proc internalGetSize(this: NElement): tuple[w, h: int] =
-  # uggh ...
-  # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-get-preferred-size
-  result = (-1, -1)
-  var a, b: Requisition
-  this.data(gtk.Widget).getPreferredSize(a, b)
-  if b != nil: return (b.width.int, b.height.int)
-
-proc adjustSize(this: NElement) =
-  if this.internalGetParent() == nil: return
-  
-  # https://stackoverflow.com/a/9691465 Shrink Window
-  let parent = this.internalGetParent()
-  
-  if parent of Window:
-    var dw, dh, w, h: cint
-    getPreferredWidth(this.data(gtk.Container), dw, w)
-    getPreferredHeight(this.data(gtk.Container), dh, h)
-    # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-resize
-    resize(parent.data(gtk.Window), w, h)
-    
-  adjustSize(parent)
-
-proc internalSetSize(this: NElement, size: tuple[w, h: int]) =
-  let w = this.data(gtk.Widget)
-  # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-set-size-request
-  w.setSizeRequest(size.w.cint, size.h.cint)
-  #let adapter = utilGetAdapter(w)
-  #if adapter != nil:
-    #cast[gtk.Widget](adapter).setSizeRequest(size.w.cint, size.h.cint)
-
-  if this of Progress:
-    discard invokeSatanSet(this,
-      "trough{min-width:$1px;min-height:$2px;}progress{min-height:$2px;}",
-        size.w, size.h)
-  
-  adjustSize(this)
-
-proc internalSetTooltip(this: NElement, text: string) =
-  # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-set-tooltip-text
-  this.data(gtk.Widget).setToolTipText(text)
-  
-proc internalGetTooltip(this: NElement): string =
-  # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-get-tooltip-text
-  $this.data(gtk.Widget).getToolTipText()
-
-proc internalSetDestroy(this: NElement) =
-  # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-destroy
-  this.data(gtk.Widget).destroy()
-
-proc internalGetDestroy(this: NElement): bool = not utilExists(this)
-proc internalGetParent(this: NElement): Container = utilParent(this)
 
 proc internalGetBGColor(this: NElement): Pixel =
   # https://developer.gnome.org/gtk3/stable/chap-css-properties.html
@@ -174,18 +43,6 @@ proc internalSetBGColor(this: NElement, color: Pixel) =
 
 
 # CONTAINER -------------------------------------
-proc internalRemove(this: Container, that: NElement) =  
-  let (thisD, thatD) =
-    (cast[gtk.Container](this.raw), cast[gtk.Widget](that.raw))
-
-  if not utilDelAdapter(thatD, adapters):
-    # https://developer.gnome.org/gtk3/stable/GtkContainer.html#gtk-container-remove
-    thisD.remove(thatD)
-
-  adjustSize(this)
-  utilRemove(this, that)
-
-
 proc internalGetBorder(this: Container): NBorder =
   # https://developer.gnome.org/gtk3/stable/chap-css-properties.html
   # "Table 7. Box properties" Not sure this always works
@@ -204,14 +61,14 @@ proc internalGetBorderColor(this: Container): Pixel =
   invokeSatanGet(this, "border-color", result)
 
 proc internalSetBorderColor(this: Container, color: Pixel) =
-  let (r,g,b,a) = color
+  let (r, g, b, a) = color
   discard invokeSatanSet(this, "*{border-color:rgba($1,$2,$3,$4);}", r, g, b, a)
 
 
 # APP -------------------------------------------
 proc internalRun(this: App) =
   for c in utilItems(this):
-    c.data(gtk.Window).showAll()
+    c.data(gtkWindow).showAll()
   gtk.main() # Blocking
 
 proc internalStop(this: App) =
@@ -219,319 +76,20 @@ proc internalStop(this: App) =
   gtk.mainQuit()
 
 
-# WINDOW ----------------------------------------
-proc internalSetText(this: Window, text: string) =
-  this.data(gtk.Window).title = text
-
-proc internalGetText(this: Window): string =
-  $this.data(gtk.Window).getTitle()
-
-proc internalSetResizable(this: Window, state: bool) =
-  this.data(gtk.Window).setResizable(state)
-
-proc internalGetResizable(this: Window): bool =
-  this.data(gtk.Window).getResizable()
-
-proc internalSetPosition(this: Window, position: tuple[x, y: int]) =
-  this.data(gtk.Window).move(position.x.cint, position.y.cint)
-
-proc internalGetPosition(this: Window): tuple[x, y: int] =
-  var x, y: cint
-  this.data(gtk.Window).getPosition(x, y)
-  return (x.int, y.int)
-
-proc internalGetFocused(this: Window): NElement =
-  let widget = this.data(gtk.Window).getFocus()
-  if widget == nil: return
-  return utilElement(widget)
-
-proc internalGetIcon(this: Window): Bitmap =
-  newBitmap(this.data(gtk.Window).getIcon())
-
-proc internalSetIcon(this: Window, that: Bitmap) =
-  this.data(gtk.Window).setIcon(cast[GdkPixBuf](that.data))
-
-proc internalGetDecorated(this: Window): bool =
-  bool(this.data(gtk.Window).getDecorated())
-  
-proc internalSetDecorated(this: Window, v: bool) =
-  this.data(gtk.Window).setDecorated(v)
-
-proc internalSetMinimized(this: Window, v: bool) =
-  if v: this.data(gtk.Window).iconify()
-  else: this.data(gtk.Window).deiconify()
-  
-proc internalGetMinimized(this: Window): bool =
-  discard # TODO
-
-proc internalSetMaximized(this: Window, v: bool) =
-  if v: this.data(gtk.Window).maximize()
-  else: this.data(gtk.Window).unmaximize()
-  
-proc internalGetMaximized(this: Window): bool =
-  this.data(gtk.Window).isMaximized()
-
-
-# ALERT -----------------------------------------  
-
-
-# LABEL -----------------------------------------  
-proc internalGetXAlign(this: Label): float =
-  this.data(gtk.Label).getXAlign()
-
-proc internalGetYAlign(this: Label): float =
-  this.data(gtk.Label).getYAlign()
-  
-proc internalSetXAlign(this: Label, v: float) =
-  this.data(gtk.Label).setXAlign(v)
-
-proc internalSetYAlign(this: Label, v: float) =
-  this.data(gtk.Label).setYAlign(v)
-
-
-# ENTRY -----------------------------------------
-
-
-
-# BUTTON ----------------------------------------
-proc internalSetImage(this: Button, img: Bitmap) =
-  this.data(gtkButton).setImage(newImage(cast[GDKPixbuf](img.data)))
-
-proc internalGetImage(this: Button): Bitmap =
-  newBitmap(this.data(gtkButton).getImage().getPixbuf())
-
-
-# RADIO -----------------------------------------
-
-
 # BUBBLE ----------------------------------------
 proc internalAttach(this: Bubble, that: NElement) =
-  let thisD = this.data(gtk.Popover)
-  thisD.setRelativeTo(that.data(gtk.Widget))
+  let thisD = this.data(gtkPopover)
+  thisD.setRelativeTo(that.data(gtkWidget))
   thisD.setConstrainTo(PopoverConstraint.NONE)
   thisD.show()
-
-
-# IMAGE -----------------------------------------
-# INCLUDED
-
-
-# TEXT_AREA -------------------------------------
-proc internalSetText(this: TextArea, text: string) =
-  let buffer = this.data(gtk.TextView).getBuffer()
-  buffer.setText(text, text.len.cint)
-
-proc internalGetText(this: TextArea): string =
-  var s, e: TextIter
-  let buffer = this.data(gtk.TextView).getBuffer()
-  buffer.getBounds(s, e)
-  return $buffer.getText(s, e, true)
-
-
-# CALENDAR --------------------------------------
-
-
-# SLIDER ----------------------------------------
-proc internalSetValue(this: Slider, value: float) =
-  this.data(gtk.Scale).setValue(value.cdouble)
-
-proc internalGetValue(this: Slider): float =
-  this.data(gtk.Scale).getValue().float
-
-proc internalGetDecimals(this: Slider): int =
-  this.data(gtk.Scale).getDigits().int
-
-proc internalSetDecimals(this: Slider, decimals: int) =
-  this.data(gtk.Scale).setDigits(decimals.cint)
-
-proc internalSetStep(this: Slider, step: float) =
-  this.data(gtk.Scale).setIncrements(step.cdouble, step.cdouble)
-
-proc internalSetRange(this: Slider, range: Slice[float]) =
-  this.data(gtk.Scale).setRange(range.a.cdouble, range.b.cdouble)
-
-proc internalGetOrientation(this: Slider): NOrientation =
-  NOrientation(this.data(gtk.Orientable).getOrientation())
-
-proc internalSetOrientation(this: Slider, value: NOrientation) =
-  this.data(gtk.Orientable).setOrientation(Orientation(value))
-
-
-# CHECKBOX --------------------------------------
-
-
-# FILECHOOSE ------------------------------------
-proc internalSetMultiple(this: FileChoose, state: bool) =
-  gtkSet(this, "select-multiple", state)
-
-proc internalGetMultiple(this: FileChoose): bool =
-  gtkGet(this, "select-multiple", result)
-
-proc internalGetFiles(this: FileChoose): seq[string] =
-  var list = this.data(FileChooser).getFilenames()
-  while list != nil:
-    let name = cast[cstring](list.data)
-    result.add($name)
-    free(list.data)
-    list = list.next
-  free(list)
-
-proc internalSetText(this: FileChoose, text: string) =
-  this.data(gtk.FileChooserDialog).setTitle(text)
-
-proc internalGetText(this: FileChoose): string =
-  $this.data(gtk.FileChooserDialog).getTitle()
-
-proc internalSetButton(this: FileChoose, button: string, index: int) =
-  discard this.data(gtk.FileChooserDialog).addButton(button, index.cint)
-
-proc internalRun(this: FileChoose): int =
-  let rc = this.data(gtk.FileChooserDialog).run().int
-  return if rc < 0: -1 else: rc  
-
-
-# BAR -------------------------------------------
-# ---
-
-
-# MENU ------------------------------------------
-
-
-# COMBOBOX --------------------------------------
-  
-
-# PROGRESS --------------------------------------
-proc internalValue(this: Progress): float =
-  float(this.data(gtk.ProgressBar).getFraction())
-
-proc internalValue(this: Progress, v: float) =
-  this.data(gtk.ProgressBar).setFraction(v)
 
 
 # BOX -------------------------------------------
 proc internalAdd(this: Box, that: NElement, expand, fill: bool, padding: int) =
   doAssert that.internalGetParent == nil
-  this.data(gtk.Box).packStart(
-    that.data(gtk.Widget), expand, fill, padding.cuint)
+  this.data(gtkBox).packStart(
+    that.data(gtkWidget), expand, fill, padding.cuint)
   utilChild(this, that)
-
-
-# TABLE -----------------------------------------
-proc hackGetPixbufType: GType =
-  var t {.global.}: GType
-  once:
-    let pb = newPixbuf(GdkColorspace.RGB, false, 8, 1, 1)
-    t = gObjectType(pb)
-    objectUnref(pb)
-    
-  return t
-
-proc setHeaders(this: NTable, headers: openArray[(string, NCellKind)]) =
-  var list: seq[GType]
-  var visible = false
-
-  for _, k in items headers:
-    case k:
-    of ckStr:  list.add(G_TYPE_STRING)
-    of ckBool: list.add(G_TYPE_BOOLEAN)
-    of ckImg:  list.add(hackGetPixbufType())
-
-  let
-    tv = this.data(gtk.TreeView)
-    ls = listStoreNewv(list.len.cint, addr(list[0]))
-
-  for i, (n, k) in headers:
-    visible = visible or n != ""
-    template add(r, t) =
-      discard tv.appendColumn(
-        newTreeViewColumn(n, r(), t, i.cint, nil))
-
-    case k:
-    of ckStr:  add(newCellRendererText, "text")
-    of ckBool: add(newCellRendererToggle, "active")      
-    of ckImg:  add(newCellRendererPixbuf, "pixbuf")
-  
-  tv.setModel(cast[TreeModel](ls))
-  tv.setHeadersVisible(visible)
-
-template tableSet(that: NTableCell, x: int) {.dirty.} =
-  var old: NTableCell
-  tableGet(old, x)
-  if old.kind == that.kind:
-    template set(v) = ls.set(ti.addr, x.cint, v, -1)
-    case that.kind:
-    of ckStr:  set(cstring(that.vStr))
-    of ckBool: set(that.vBool)
-    of ckImg:  set(cast[GdkPixBuf](that.vImg.data))
-
-template tableGet(that: var NTableCell, x: int) {.dirty.} =
-  var v: GValueObj
-  cast[TreeModel](ls).getValue(ti.addr, x.cint, v.addr)
-  let gvt = gValueType(v.addr)
-
-  if gvt == G_TYPE_STRING:
-    that = toCell($getString(v.addr))
-  elif gvt == hackGetPixbufType():
-    # TODO: Not tested
-    that = toCell(newBitmap(cast[GdkPixBuf](getPointer(v.addr))))
-  elif gvt == G_TYPE_BOOLEAN:
-   that = toCell(getBoolean(v.addr))
-  else:
-    raiseAssert("Cell Type not implemented in gtk3")
-
-  unset(v.addr)
-
-template tableSet(that: NTableCell, x, y: int) {.dirty.} =
-  var ti: TreeIterObj
-  if cast[TreeModel](ls).getIter(ti.addr, newTreePath(y.cint, -1)):
-    tableSet(that, x)
-
-template tableGet(that: var NTableCell, x, y: int) {.dirty.} =
-  var ti: TreeIterObj
-  if cast[TreeModel](ls).getIter(ti.addr, newTreePath(y.cint, -1)):
-    tableGet(that, x)
-
-proc internalAdd(this: NTable, that: NTableRow) =
-  let tv = this.data(gtk.TreeView)
-
-  if tv.getModel() == nil:
-    var list: seq[(string, NCellKind)]
-    for i in 0 ..< that.len:
-      let t = tv.getData("cn" & $i)
-      let title = if t != nil: $cast[cstring](t) else: ""
-      list.add((title, that.list[i].kind))
-
-    setHeaders(this, list)
-
-  let ls = cast[gtk.ListStore](tv.getModel())
-  var ti: TreeIterObj
-  ls.append(ti.addr)
-  for i in 0 ..< that.len: tableSet(that.list[i], i)
-
-proc internalSet(this: NTable, that: NTableCell, x, y: int) =
-  let ls = cast[ListStore](this.data(gtk.TreeView).getModel())
-  tableSet(that, x, y)
-
-proc internalGet(this: Table, x, y: int): NTableCell =
-  let ls = cast[ListStore](this.data(gtk.TreeView).getModel())
-  tableGet(result, x, y)
-
-proc internalHeader(this: NTable, headers: openArray[string]) =
-  let tv = this.data(gtk.TreeView)
-
-  if tv.getColumn(0) == nil:
-    for i, h in headers:
-      tv.setData("cn" & $i, GPointer(cstring(h)))
-    
-  else:
-    for i, h in headers:
-      tv.getColumn(i.cint).setTitle(h)
-
-proc internalHeaders(this: NTable): bool =
-  this.data(gtk.TreeView).getHeadersVisible()
-
-proc internalHeaders(this: NTable, v: bool) =
-  this.data(gtk.TreeView).setHeadersVisible(v)
 
 
 # GRID ------------------------------------------  
@@ -539,93 +97,8 @@ proc internalAdd(this: Grid, that: NElement, r, c, w, h: int) =
   doAssert that.internalGetParent == nil
 
   utilChild(this, that)
-  this.data(gtk.Grid).attach(
-    that.data(gtk.Widget), c.cint, r.cint, w.cint, h.cint)
-
-
-# TAB -------------------------------------------
-proc internalAdd(this: Tab, that: Container, label: Label) =
-  discard this.data(gtk.NoteBook).appendPage(
-    that.data(gtk.Container), label.data(gtk.Label))
-  utilChild(this, that)
-  utilChild(that, label)
-
-proc internalSetReorderable(this: Tab, v: bool) =
-  let thisD = this.data(gtk.NoteBook)
-  for i in 0 ..< internalLen(this): # :-/
-    let c = internalGetChild(this, i)
-    thisD.setTabReorderable(c.data(gtk.Widget), v)
-
-proc internalGetReorderable(this: Tab): bool =
-  if internalLen(this) == 0: return
-  return this.data(gtk.NoteBook)
-    .getTabReorderable(internalGetChild(this, 0).data(gtk.Widget))
-
-proc internalGetSide(this: Tab): NSide =
-  [nsLeft, nsRight, nsTop, nsBottom][
-    int(this.data(gtk.NoteBook).getTabPos())]
-  
-proc internalSetSide(this: Tab, side: NSide) =
-  this.data(gtk.NoteBook).setTabPos(
-    [PositionType.TOP, PositionType.BOTTOM,
-     PositionType.LEFT, PositionType.RIGHT][int(side)])
-
-
-# LIST ------------------------------------------
-proc internalGetMode(this: List): NAmount =
-  NAmount(this.data(gtk.ListBox).getSelectionMode)
-
-proc internalSetMode(this: List, mode: NAmount) =
-  this.data(gtk.ListBox).setSelectionMode(SelectionMode(mode))
-
-proc internalCmp(this: List, that: NCMPProc) =
-  var cmps {.global.}: STable[int, NCMPProc]
-  
-  this.data(gtk.ListBox).setSortFunc(
-    proc(a, b: gtk.ListBoxRow, data: GPointer): cint {.cdecl.} =
-      let (a, b) = (a.getChild(), b.getChild())
-      return cmps[cast[int](data)](a.utilElement(), b.utilElement()).cint
-  , cast[GPointer](int(this.id)), nil)
-
-  cmps[int(this.id)] = that
-  
-proc internalSelected(this: List, that: var seq[NElement]) =
-  var r = this.data(gtk.ListBox).getSelectedRows()
-  while r != nil:
-    let d = cast[gtk.ListBoxRow](r.data).getChild()
-    that.add(d.utilElement())
-    r = r.next
-  free(r)
-
-
-# FRAME -----------------------------------------
-proc internalSetText(this: Frame, text: string) =
-  this.data(gtk.Frame).setLabel(text)
-
-proc internalGetText(this: Frame): string =
-  $this.data(gtk.Frame).getLabel()
-
-
-# TOOLS -----------------------------------------  
-proc internalGetOrientation(this: Tools): NOrientation =
-  NOrientation(this.data(gtk.Orientable).getOrientation())
-
-proc internalSetOrientation(this: Tools, value: NOrientation) =
-  this.data(gtk.Orientable).setOrientation(Orientation(value))
-
-proc handleToolsAdd(this: Tools, that: NElement) =
-  # TOOLS ---------------------------
-  # GTKToolBar hierarchy:
-  # ToolBar -> [ToolItem] -> Widget
-  # https://developer.gnome.org/gtk3/stable/GtkToolItem.html
-  # ---------------------------------
-  
-  let (thisD, thatD) = (this.data(gtk.ToolBar), that.data(gtk.Widget))
-  discard utilInsertAdapter(thisD, thatD, adaptersToolItem)
-  utilChild(this, that)
-
-
-# TIMERS ----------------------------------------
+  this.data(gtkGrid).attach(
+    that.data(gtkWidget), c.cint, r.cint, w.cint, h.cint)
 
 
 # CLIPBOARD -------------------------------------
