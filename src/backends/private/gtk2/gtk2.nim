@@ -17394,7 +17394,7 @@ proc add_attribute*(cell: PPGtkCellLayout,
                                      cell_renderer: PCellRenderer,
                                      attribute: cstring, column: gint){.cdecl,
     dynlib: lib, importc: "gtk_tree_view_column_add_attribute".}
-proc load_icon*(theme: pointer, name: string, size: cint, flags: uint8, error: var pointer): pointer {.cdecl,
+proc load_icon*(theme: pointer, name: string, size: cint, flags: uint8, error: pointer): pointer {.cdecl,
                    dynlib: lib, importc: "gtk_icon_theme_load_icon".}
 proc iconThemeGetDefault*(): pointer {.cdecl,
                    dynlib: lib, importc: "gtk_icon_theme_get_default".}

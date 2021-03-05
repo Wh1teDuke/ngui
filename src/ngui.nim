@@ -196,8 +196,6 @@ type
   NRepeatProc* = (proc(): bool {.closure.})
   NRepeatHandle* = distinct int
   
-  NBorder* = array[NSide, int]
-  
   NTableCell* = object
     case kind: NCellKind:
     of ckBool: vBool: bool
@@ -884,16 +882,9 @@ proc shift*(this: Container): NElement =
   ## return it, or nil if there are no elements
   internalRemove(this, this[0])
 
-proc border*(this: Container): NBorder = internalGetBorder(this)
+proc border*(this: Container): int = internalGetBorder(this)
 
-proc `border=`*(this: Container, border: NBorder) =
-  internalSetBorder(this, border)
-
-proc `border=`*(this: Container, b: int) =
-  internalSetBorder(this, [b, b, b, b])
-
-proc border*(top, bottom, left, right: int): NBorder =
-  [top, bottom, left, right]
+proc `border=`*(this: Container, border: int) = internalSetBorder(this, border)
 
 proc borderColor*(this: Container): Pixel =
   internalGetBorderColor(this)
@@ -943,11 +934,13 @@ proc progress*(v: float = 0.0): Progress =
   nguiNew()
   internalValue(result, v)
 
-proc value*(this: Progress): float = internalValue(this)
-proc `value=`*(this: Progress, v: float) = internalValue(this, v)
+proc value*(this: Progress): float =
+  internalValue(this)
+proc `value=`*(this: Progress, v: float) =
+  internalValue(this, clamp(v, 0.0, 1.0))
 
 
-#  BOX ------------------------------------------
+# BOX -------------------------------------------
 proc box*(
     elements: openArray[NElement],
     orientation: NOrientation = noVERTICAL,
@@ -966,9 +959,6 @@ proc orientation*(this: Box): NOrientation =
   internalGetOrientation(this)
 proc `orientation=`*(this: Box, value: NOrientation) =
   internalSetOrientation(this, value)
-
-proc add*(this: Box, that: NElement, expand, fill: bool, padding: int) =
-  internalAdd(this, that, expand, fill, padding)
 
 
 # TABLE -----------------------------------------

@@ -19,16 +19,8 @@ const backend* = static:
 
 var DEP_TRUE {.compileTime.} = false
 
-from os import `/`, ParDir, dirExists
-template withBackend(
-    kind: NguiBackEnd,
-    dModule: untyped,
-    testDir: string) =
-
+template withBackend(kind: NguiBackEnd, dModule: untyped) =
   when backend == kind:
-    const d: string = currentSourcePath() / ParDir / "private" / testDir
-    when not dirExists(d):
-      {.fatal: d & " backend folder doesn't exist.".}
     include dModule
     static: DEP_TRUE = on
     
@@ -42,22 +34,22 @@ macro includeUtils(args: varargs[untyped]): untyped =
   
   result.add quote do:
     include ngui_backend_util
+    
+macro notSupported(this: untyped): untyped =
+  let sign = repr(this)
+  this[^1] = quote do:
+    raiseAssert("Not Supported: (" & $backend & ", " & `sign` & ")")
+  return this
 
 
 # -----------------------------------------------------------------------------
 include ngui_backend_interface
 # -----------------------------------------------------------------------------
 # GTK3
-withBackend(
-  kind    = beGTK3,
-  dModule = ngui_begtk3,
-  testDir = "oldgtk3")
+withBackend(kind = beGTK3, dModule = ngui_begtk3)
 # -----------------------------------------------------------------------------
 # GTK2
-withBackend(
-  kind    = beGTK2,
-  dModule = ngui_begtk2,
-  testDir = "gtk2")
+withBackend(kind = beGTK2, dModule = ngui_begtk2)
 # -----------------------------------------------------------------------------
 
 when not(DEP_TRUE): {.fatal: "Backend not implemented: " & $backend.}

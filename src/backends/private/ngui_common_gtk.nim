@@ -7,106 +7,8 @@ const
   v3 = backend == beGTK3
 
 
-# GTK2 START ------------------------------------
-when v2:
-  import gtk2/[gtk2, gdk2, glib2, gdk2, gdk2pixbuf, cairo]
-
-  type
-    gtkWindow      = gtk2.PWindow
-    gtkDialog      = gtk2.PDialog
-    gtkWidget      = gtk2.PWidget
-    gtkContainer   = gtk2.PContainer
-    gtkComboBox    = gtk2.PComboBox
-    gtkListStore   = gtk2.PListStore
-    gtkTreeIterObj = gtk2.TTreeIter
-    gtkTreeModel   = gtk2.PTreeModel
-    gtkNoteBook    = gtk2.PNoteBook
-    gtkRadioButton = gtk2.PRadioButton
-    gtkButton      = gtk2.PButton
-    gtkToolItem    = gtk2.PToolItem
-    gtkGrid        = gtk2.PTable
-    gtkLabel       = gtk2.PLabel
-    gtkEntry       = gtk2.PEntry
-    gtkTextIter    = gtk2.PTextIter
-    gtkTreeView    = gtk2.PTreeView
-    gtkListBox     = gtk2.PCList
-    gtkListBoxRow  = gtk2.PCListRow
-    gtkFrame       = gtk2.PFrame
-    # gtkPopover     = gtk2.PPopover TODO
-    gtkImage       = gtk2.PImage
-    gtkToolBar     = gtk2.PToolBar
-    gtkTextView    = gtk2.PTextView
-    gtkCalendar    = gtk2.PCalendar
-    gtkScale       = gtk2.PScale
-    gtkBox         = gtk2.PBox
-    gtkMenuItem    = gtk2.PMenuItem
-    gtkMenu        = gtk2.PMenu
-    gtkProgressBar = gtk2.PProgressBar
-    gtkCheckButton = gtk2.PCheckButton
-    gtkFileChooserDialog = gtk2.PFileChooser
-    gtkCellLayout  = gtk2.PPGtkCellLayout
-    GPointer       = glib2.gpointer
-    gtkOrientable  = gtk2.PWidget
-    Orientation    = gtk2.TOrientation
-    GValueObj      = glib2.TGValue
-    
-    GDKPixbuf      = gdk2pixbuf.PPixbuf
-
-  const
-    SCB          = gtk2.SIGNAL_FUNC
-    signal       = gtk2.signalConnect
-    gtkDestroy   = proc(w: gtkWidget) = gtk2.destroy(w)
-
-  proc gtkRef(w: PWidget): auto = reference(w)
-  proc gtkRef(w: GPointer): auto = gObjectRef(w)
-  proc newMenuItem(): auto = gtk2.menu_item_new()
-  proc newEventBox(): auto = gtk2.event_box_new()
-  proc newToolItem(): auto = gtk2.tool_item_new()
-  proc newWindow(): auto = gtk2.window_new(gtk2.WINDOW_TOP_LEVEL)
-  proc newGrid(): auto = gtk2.table_new(1, 1, true)
-  proc newLabel(): auto = gtk2.label_new("")
-  proc newEntry(): auto = gtk2.entry_new()
-  proc newButton(): auto = gtk2.button_new()
-  proc newRadioButton(): auto = gtk2.radio_button_new(nil)
-  proc newImage(): auto = gtk2.image_new()
-  proc newTextView(): auto = gtk2.text_view_new()
-  proc newCalendar(): auto = gtk2.calendar_new()
-  proc newCheckButton(): auto = gtk2.check_button_new()
-  proc newPopover(): gtkWidget = raiseAssert("TODO") # cast[gtkWidget](gtk2.pop_over_new())
-  proc newFileChooser(): auto = gtk2.file_chooser_dialog_new(
-    nil, nil, FILE_CHOOSER_ACTION_OPEN, nil)
-  proc newNoteBook(): auto = gtk2.notebook_new()
-  proc newMenuBar(): auto = gtk2.menu_bar_new()
-  proc newMenu(): auto = gtk2.menu_new()
-  proc newComboBox(): auto = gtk2.comboBox_new_with_model(
-    cast[gtkTreeModel](gtk2.list_store_new(1, G_TYPE_STRING)))
-  proc newCellRendererText(): auto = gtk2.cell_renderer_text_new()
-  proc newProgressBar(): auto = gtk2.progress_bar_new()
-  proc newScale(): auto = gtk2.hscale_new(nil) # TODO change orientation
-  proc newBox(): auto = gtk2.vbox_new(true, 0) # TODO change Orientation
-  proc newTreeView(): auto = gtk2.tree_view_new()
-  proc newToolBar(): auto = gtk2.tool_bar_new()
-  proc newFrame(): auto = gtk2.frame_new("")
-  proc newListBox(): auto = gtk2.clist_new(1) # https://developer.gnome.org/gtk2/2.24/GtkCList.html
-  proc newTreePath(a, b: int): auto = gtk2.tree_path_new_from_string($a & ":" & $b)
-  proc newSeparator(o: Orientation): gtkWidget =
-    if int(o) == 1: vseparator_new() else: hseparator_new()
-  proc newSeparatorMenuItem(): gtkWidget = separator_menu_item_new()
-  proc newMessageDialog(): auto = gtk2.message_dialog_new(
-    nil,
-    0, # https://developer.gnome.org/gtk2/2.24/GtkDialog.html#GtkDialogFlags # TODO: TODO
-    MESSAGE_OTHER, # https://developer.gnome.org/gtk2/2.24/GtkMessageDialog.html#GtkMessageType
-    BUTTONS_CLOSE, # https://developer.gnome.org/gtk2/2.24/GtkMessageDialog.html#GtkButtonsType
-    nil)
-  proc loadPixbuf(file: string): GDKPixbuf =
-    var error: pointer
-    return pixbuf_new_from_file(file, error)
-  proc joinGroup(a, b: gtkRadioButton) =
-    a.setGroup(b.getGroup())
-
-
 # GTK3 START ------------------------------------  
-elif v3:
+when not v2:
   import oldgtk3/[gtk, glib, gobject, gdk, cairo, gdk_pixbuf]
   
   type
@@ -209,7 +111,7 @@ proc nextID: NID =
   
 
 # ETC -------------------------------------------
-template gtkYouAreKillingMe() {.dirty.} =
+template gtkAAAAAAAAAAAAAAA() {.dirty.} =
   val =
     when val is bool:   bool(addr(v).getBoolean())
     elif val is int:    int(addr(v).getInt())
@@ -223,8 +125,9 @@ template gtkYouAreKillingMe() {.dirty.} =
       p
       
     else: discard
-  unset(v.addr)    
 
+  unset(v.addr)
+  
 when not v2:
   proc invokeSatanSet(
       this: NElement, css: string, args: varargs[string, `$`]): bool =
@@ -257,14 +160,15 @@ when not v2:
     else:
       var v: GValueObj
       context.getProperty(prop, thisD.getStateFlags(), v.addr)
-      gtkYouAreKillingMe()
+      gtkAAAAAAAAAAAAAAA()
+
 
 proc gtkGet[T](this: NElement, prop: string, val: var T) =
   # https://developer.gnome.org/gobject/stable/gobject-Standard-Parameter-and-Value-Types.html
   # https://developer.gnome.org/gobject/stable/gobject-The-Base-Object-Type.html#g-object-get-property
   var v: GValueObj
   this.data(gtkWidget).getProperty(prop, addr(v))
-  gtkYouAreKillingMe()
+  gtkAAAAAAAAAAAAAAA()
 
 proc gtkGet[T](this: NElement, prop: string): T =
   gtkGet(this, prop, result)
@@ -477,6 +381,19 @@ proc internalGetParent(this: NElement): Container = utilParent(this)
 proc internalGetNext(this: NElement): NElement = utilNext(this)
 proc internalGetPrev(this: NElement): NElement = utilPrev(this)
 
+proc adjustSize(this: NElement) =
+  if this.internalGetParent() == nil: return
+  
+  # https://stackoverflow.com/a/9691465 Shrink Window
+  let parent = this.internalGetParent()
+  
+  if parent of Window:
+    let (w, h) = internalGetSize(this)
+    # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-resize
+    resize(parent.data(gtkWindow), w.cint, h.cint)
+    
+  adjustSize(parent)
+
 proc internalGetSize(this: NElement): tuple[w, h: int] =
   # uggh ...
   # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-get-preferred-size
@@ -491,19 +408,6 @@ proc internalGetSize(this: NElement): tuple[w, h: int] =
     this.data(gtkWidget).getPreferredSize(a, b)
     if b != nil: return (b.width.int, b.height.int)
 
-proc adjustSize(this: NElement) =
-  if this.internalGetParent() == nil: return
-  
-  # https://stackoverflow.com/a/9691465 Shrink Window
-  let parent = this.internalGetParent()
-  
-  if parent of Window:
-    let (w, h) = internalGetSize(this)
-    # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-resize
-    resize(parent.data(gtkWindow), w.cint, h.cint)
-    
-  adjustSize(parent)
-
 proc internalSetSize(this: NElement, size: tuple[w, h: int]) =
   let w = this.data(gtkWidget)
   # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-set-size-request
@@ -512,13 +416,8 @@ proc internalSetSize(this: NElement, size: tuple[w, h: int]) =
   #if adapter != nil:
     #cast[gtk.Widget](adapter).setSizeRequest(size.w.cint, size.h.cint)
 
-  if this of Progress:
-    when v2:
-      let s = w.style
-      discard
-      #style.
-
-    else:
+  when not v2:
+    if this of Progress:
       discard invokeSatanSet(this,
         "trough{min-width:$1px;min-height:$2px;}progress{min-height:$2px;}",
           size.w, size.h)
@@ -1170,15 +1069,12 @@ proc internalSave(this: Bitmap, path, format: string): bool =
 
 proc internalIconBitmap(name: string): Bitmap =
   # https://developer.gnome.org/gtk3/stable/GtkIconTheme.html#gtk-icon-theme-load-icon
-  when v2: (var error: pointer)
-  else:    (var error: GError)
-
   let flags = 
     when v2: uint8(1 shl GENERIC_FALLBACK)
     else:    IconLookupFlags(1 shl int(GENERIC_FALLBACK))
-
-  result = newBitmap(loadIcon(
-    iconThemeGetDefault(), name, 15.cint, flags, error))
+    
+  let pb = loadIcon(iconThemeGetDefault(), name, 15.cint, flags, nil)
+  if pb != nil: return newBitmap(pb)  
 
 proc internalIconBitmap(icon: NIcon): Bitmap =
   internalIconBitmap(
@@ -1230,6 +1126,7 @@ proc internalSetMode(this: List, mode: NAmount) =
   this.data(gtkListBox).setSelectionMode(SM(mode))
 
 proc internalSelected(this: List, that: var seq[NElement]) =
+  # TODO: Broken for GTK2. Throw everything away and use Tables instead
   when not v2:
     var r = this.data(gtkListBox).getSelectedRows()
     while r != nil:
@@ -1329,7 +1226,8 @@ proc internalGetSide(this: Tab): NSide =
 
 proc internalSetSide(this: Tab, side: NSide) =  
   when v2:
-    let p = guint([3, 0, 1, 2][int(side)])
+    # GTK2 doesn't support left/right sides?
+    let p = guint([0, 1, 0, 1][int(side)])
 
   else:
     let p = [PositionType.TOP, PositionType.BOTTOM,
@@ -1491,6 +1389,35 @@ proc internalHeaders(this: NTable): bool =
 proc internalHeaders(this: NTable, v: bool) =
   this.data(gtkTreeView).setHeadersVisible(v)
 
+
+# CLIPBOARD -------------------------------------
+
+proc getCB: Clipboard =
+  when v2:
+    clipboard_get(SELECTION_CLIPBOARD())
+  else:
+    # https://developer.gnome.org/gtk3/stable/gtk3-Clipboards.html
+    var acb {.global.}: gdk.Atom
+    once: acb = atomIntern("CLIPBOARD", true)
+    return clipboardGet(acb)
+  
+template C: Clipboard = getCB()
+
+proc internalClipboardClear = C.clear()
+proc internalClipboardSet(text: string) = C.setText(text, text.len.cint)
+proc internalClipboardSet(img: Bitmap) = C.setImage(cast[GdkPixBuf](img.data))
+
+proc internalClipboardGetText: string =
+  let txt = C.waitForText()
+  if txt == nil: return
+  result = $txt
+  free(txt)
+
+proc internalClipboardGetImg: Bitmap =
+  let img = C.waitForImage()
+  if img == nil: return
+  result = newBitmap(cast[GdkPixBuf](img))
+  objectUnref(img)
       
 
 # TIMERS ----------------------------------------

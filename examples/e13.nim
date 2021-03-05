@@ -56,9 +56,11 @@ proc main =
   let status = label("Done")
   let statusBorder = frame(status)
   status.xAlign = 0.05
-  statusBorder.border = [1, 2, 4, 8] # statusBorder.border = 5
-  statusBorder.borderColor = pixel(50, 100, 150)
-  statusBorder.bgColor = pixel(0.8, 0.6, 0.6)
+  
+  when ngui.backend != beGTK2:
+    statusBorder.border      = 2
+    statusBorder.borderColor = pixel(50, 100, 150)
+    statusBorder.bgColor     = pixel(0.8, 0.6, 0.6)
 
   var s = 0.0
   discard repeatDo 100:

@@ -43,26 +43,20 @@ proc internalSetBGColor(this: NElement, color: Pixel) =
 
 
 # CONTAINER -------------------------------------
-proc internalGetBorder(this: Container): NBorder =
+proc internalGetBorder(this: Container): int =
   # https://developer.gnome.org/gtk3/stable/chap-css-properties.html
-  # "Table 7. Box properties" Not sure this always works
-  invokeSatanGet(this, "margin-top", result[nsTop])
-  invokeSatanGet(this, "margin-bottom", result[nsBottom])
-  invokeSatanGet(this, "margin-left", result[nsLeft])
-  invokeSatanGet(this, "margin-right", result[nsRight])
+  invokeSatanGet(this, "border-top-width", result) # Doesn't work
 
-proc internalSetBorder(this: Container, b: NBorder) =
-  # TODO: Who is in the right here? border-width or margin?
-  discard invokeSatanSet(
-    this, "*{border-top-width:$1px;border-bottom-width:$2px;border-left-width:$3px;border-right-width:$4px;}",
-    b[nsTop], b[nsBottom], b[nsLeft], b[nsRight])
+proc internalSetBorder(this: Container, b: int) =
+  discard invokeSatanSet(this, "*{border-width:$1px;}", b)
 
 proc internalGetBorderColor(this: Container): Pixel =
   invokeSatanGet(this, "border-color", result)
 
 proc internalSetBorderColor(this: Container, color: Pixel) =
   let (r, g, b, a) = color
-  discard invokeSatanSet(this, "*{border-color:rgba($1,$2,$3,$4);}", r, g, b, a)
+  discard invokeSatanSet(
+    this, "*{border-color:rgba($1,$2,$3,$4);}", r, g, b, a)
 
 
 # APP -------------------------------------------
@@ -84,14 +78,6 @@ proc internalAttach(this: Bubble, that: NElement) =
   thisD.show()
 
 
-# BOX -------------------------------------------
-proc internalAdd(this: Box, that: NElement, expand, fill: bool, padding: int) =
-  doAssert that.internalGetParent == nil
-  this.data(gtkBox).packStart(
-    that.data(gtkWidget), expand, fill, padding.cuint)
-  utilChild(this, that)
-
-
 # GRID ------------------------------------------  
 proc internalAdd(this: Grid, that: NElement, r, c, w, h: int) =
   doAssert that.internalGetParent == nil
@@ -101,33 +87,7 @@ proc internalAdd(this: Grid, that: NElement, r, c, w, h: int) =
     that.data(gtkWidget), c.cint, r.cint, w.cint, h.cint)
 
 
-# CLIPBOARD -------------------------------------
-proc getCB: Clipboard =
-  # https://developer.gnome.org/gtk3/stable/gtk3-Clipboards.html
-  var acb {.global.}: gdk.Atom
-  once: acb = atomIntern("CLIPBOARD", true)
-  return clipboardGet(acb)
-
-template C: Clipboard = getCB()
-
-proc internalClipboardClear = C.clear()
-
-proc internalClipboardSet(text: string) = C.setText(text, text.len.cint)
-
-proc internalClipboardSet(img: Bitmap) = C.setImage(cast[GdkPixBuf](img.data))
-
-proc internalClipboardGetText: string =
-  let txt = C.waitForText()
-  if txt == nil: return
-  result = $txt
-  free(txt)
-
-proc internalClipboardGetImg: Bitmap =
-  let img = C.waitForImage()
-  if img == nil: return
-  result = newBitmap(cast[GdkPixBuf](img))
-  objectUnref(img)
-  
+# CLIPBOARD -------------------------------------  
 template asyncCB(req, dType, cbType, get) {.dirty.} =
   var
     idPool {.global.}: int = 0

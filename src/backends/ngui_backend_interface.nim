@@ -63,9 +63,9 @@ proc internalIndex(this: Container, that: NElement): int
   ## Get the position of this child
 proc internalGetChild(this: Container, index: int): NElement
   ## Get child by index position
-proc internalGetBorder(this: Container): NBorder
+proc internalGetBorder(this: Container): int
   ## Get the border size of this container
-proc internalSetBorder(this: Container, b: NBorder)
+proc internalSetBorder(this: Container, b: int)
   ## Set the border size of this container
 proc internalAddSeparator(this: Container, dir: NOrientation)
   ## Add a visual separator after the last added child
@@ -273,7 +273,6 @@ proc internalValue(this: Progress, v: float)
 proc internalSetSpacing(this: Box, spacing: int) 
 proc internalGetOrientation(this: Box): NOrientation
 proc internalSetOrientation(this: Box, value: NOrientation)
-proc internalAdd(this: Box, that: NElement, expand, fill: bool, padding: int) 
 
 
 # GRID ------------------------------------------
