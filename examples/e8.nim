@@ -12,7 +12,7 @@ proc main =
 
   b1.onChangeDo:
     if b2.checked:
-      echo "Selected ", b1.index, ": ", b1.selected
+      echo "Selected ", b1.selectedIndex, ": ", b1.selected
   
   b2.onChangeDo:
     echo "Debug is ", ["off", "on"][int(b2.checked)]

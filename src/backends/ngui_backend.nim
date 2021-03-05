@@ -2,22 +2,25 @@
 
 type
   NguiBackEnd* = enum
-    beNIL beGTK3
+    beNIL beGTK2 beGTK3
 
 
-const backend* = beGTK3
+const backend* = static:
+  var be = beGTK3
+
+  const nguibackend {.strdefine.} = ""
+    
+  if nguibackend != "":
+    be = parseEnum[NguiBackEnd](nguibackend, beNil)
+    if be == beNil: be = parseEnum[NguiBackEnd]("be" & nguibackend, beNil)
+    if be == beNil: raiseAssert("Backend not implemented: " & nguibackend)
+
+  be
+
 var DEP_TRUE {.compileTime.} = false
 
-from os import `/`, ParDir, dirExists
-template withBackend(
-    kind: NguiBackEnd,
-    dModule: untyped,
-    testDir, fixMsg: string) =
-
+template withBackend(kind: NguiBackEnd, dModule: untyped) =
   when backend == kind:
-    const d: string = currentSourcePath() / ParDir / "private" / testDir
-    when not dirExists(d):
-      {.fatal: d & " backend folder doesn't exist.\lFix: " & fixMsg.}
     include dModule
     static: DEP_TRUE = on
     
@@ -31,17 +34,22 @@ macro includeUtils(args: varargs[untyped]): untyped =
   
   result.add quote do:
     include ngui_backend_util
+    
+macro notSupported(this: untyped): untyped =
+  let sign = repr(this)
+  this[^1] = quote do:
+    raiseAssert("Not Supported: (" & $backend & ", " & `sign` & ")")
+  return this
 
 
 # -----------------------------------------------------------------------------
 include ngui_backend_interface
 # -----------------------------------------------------------------------------
 # GTK3
-withBackend(
-  kind    = beGTK3,
-  dModule = ngui_begtk3,
-  testDir = "oldgtk3",
-  fixMsg  = "git clone --depth 1 https://github.com/StefanSalewski/oldgtk3.git [NGUI_FOLDER]/src/backend/private/")
+withBackend(kind = beGTK3, dModule = ngui_begtk3)
+# -----------------------------------------------------------------------------
+# GTK2
+withBackend(kind = beGTK2, dModule = ngui_begtk2)
 # -----------------------------------------------------------------------------
 
 when not(DEP_TRUE): {.fatal: "Backend not implemented: " & $backend.}

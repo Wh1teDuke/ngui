@@ -13132,7 +13132,7 @@ proc chooseIconForScale*(iconTheme: IconTheme;
                                     flags: IconLookupFlags): IconInfo {.
     importc: "gtk_icon_theme_choose_icon_for_scale", libgtk.}
 proc loadIcon*(iconTheme: IconTheme; iconName: cstring; size: cint;
-                          flags: IconLookupFlags; error: var glib.GError): GdkPixbuf {.
+                          flags: IconLookupFlags; error: pointer): GdkPixbuf {.
     importc: "gtk_icon_theme_load_icon", libgtk.}
 proc loadIconForScale*(iconTheme: IconTheme; iconName: cstring;
                                   size: cint; scale: cint;

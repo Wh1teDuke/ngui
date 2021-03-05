@@ -196,8 +196,6 @@ type
   NRepeatProc* = (proc(): bool {.closure.})
   NRepeatHandle* = distinct int
   
-  NBorder* = array[NSide, int]
-  
   NTableCell* = object
     case kind: NCellKind:
     of ckBool: vBool: bool
@@ -210,6 +208,7 @@ type
 
 
 proc `$`*(this: NElementKind): string = system.`$`(this)[2..^1]
+proc `$`*(this: NElement): string # FD
 proc hash*(this: NElement): Hash = hash(this.id)
 proc hash*(this: Bitmap): Hash = hash(cast[pointer](this))
 proc hash*(this: NRepeatHandle): Hash = hash(int(this))
@@ -379,7 +378,7 @@ proc newElement(kind: NElementKind): NElement =
       if k == neKindInvalid: continue
       let (k, t) = (ident(system.`$`(k)), ident($k))
       result.add quote do:
-        if kind == `k`: return `t`()
+        if kind == `k`: return `t`(kind: kind)
   
   genNewProc()
   
@@ -525,6 +524,8 @@ proc button*(text: string = "", onEventClick: NEventProc = nil): Button =
   if onEventClick != nil: result.onClick(onEventClick)
 
 proc button*(img: Bitmap, onEventClick: NEventProc = nil): Button =
+  doAssert img != nil
+  
   nguiNew()
   internalSetImage(result, img)
   if onEventClick != nil: result.onClick(onEventClick)
@@ -881,16 +882,9 @@ proc shift*(this: Container): NElement =
   ## return it, or nil if there are no elements
   internalRemove(this, this[0])
 
-proc border*(this: Container): NBorder = internalGetBorder(this)
+proc border*(this: Container): int = internalGetBorder(this)
 
-proc `border=`*(this: Container, border: NBorder) =
-  internalSetBorder(this, border)
-
-proc `border=`*(this: Container, b: int) =
-  internalSetBorder(this, [b, b, b, b])
-
-proc border*(top, bottom, left, right: int): NBorder =
-  [top, bottom, left, right]
+proc `border=`*(this: Container, border: int) = internalSetBorder(this, border)
 
 proc borderColor*(this: Container): Pixel =
   internalGetBorderColor(this)
@@ -940,11 +934,13 @@ proc progress*(v: float = 0.0): Progress =
   nguiNew()
   internalValue(result, v)
 
-proc value*(this: Progress): float = internalValue(this)
-proc `value=`*(this: Progress, v: float) = internalValue(this, v)
+proc value*(this: Progress): float =
+  internalValue(this)
+proc `value=`*(this: Progress, v: float) =
+  internalValue(this, clamp(v, 0.0, 1.0))
 
 
-#  BOX ------------------------------------------
+# BOX -------------------------------------------
 proc box*(
     elements: openArray[NElement],
     orientation: NOrientation = noVERTICAL,
@@ -963,9 +959,6 @@ proc orientation*(this: Box): NOrientation =
   internalGetOrientation(this)
 proc `orientation=`*(this: Box, value: NOrientation) =
   internalSetOrientation(this, value)
-
-proc add*(this: Box, that: NElement, expand, fill: bool, padding: int) =
-  internalAdd(this, that, expand, fill, padding)
 
 
 # TABLE -----------------------------------------
@@ -1083,8 +1076,6 @@ proc list*(mode: NAmount = naOne): List =
 
 proc mode*(this: List): NAmount = internalGetMode(this)
 proc `mode=`*(this: List, mode: NAmount) = internalSetMode(this, mode)
-
-proc sort*(this: List, cmp: NCMPPRoc) = internalCmp(this, cmp)
 
 proc selected*(this: List, that: var seq[NElement]) =
   internalSelected(this, that)

@@ -7,6 +7,9 @@ Architecture
 :Author: WhiteDuke
 
 
+.. image:: ./assets/architecture.png
+
+
 .. contents::
 
 
