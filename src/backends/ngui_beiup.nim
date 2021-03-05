@@ -16,20 +16,61 @@ proc nextID: NID =
   result = pool
   inc(pool)
   doAssert pool != 0, "Error: Too many NElements"
+  
+proc invokeBeelzebubSet[T](this: NElement, p: string, v: T) =
+  let thisD = this.data(PIHandle)
+  when T is string:
+    SetAttribute(thisD, p, v)
+  elif T is bool:
+    SetAttribute(thisD, p, ["NO", "YES"][int(v)])
+    if p == IUP_VISIBLE and v: Show(thisD)
+  else:
+    {.fatal: "Invalid type".}
+
+proc invokeBeelzebubGet[T](this: NElement, p: string, result: var T) =
+  when T is string:
+    result = $GetAttribute(this.data(PIHandle), p)
+  elif T is bool:
+    result = GetBool(this.data(PIHandle), p)
+  else:
+    {.fatal: "Invalid type".}
 
 
 # EVENT -----------------------------------------
-proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) =
-  ## Attach event to this element. Cannot set more than one event per kind
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc)")
-  else: bError("proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc)")
+var iupCurrentEvent: NEventArgs
 
-proc internalGetCurrentEvent: NEventArgs =
-  ## Get the args from the event that is currently being dispatched
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetCurrentEvent: NEventArgs")
-  else: bError("proc internalGetCurrentEvent: NEventArgs")
+proc triggerEvent(source: PIHandle, event: NElementEvent) =
+  iupCurrentEvent.element = utilElement(source)
+  if not utilTrigger(event, cast[pointer](source)):
+    raiseAssert("Event CallBack not found: " & $(event))
+  reset(iupCurrentEvent)
+  
+proc iupGetKeys(c: int): NKey # FD
+
+proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) = 
+  proc cbKeyPress(this: PIHandle, c: int): int =
+    iupCurrentEvent = NEventArgs(kind: neKeyPress, key: iupGetKeys(c))
+    triggerEvent(this, neKeyPress)
+  
+  var
+    cb:   ICallback
+    name: string
+  
+  case event:
+  of neKeyPress:
+    name = IUP_K_ANY
+    cb = cast[ICallback](cbKeyPress)
+
+  else:
+    discard
+
+  doAssert cb != nil
+  doAssert name != ""
+
+  utilSet(event, this.data(PIHandle), action)
+  SetCallBack(this.data(PIHandle), name, cb)
+
+proc internalGetCurrentEvent: NEventArgs = iupCurrentEvent
 
 proc internalEventHandled() =
   ## Stop event propagation
@@ -52,6 +93,9 @@ proc internalNewNElement(kind: NElementKind): NElement =
     niupext.Open()
     return
   
+  of neWindow:
+    result.data = niup.Dialog(nil)
+  
   else:
     discard
 
@@ -69,23 +113,15 @@ proc internalSetOpacity(this: NElement, v: float) =
   when LAX_ERROR: bInfo("proc internalSetOpacity(this: NElement, v: float)")
   else: bError("proc internalSetOpacity(this: NElement, v: float)")
 
-proc internalGetParent(this: NElement): Container =
-  ## Get the parent of this element OR nil if it doesn't have one
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetParent(this: NElement): Container")
-  else: bError("proc internalGetParent(this: NElement): Container")
+proc internalGetDestroy(this: NElement): bool = not utilExists(this)
+
+proc internalGetParent(this: NElement): Container = utilParent(this)
 
 proc internalSetVisible(this: NElement, state: bool) =
-  ## Set whether this element is shown or not
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetVisible(this: NElement, state: bool)")
-  else: bError("proc internalSetVisible(this: NElement, state: bool)")
+  invokeBeelzebubSet(this, IUP_VISIBLE, true)
 
 proc internalGetVisible(this: NElement): bool =
-  ## Get whether this element is shown or not
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetVisible(this: NElement): bool")
-  else: bError("proc internalGetVisible(this: NElement): bool")
+  invokeBeelzebubGet(this, IUP_VISIBLE, result)
 
 proc internalGetNext(this: NElement): NElement =
   ## Get the parent's next child after this one or nil
@@ -135,17 +171,7 @@ proc internalGetTooltip(this: NElement): string =
   when LAX_ERROR: bInfo("proc internalGetTooltip(this: NElement): string")
   else: bError("proc internalGetTooltip(this: NElement): string")
 
-proc internalSetDestroy(this: NElement) =
-  ## Destroy this element, you won't be able to reuse it
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetDestroy(this: NElement)")
-  else: bError("proc internalSetDestroy(this: NElement)")
-
-proc internalGetDestroy(this: NElement): bool =
-  ## Get whether or not this element is alive
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetDestroy(this: NElement): bool")
-  else: bError("proc internalGetDestroy(this: NElement): bool")
+proc internalSetDestroy(this: NElement) = Destroy(this.data(PIHandle))
 
 proc internalGetBGColor(this: NElement): Pixel =
   ## Get the background color of this element
@@ -177,10 +203,32 @@ proc internalRemove(this: Container, that: NElement) =
   else: bError("proc internalRemove(this: Container, that: NElement)")
 
 proc internalAdd(this: Container, that: NElement) =
-  ## Add element to this container. Element MUST not have a parent
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalAdd(this: Container, that: NElement)")
-  else: bError("proc internalAdd(this: Container, that: NElement)")
+  if this of App:
+    utilChild(this, that)
+    return
+
+  ## MENU/BAR
+  ## (Complex stuff, we need to create MenuItems in the middle)
+  #if (this of Menu or this of Bar) or (that of Menu):
+    #handleMenuBarAdd(this, that)
+    #return
+  
+  ## TOOLS
+  ## Again, create an adapter
+  #if this of Tools:
+    #handleToolsAdd(Tools(this), that)
+    #return
+  
+  #utilChild(this, that)
+  let (thisD, thatD) = (this.data(PIHandle), that.data(PIHandle))
+  
+  #if not utilTryAddChild(thisD, thatD, adapters):
+    #thisD.add(thatD)
+  
+  #thatD.show()
+  discard thisD.Append(thatD)
+  invokeBeelzebubSet(that, IUP_VISIBLE, true)
+
 
 proc internalReplace(container: Container, this, that: NElement) =
   ## Replace child with another element
@@ -234,16 +282,10 @@ proc internalStop(this: App) =
 
 # WINDOW ----------------------------------------
 proc internalSetText(this: Window, text: string) =
-  ## Set this window's title
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetText(this: Window, text: string)")
-  else: bError("proc internalSetText(this: Window, text: string)")
+  invokeBeelzebubSet(this, IUP_TITLE, text)
 
 proc internalGetText(this: Window): string =
-  ## Get this window's title
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetText(this: Window): string")
-  else: bError("proc internalGetText(this: Window): string")
+  invokeBeelzebubGet(this, IUP_TITLE, result)
 
 proc internalSetResizable(this: Window, state: bool) =
   ## Set whether the user can resize the window or not
@@ -954,3 +996,16 @@ proc internalClipboardAsyncGet(action: NAsyncBitmapProc) =
   when LAX_ERROR: bInfo("proc internalClipboardAsyncGet(action: NAsyncBitmapProc)")
   else: bError("proc internalClipboardAsyncGet(action: NAsyncBitmapProc)")
 
+
+
+# EVENTS ----------------------------------------
+proc iupGetKeys(c: int): NKey =
+  const
+    K_A = K_lowera
+    K_Z = K_lowerz
+  
+  case c:
+  of K_ESC:        nkEsc
+  of K_0 .. K_9:   NKey((c - K_0) + int(nk0))
+  of K_A .. K_Z:   NKey((c - K_A) + int(nkA))
+  else:            nkNone

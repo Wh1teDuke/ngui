@@ -13,6 +13,7 @@ proc main =
   doAssert app[0] == app[^1]
   doAssert app[0] of Window
   doAssert NElement(app) != NElement(app[0])
+  doAssert app[0].visible
   
   app[0].onKeyPressDo:
     if event.key == nkEsc: quit()
