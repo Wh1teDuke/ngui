@@ -11,6 +11,10 @@ template bError(str: string) =
   raiseAssert("[NGUI_ERROR] " & str & " NOT IMPLEMENTED")
 
 
+# BASE ------------------------------------------
+var iupRadioParent: STable[NElement, PIHandle]
+
+
 proc nextID: NID =
   var pool {.global.}: NID = 100_000
   result = pool
@@ -57,6 +61,12 @@ proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) 
     iupCurrentEvent = NEventArgs(kind: neClick)
     triggerEvent(this, neClick)
   
+  proc cbRadioClick(this: PIHandle, state: int): int =
+    # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iuptoggle.html#Callbacks
+    if state != 1: return
+    iupCurrentEvent = NEventArgs(kind: neClick)
+    triggerEvent(this, neClick)
+  
   var
     cb:   ICallback = nil
     name: string    = ""
@@ -68,7 +78,8 @@ proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) 
   
   of neClick:
     name = IUP_ACTION
-    cb = cast[ICallback](cbClick)
+    cb = if this of Radio: cast[ICallback](cbRadioClick)
+         else:             cast[ICallback](cbClick)
 
   else:
     discard
@@ -104,10 +115,17 @@ proc internalNewNElement(kind: NElementKind): NElement =
     result.data = niup.Dialog(nil)
   
   of neButton:
+    # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iupbutton.html
     result.data = niup.Button("", "")
     
   of neBox:
     result.data = niup.VBox(nil)
+    
+  of neRadio:
+    # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iupradio.html
+    # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iuptoggle.html
+    # https://webserver2.tecgraf.puc-rio.br/iup/examples/C/radio.c
+    result.data = niup.Toggle("","")
   
   else:
     echo "Not implemented: ", kind
@@ -229,11 +247,19 @@ proc internalAdd(this: Container, that: NElement) =
   #utilChild(this, that)
   let (thisD, thatD) = (this.data(PIHandle), that.data(PIHandle))
   
+  if that of Radio:
+    # TODO: Create new group if radio not in table
+    # TODO: Regroup
+    let radioParent = iupRadioParent[that]
+    if niup.GetParent(radioParent) == nil:
+      discard thisD.Append(radioParent)
+  
   #if not utilTryAddChild(thisD, thatD, adapters):
     #thisD.add(thatD)
+    
+  else:
+    discard thisD.Append(thatD)
   
-  #thatD.show()
-  discard thisD.Append(thatD)
   invokeBeelzebubSet(that, IUP_VISIBLE, true)
 
 
@@ -561,23 +587,23 @@ proc internalGetImage(this: Button): Bitmap =
   else: bError("proc internalGetImage(this: Button): Bitmap")
 
 
-
 # RADIO -----------------------------------------
 proc internalSetText(this: Radio, text: string) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetText(this: Radio, text: string)")
-  else: bError("proc internalSetText(this: Radio, text: string)")
+  invokeBeelzebubSet(this, IUP_TITLE, text)
 
 proc internalGetText(this: Radio): string =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetText(this: Radio): string")
-  else: bError("proc internalGetText(this: Radio): string")
+  invokeBeelzebubGet(this, IUP_TITLE, result)
 
 proc internalSetGroup(radios: openArray[Radio]) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetGroup(radios: openArray[Radio])")
-  else: bError("proc internalSetGroup(radios: openArray[Radio])")
-
+  # https://webserver2.tecgraf.puc-rio.br/iup/examples/C/radio.c
+  
+  let
+    box   = niup.VBox(nil)
+    radio = niup.Radio(box)
+  
+  for r in radios:
+    iupRadioParent[r] = radio
+    discard box.Append(r.data(PIHandle))
 
 
 # BUBBLE ----------------------------------------
@@ -585,7 +611,6 @@ proc internalAttach(this: Bubble, that: NElement) =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalAttach(this: Bubble, that: NElement)")
   else: bError("proc internalAttach(this: Bubble, that: NElement)")
-
 
 
 # IMAGE -----------------------------------------
