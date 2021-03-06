@@ -34,7 +34,6 @@ template bError(str: string) =
   
   proc addBody() =
     if procDef == "": return
-    add(str, "  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION\l")
     add(str, "  when LAX_ERROR: bInfo(\"" & procDef & "\")\l")
     add(str, "  else: bError(\"" & procDef & "\")\l\l")
     procDef = ""

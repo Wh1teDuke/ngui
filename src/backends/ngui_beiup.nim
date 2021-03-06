@@ -28,6 +28,10 @@ proc invokeBeelzebubSet[T](this: NElement, p: string, v: T) =
   elif T is bool:
     SetAttribute(thisD, p, ["NO", "YES"][int(v)])
     if p == IUP_VISIBLE and v: Show(thisD)
+  elif T is NOrientation:
+    SetAttribute(thisD, p, ["HORIZONTAL", "VERTICAL"][int(v)])
+  elif T is int:
+    SetAttribute(thisD, p, $v)
   else:
     {.fatal: "Invalid type".}
 
@@ -37,6 +41,9 @@ proc invokeBeelzebubGet[T](this: NElement, p: string, result: var T) =
     result = $GetAttribute(thisD, p)
   elif T is bool:
     result = GetBool(thisD, p)
+  elif T is NOrientation:  
+    result =
+      if GetAttribute(thisD, p) == "VERTICAL":  noVERTICAL else: noHORIZONTAL
   else:
     {.fatal: "Invalid type".}
 
@@ -119,7 +126,10 @@ proc internalNewNElement(kind: NElementKind): NElement =
     result.data = niup.Button("", "")
     
   of neBox:
-    result.data = niup.VBox(nil)
+    # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iupgridbox.html
+    result.data = niup.GridBox(nil)
+    internalSetOrientation(Box(result), noVERTICAL)
+    invokeBeelzebubSet(result, "NUMDIV", 100) # HACK
     
   of neRadio:
     # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iupradio.html
@@ -572,9 +582,7 @@ proc internalSetText(this: Button, text: string) =
   invokeBeelzebubSet(this, IUP_TITLE, text)
 
 proc internalGetText(this: Button): string =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetText(this: Button): string")
-  else: bError("proc internalGetText(this: Button): string")
+  invokeBeelzebubGet(this, IUP_TITLE, result)
 
 proc internalSetImage(this: Button, img: Bitmap) =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
@@ -739,7 +747,6 @@ proc internalSetOrientation(this: Slider, value: NOrientation) =
   else: bError("proc internalSetOrientation(this: Slider, value: NOrientation)")
 
 
-
 # FILECHOOSE ------------------------------------
 proc internalSetMultiple(this: FileChoose, state: bool) =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
@@ -870,20 +877,13 @@ proc internalValue(this: Progress, v: float) =
 
 # BOX ------------------------------------------- 
 proc internalSetSpacing(this: Box, spacing: int)  =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetSpacing(this: Box, spacing: int) ")
-  else: bError("proc internalSetSpacing(this: Box, spacing: int) ")
+  invokeBeelzebubSet(this, IUP_GAP, spacing)
 
 proc internalGetOrientation(this: Box): NOrientation =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetOrientation(this: Box): NOrientation")
-  else: bError("proc internalGetOrientation(this: Box): NOrientation")
+  invokeBeelzebubGet(this, IUP_ORIENTATION, result)
 
 proc internalSetOrientation(this: Box, value: NOrientation) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetOrientation(this: Box, value: NOrientation)")
-  else: bError("proc internalSetOrientation(this: Box, value: NOrientation)")
-
+  invokeBeelzebubSet(this, IUP_ORIENTATION, value)
 
 
 # GRID ------------------------------------------
