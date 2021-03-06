@@ -28,10 +28,11 @@ proc invokeBeelzebubSet[T](this: NElement, p: string, v: T) =
     {.fatal: "Invalid type".}
 
 proc invokeBeelzebubGet[T](this: NElement, p: string, result: var T) =
+  let thisD = this.data(PIHandle)
   when T is string:
-    result = $GetAttribute(this.data(PIHandle), p)
+    result = $GetAttribute(thisD, p)
   elif T is bool:
-    result = GetBool(this.data(PIHandle), p)
+    result = GetBool(thisD, p)
   else:
     {.fatal: "Invalid type".}
 
@@ -40,32 +41,39 @@ proc invokeBeelzebubGet[T](this: NElement, p: string, result: var T) =
 var iupCurrentEvent: NEventArgs
 
 proc triggerEvent(source: PIHandle, event: NElementEvent) =
-  iupCurrentEvent.element = utilElement(source)
+  iupCurrentEvent.element = utilElement(source)  
   if not utilTrigger(event, cast[pointer](source)):
     raiseAssert("Event CallBack not found: " & $(event))
   reset(iupCurrentEvent)
-  
+
 proc iupGetKeys(c: int): NKey # FD
 
 proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) = 
   proc cbKeyPress(this: PIHandle, c: int): int =
     iupCurrentEvent = NEventArgs(kind: neKeyPress, key: iupGetKeys(c))
     triggerEvent(this, neKeyPress)
+    
+  proc cbClick(this: PIHandle): int =
+    iupCurrentEvent = NEventArgs(kind: neClick)
+    triggerEvent(this, neClick)
   
   var
-    cb:   ICallback
-    name: string
+    cb:   ICallback = nil
+    name: string    = ""
   
   case event:
   of neKeyPress:
     name = IUP_K_ANY
     cb = cast[ICallback](cbKeyPress)
+  
+  of neClick:
+    name = IUP_ACTION
+    cb = cast[ICallback](cbClick)
 
   else:
     discard
 
-  doAssert cb != nil
-  doAssert name != ""
+  doAssert cb != nil and name != "", $(cb, name, event, this)
 
   utilSet(event, this.data(PIHandle), action)
   SetCallBack(this.data(PIHandle), name, cb)
@@ -79,7 +87,6 @@ proc internalEventHandled() =
   else: bError("proc internalEventHandled()")
 
 
-
 # NElement ----------------------------------------
 proc internalNewNElement(kind: NElementKind): NElement =
   # TODO: Pass instantiated elment
@@ -87,7 +94,7 @@ proc internalNewNElement(kind: NElementKind): NElement =
   
   result    = newElement(kind)
   result.id = nextID()
-  
+
   case kind:
   of neAPP:
     niupext.Open()
@@ -96,10 +103,17 @@ proc internalNewNElement(kind: NElementKind): NElement =
   of neWindow:
     result.data = niup.Dialog(nil)
   
+  of neButton:
+    result.data = niup.Button("", "")
+    
+  of neBox:
+    result.data = niup.VBox(nil)
+  
   else:
-    discard
+    echo "Not implemented: ", kind
 
-  doAssert result.kind != neKindInvalid
+  doAssert result.raw != nil
+  # TODO: On Destroy, clean data
 
 proc internalGetOpacity(this: NElement): float =
   ## Get Opacity of this element (0.0 - 1.0)
@@ -160,16 +174,10 @@ proc internalSetSize(this: NElement, size: tuple[w, h: int]) =
   else: bError("proc internalSetSize(this: NElement, size: tuple[w, h: int])")
 
 proc internalSetTooltip(this: NElement, text: string) =
-  ## Set this element's tooltip text
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetTooltip(this: NElement, text: string)")
-  else: bError("proc internalSetTooltip(this: NElement, text: string)")
+  invokeBeelzebubSet(this, IUP_TIP, text)
 
 proc internalGetTooltip(this: NElement): string =
-  ## Get this element's tooltip text
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetTooltip(this: NElement): string")
-  else: bError("proc internalGetTooltip(this: NElement): string")
+  invokeBeelzebubGet(this, IUP_TIP, result)
 
 proc internalSetDestroy(this: NElement) = Destroy(this.data(PIHandle))
 
@@ -184,7 +192,6 @@ proc internalSetBGColor(this: NElement, color: Pixel) =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalSetBGColor(this: NElement, color: Pixel)")
   else: bError("proc internalSetBGColor(this: NElement, color: Pixel)")
-
 
 
 # CONTAINER -------------------------------------
@@ -494,7 +501,6 @@ proc internalSetYAlign(this: Label, v: float) =
   else: bError("proc internalSetYAlign(this: Label, v: float)")
 
 
-
 # ENTRY -----------------------------------------
 proc internalGetText(this: Entry): string =
   ## Get this Entry's content
@@ -507,7 +513,6 @@ proc internalSetText(this: Entry, text: string) =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalSetText(this: Entry, text: string)")
   else: bError("proc internalSetText(this: Entry, text: string)")
-
 
 
 # CHECKBOX --------------------------------------
@@ -536,12 +541,9 @@ proc internalSetChecked(this: Checkbox, v: bool) =
   else: bError("proc internalSetChecked(this: Checkbox, v: bool)")
 
 
-
 # BUTTON ----------------------------------------
 proc internalSetText(this: Button, text: string) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetText(this: Button, text: string)")
-  else: bError("proc internalSetText(this: Button, text: string)")
+  invokeBeelzebubSet(this, IUP_TITLE, text)
 
 proc internalGetText(this: Button): string =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
@@ -1000,6 +1002,7 @@ proc internalClipboardAsyncGet(action: NAsyncBitmapProc) =
 
 # EVENTS ----------------------------------------
 proc iupGetKeys(c: int): NKey =
+  # https://webserver2.tecgraf.puc-rio.br/iup/en/attrib/key.html
   const
     K_A = K_lowera
     K_Z = K_lowerz

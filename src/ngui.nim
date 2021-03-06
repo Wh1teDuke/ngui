@@ -1207,6 +1207,8 @@ proc `$`*(this: Attribute): string =
   return s[(s.find(", a") + 3) .. (s.find(", found:") - 1)]
 
 proc `$`*(this: NElement): string =
+  if this == nil: return "NElement(nil)"
+  
   let attrs = attributes(this)
   result = $attrs[naKind].aKind & "("
   

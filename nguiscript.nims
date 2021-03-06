@@ -43,7 +43,7 @@ template bError(str: string) =
       readFile($CurDir / "src" / "backends" / "ngui_backend_interface.nim")):
     if startsWith(line, "#"):
       addBody()
-      add(str, "\l\l" & line & "\l")
+      add(str, "\l" & line & "\l")
       continue
 
     if startsWith(line, "  ##"):
@@ -77,8 +77,7 @@ proc addToUserCfg(line: string): bool =
   writeFile(cfgFile, join(lines, "\l") & "\l")
   return true
 
-type RFUCResult = enum
-  rFileNotFound rLineNotFound rLineRemoved
+type RFUCResult = enum rFileNotFound rLineNotFound rLineRemoved
 
 proc remFromUserCfg(line: string): RFUCResult =
   if not fileExists(cfgFile):

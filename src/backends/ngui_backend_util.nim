@@ -5,8 +5,8 @@ when defined(NGUI_DEF_UTIL_ELEMENT):
   # NElement -> Backend pointer
   var utilData: STable[NElement, pointer]
   
-  proc data[T](this: NElement, _: typedesc[T]): T = cast[T](utilData[this])
-  proc raw(this: NElement): pointer = utilData[this]
+  proc raw(this: NElement): pointer = getOrDefault(utilData, this)
+  proc data[T](this: NElement, _: typedesc[T]): T = cast[T](raw(this))
   proc `data=`(this: NElement, that: ptr) = utilData[this] = pointer(that)
   
   proc utilElement(this: pointer): NElement =
