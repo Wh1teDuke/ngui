@@ -28,8 +28,10 @@ Installation
 
   # Install Nim
   https://nim-lang.org/install.html
-  # Install GTK3
+  # Install GTK2/3
   https://www.gtk.org/docs/installations/
+  # Install IUP
+  https://www.tecgraf.puc-rio.br/iup/
   # Install NGUI
   git clone https://github.com/Wh1teDuke/ngui
   # OPTIONAL
