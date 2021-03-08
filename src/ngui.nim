@@ -30,7 +30,7 @@ type
     neApp neWindow
     # Containers
     neContainer neBubble
-    neGrid neBox neCheckBox neComboBox neCalendar neMenu neBar
+    neBox neCheckBox neComboBox neCalendar neMenu neBar
     neTab neList neFrame neTable neTools
     # Atomic Elements
     neAtom
@@ -182,6 +182,9 @@ type
     of neClick, neClickRelease, neMove:
       mouse*: set[NMouse]
       x*, y*: int
+      selected*: int
+    of neChange:
+      index*: int
     of neKeyPress, neKeyRelease:
       mods*: set[NKey]
       key*: NKey
@@ -194,7 +197,7 @@ type
   NAsyncTextProc* = (proc(text: string) {.closure.})
   NAsyncBitmapProc* = (proc(bitmap: Bitmap) {.closure.})
   NRepeatProc* = (proc(): bool {.closure.})
-  NRepeatHandle* = distinct int
+  NRepeatHandle* = distinct int # TODO: Ref object
   
   NTableCell* = object
     case kind: NCellKind:
@@ -386,6 +389,9 @@ template nguiNew() {.dirty.} =
   const kind = parseEnum[NElementKind](
     if typeOf(result) is NTable: "neTable" else: "ne" & $(typeOf(result)))
   result = typeOf(result)(internalNewNElement(kind))
+  when result is Window:
+    internalSetText(
+      result, changeFileExt(extractFilename(getAppFilename()), ""))
 
 proc nguiNew[N: NElement](_: typedesc[N]): N =
   nguiNew()
@@ -783,6 +789,9 @@ proc onAdd(this: Container, that: NElement) =
   doAssert that.internalGetParent == nil
   doAssert this.id != 0 and that.id != 0
   
+  if this of List:
+    doAssert that of Label or that of Image
+  
   if that of FileChoose:
     raiseAssert(
       "FileChoose element cannot be added to any container. Use 'run' instead")
@@ -1020,39 +1029,6 @@ template cell*(this: NTable, p: tuple[x, y: int], body: untyped) =
   cell(this, p[0], p[1], body)
 
 
-# GRID ------------------------------------------
-proc add*(
-    this: Grid,
-    that: NElement,
-    row: int = -1,
-    column: int = 0,
-    width: int = 1,
-    height: int = 1) =
-
-  let row = if row == -1: internalLen(this) else: row
-  internalAdd(this, that, row, column, width, height)
-
-proc add*(
-    this: Grid,
-    elements: openArray[NElement],
-    row: int = -1,
-    firstColumn: int = 0,
-    width: int = 1,
-    height: int = 1) =
-  let row = if row == -1: internalLen(this) else: row
-  for i, element in elements:
-    this.add(element, row, firstColumn + i, width, height)
-
-proc grid*(
-    elements: varargs[NElement],
-    row: int = -1,
-    firstColumn: int = 0,
-    width: int = 1,
-    height: int = 1): Grid =
-  nguiNew()
-  result.add(elements, row, firstColumn, width, height)
-
-
 # TAB -------------------------------------------
 proc tab*(reorderable: bool = false): Tab =
   ## Creates a new Tab element (Menu of Tabs)
@@ -1230,7 +1206,6 @@ proc element*(kind: NElementKind): NElement =
   of neWindow:     window()
   of neBox:        box()
   of neList:       list()
-  of neGrid:       grid()
   of neTab:        tab()
   of neMenu:       menu()
   of neBar:        bar()

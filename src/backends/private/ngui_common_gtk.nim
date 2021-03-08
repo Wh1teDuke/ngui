@@ -292,7 +292,7 @@ proc internalSetEvent(
     # https://developer.gnome.org/gtk3/stable/GtkToggleButton.html#GtkToggleButton-toggled
     gtkEvent = "toggled"
   
-  elif this of List and nguiEvent in {neChange}:
+  elif this of List and nguiEvent in {neChange, neClick}:
     # https://developer.gnome.org/gtk3/stable/GtkListBox.html#GtkListBox-selected-rows-changed
     gtkEvent = "selected-rows-changed"
 
@@ -445,10 +445,6 @@ proc internalNewNElement(kind: NElementKind): NElement =
     let w = newWindow()
     result.data = w
     onDestroyWin(Window(result))
-    
-  of neGrid:
-    # https://developer.gnome.org/gtk3/unstable/GtkGrid.html
-    result.data = newGrid()
     
   of neLabel:
     # https://developer.gnome.org/gtk3/stable/GtkLabel.html

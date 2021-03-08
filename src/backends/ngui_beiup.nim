@@ -21,31 +21,47 @@ proc nextID: NID =
   inc(pool)
   doAssert pool != 0, "Error: Too many NElements"
   
-proc invokeBeelzebubSet[T](this: NElement, p: string, v: T) =
-  let thisD = this.data(PIHandle)
+proc invokeBeelzebubSet[T](this: PIHandle, p: string, v: T) =
   when T is string:
-    SetAttribute(thisD, p, v)
+    SetAttribute(this, p, v)
   elif T is bool:
-    SetAttribute(thisD, p, ["NO", "YES"][int(v)])
-    if p == IUP_VISIBLE and v: Show(thisD)
+    SetAttribute(this, p, ["NO", "YES"][int(v)])
+    if p == IUP_VISIBLE and v: Show(this)
   elif T is NOrientation:
-    SetAttribute(thisD, p, ["HORIZONTAL", "VERTICAL"][int(v)])
+    SetAttribute(this, p, ["HORIZONTAL", "VERTICAL"][int(v)])
+  elif T is NAmount:
+    SetAttribute(this, p, ["NO", "NO", "NO", "YES"][int(v)])    
   elif T is int:
-    SetAttribute(thisD, p, $v)
+    SetAttribute(this, p, $v)
+  else:
+    {.fatal: "Invalid type".}
+
+proc invokeBeelzebubGet[T](this: PIHandle, p: string, result: var T) =
+  when T is string:
+    result = $GetAttribute(this, p)
+  elif T is bool:
+    result = GetBool(this, p)
+  elif T is NOrientation:  
+    result =
+      if GetAttribute(this, p) == "VERTICAL": noVERTICAL else: noHORIZONTAL
+  elif T is NAmount:
+    result =
+      if GetAttribute(this, p) == "YES": naMultiple else: naNone
+  elif T is (int, int):
+    let
+      posStr = $GetAttribute(this, p)
+      m      = find(posStr, ',')
+      
+    result = (parseInt(posStr[0..<m]), parseInt(posStr[m+1..^1]))
+    
   else:
     {.fatal: "Invalid type".}
 
 proc invokeBeelzebubGet[T](this: NElement, p: string, result: var T) =
-  let thisD = this.data(PIHandle)
-  when T is string:
-    result = $GetAttribute(thisD, p)
-  elif T is bool:
-    result = GetBool(thisD, p)
-  elif T is NOrientation:  
-    result =
-      if GetAttribute(thisD, p) == "VERTICAL":  noVERTICAL else: noHORIZONTAL
-  else:
-    {.fatal: "Invalid type".}
+  invokeBeelzebubGet(this.data(PIHandle), p, result)
+
+proc invokeBeelzebubSet[T](this: NElement, p: string, v: T) =
+  invokeBeelzebubSet(this.data(PIHandle), p, v)
 
 
 # EVENT -----------------------------------------
@@ -73,20 +89,39 @@ proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) 
     if state != 1: return
     iupCurrentEvent = NEventArgs(kind: neClick)
     triggerEvent(this, neClick)
+    
+  proc cbListChange(this: PIHandle, text: cstring, i, state: int): int =
+    if iupCurrentEvent.kind == neNone:
+      iupCurrentEvent = NEventArgs(kind: neChange, index: i - 1)
+    else:
+      iupCurrentEvent.selected = i - 1
+    triggerEvent(this, neClick)
+    
+  proc cbListClick(this: PIHandle, text: cstring, i, state: int): int =
+    if state != 1: return
+    return cbListChange(this, text, i, state)
   
   var
     cb:   ICallback = nil
     name: string    = ""
+      
+  template setCB(this) = cb = cast[ICallBack](this)
   
   case event:
   of neKeyPress:
     name = IUP_K_ANY
-    cb = cast[ICallback](cbKeyPress)
+    setCB(cbKeyPress)
+    
+  of neChange:
+    name = IUP_ACTION
+    if this of List:
+      setCB(cbListChange)
   
   of neClick:
     name = IUP_ACTION
-    cb = if this of Radio: cast[ICallback](cbRadioClick)
-         else:             cast[ICallback](cbClick)
+    if this of Radio:  setCB(cbRadioClick)
+    elif this of List: setCB(cbListClick)
+    else:              setCB(cbClick)
 
   else:
     discard
@@ -119,6 +154,7 @@ proc internalNewNElement(kind: NElementKind): NElement =
     return
   
   of neWindow:
+    # https://webserver2.tecgraf.puc-rio.br/iup/en/dlg/iupdialog.html
     result.data = niup.Dialog(nil)
   
   of neButton:
@@ -128,19 +164,27 @@ proc internalNewNElement(kind: NElementKind): NElement =
   of neBox:
     # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iupgridbox.html
     result.data = niup.GridBox(nil)
-    internalSetOrientation(Box(result), noVERTICAL)
+    invokeBeelzebubSet(result, IUP_ORIENTATION, noVERTICAL)
     invokeBeelzebubSet(result, "NUMDIV", 100) # HACK
+    
+  of neList:
+    # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iuplist.html
+    result.data = niup.List(nil)
     
   of neRadio:
     # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iupradio.html
     # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iuptoggle.html
     # https://webserver2.tecgraf.puc-rio.br/iup/examples/C/radio.c
     result.data = niup.Toggle("","")
+    
+  of neLabel:
+    # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iuplabel.html
+    result.data = niup.Label("")
   
   else:
-    echo "Not implemented: ", kind
+    discard
 
-  doAssert result.raw != nil
+  doAssert result.raw != nil, $kind
   # TODO: On Destroy, clean data
 
 proc internalGetOpacity(this: NElement): float =
@@ -254,7 +298,7 @@ proc internalAdd(this: Container, that: NElement) =
     #handleToolsAdd(Tools(this), that)
     #return
   
-  #utilChild(this, that)
+  utilChild(this, that)
   let (thisD, thatD) = (this.data(PIHandle), that.data(PIHandle))
   
   if that of Radio:
@@ -266,6 +310,17 @@ proc internalAdd(this: Container, that: NElement) =
   
   #if not utilTryAddChild(thisD, thatD, adapters):
     #thisD.add(thatD)
+    
+  elif this of List:
+    # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iuplist.html#Attributes    
+    let prop = if init: "APPENDITEM" else: $internalLen(this)
+
+    if that of Label:
+      SetAttribute(thisD, prop, Label(that).internalGetText)
+    else:
+      discard # TODO IMAGE
+      
+    return
     
   else:
     discard thisD.Append(thatD)
@@ -310,7 +365,6 @@ proc internalSetBorderColor(this: Container, color: Pixel) =
   else: bError("proc internalSetBorderColor(this: Container, color: Pixel)")
 
 
-
 # APP -------------------------------------------
 proc internalRun(this: App) =
   niup.MainLoop()
@@ -322,7 +376,6 @@ proc internalStop(this: App) =
   else: bError("proc internalStop(this: App)")
 
 
-
 # WINDOW ----------------------------------------
 proc internalSetText(this: Window, text: string) =
   invokeBeelzebubSet(this, IUP_TITLE, text)
@@ -331,28 +384,16 @@ proc internalGetText(this: Window): string =
   invokeBeelzebubGet(this, IUP_TITLE, result)
 
 proc internalSetResizable(this: Window, state: bool) =
-  ## Set whether the user can resize the window or not
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetResizable(this: Window, state: bool)")
-  else: bError("proc internalSetResizable(this: Window, state: bool)")
+  invokeBeelzebubSet(this, IUP_RESIZE, state)
 
 proc internalGetResizable(this: Window): bool =
-  ## Get whether the user can resize the window or not
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetResizable(this: Window): bool")
-  else: bError("proc internalGetResizable(this: Window): bool")
+  invokeBeelzebubGet(this, IUP_RESIZE, result)
 
 proc internalSetPosition(this: Window, position: tuple[x, y: int]) =
-  ## Set this window's position relative to the top left of the screen
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetPosition(this: Window, position: tuple[x, y: int])")
-  else: bError("proc internalSetPosition(this: Window, position: tuple[x, y: int])")
+  niup.ShowXY(this.data(PIHandle), position.x.cint, position.y.cint)
 
 proc internalGetPosition(this: Window): tuple[x, y: int] =
-  ## Get this window's position relative to the top left of the screen
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetPosition(this: Window): tuple[x, y: int]")
-  else: bError("proc internalGetPosition(this: Window): tuple[x, y: int]")
+  invokeBeelzebubGet(this, "SCREENPOSITION", result)
 
 proc internalGetFocused(this: Window): NElement =
   ## Get the element within this window that has the focus
@@ -433,7 +474,6 @@ proc internalGetTransient(this: Window): Window =
   else: bError("proc internalGetTransient(this: Window): Window")
 
 
-
 # ALERT -----------------------------------------
 proc internalRun(this: Alert) =
   ## Show this message dialog
@@ -490,31 +530,18 @@ proc internalGetTitle(this: Alert): string =
   else: bError("proc internalGetTitle(this: Alert): string")
 
 
-
 # LABEL -----------------------------------------
 proc internalSetText(this: Label, text: string) =
-  ## Set this Label's content
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetText(this: Label, text: string)")
-  else: bError("proc internalSetText(this: Label, text: string)")
+  invokeBeelzebubSet(this, IUP_TITLE, text)
 
 proc internalGetText(this: Label): string =
-  ## Get this Label's content
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetText(this: Label): string")
-  else: bError("proc internalGetText(this: Label): string")
+  invokeBeelzebubGet(this, IUP_TITLE, result)
 
 proc internalSetWrap(this: Label, state: bool) =
-  ## Set whether or not this element is allowed to wrap the content if it becomes too big
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetWrap(this: Label, state: bool)")
-  else: bError("proc internalSetWrap(this: Label, state: bool)")
+  invokeBeelzebubSet(this, "WORDWRAP", state)
 
 proc internalGetWrap(this: Label): bool =
-  ## Get whether or not this element is allowed to wrap the content if it becomes too big
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetWrap(this: Label): bool")
-  else: bError("proc internalGetWrap(this: Label): bool")
+  invokeBeelzebubGet(this, "WORDWRAP", result)
 
 proc internalGetXAlign(this: Label): float =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
@@ -658,7 +685,6 @@ proc internalIconBitmap(icon: NIcon): Bitmap =
   else: bError("proc internalIconBitmap(icon: NIcon): Bitmap")
 
 
-
 # TEXTAREA --------------------------------------
 proc internalSetText(this: TextArea, text: string) =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
@@ -669,7 +695,6 @@ proc internalGetText(this: TextArea): string =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalGetText(this: TextArea): string")
   else: bError("proc internalGetText(this: TextArea): string")
-
 
 
 # CALENDAR --------------------------------------
@@ -828,7 +853,6 @@ proc internalHeaders(this: NTable, v: bool) =
   else: bError("proc internalHeaders(this: NTable, v: bool)")
 
 
-
 # COMBOBOX -------------------------------------- 
 proc internalAdd(this: ComboBox, text: string)  =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
@@ -861,7 +885,6 @@ proc internalSetSelectedIndex(this: ComboBox, i: int) =
   else: bError("proc internalSetSelectedIndex(this: ComboBox, i: int)")
 
 
-
 # PROGRESS --------------------------------------
 proc internalValue(this: Progress): float  =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
@@ -872,7 +895,6 @@ proc internalValue(this: Progress, v: float) =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalValue(this: Progress, v: float)")
   else: bError("proc internalValue(this: Progress, v: float)")
-
 
 
 # BOX ------------------------------------------- 
@@ -891,7 +913,6 @@ proc internalAdd(this: Grid, that: NElement, r, c, w, h: int)  =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalAdd(this: Grid, that: NElement, r, c, w, h: int) ")
   else: bError("proc internalAdd(this: Grid, that: NElement, r, c, w, h: int) ")
-
 
 
 # TAB -------------------------------------------
@@ -921,23 +942,21 @@ proc internalSetSide(this: Tab, side: NSide) =
   else: bError("proc internalSetSide(this: Tab, side: NSide)")
 
 
-
 # LIST ------------------------------------------
 proc internalGetMode(this: List): NAmount =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetMode(this: List): NAmount")
-  else: bError("proc internalGetMode(this: List): NAmount")
+  invokeBeelzebubGet(this, "MULTIPLE", result)
 
 proc internalSetMode(this: List, mode: NAmount) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetMode(this: List, mode: NAmount)")
-  else: bError("proc internalSetMode(this: List, mode: NAmount)")
+  invokeBeelzebubSet(this, "MULTIPLE", mode)
 
 proc internalSelected(this: List, that: var seq[NElement]) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSelected(this: List, that: var seq[NElement])")
-  else: bError("proc internalSelected(this: List, that: var seq[NElement])")
-
+  case internalGetMode(this):
+  of naMultiple:
+    discard # TODO
+    
+  else:
+    let i = parseInt($GetAttribute(this.data(PIHandle), "VALUE"))
+    if i != 0: add(that, internalGetChild(this, i - 1))
 
 
 # FRAME -----------------------------------------
@@ -952,7 +971,6 @@ proc internalGetText(this: Frame): string =
   else: bError("proc internalGetText(this: Frame): string")
 
 
-
 # TOOLS -----------------------------------------
 proc internalGetOrientation(this: Tools): NOrientation =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
@@ -965,20 +983,33 @@ proc internalSetOrientation(this: Tools, value: NOrientation) =
   else: bError("proc internalSetOrientation(this: Tools, value: NOrientation)")
 
 
-
-#proc internalAdd(this: Tools, value: NOrientation)
-
-
 # TIMERS -----------------------------------------
+var iupHandles: seq[(NRepeatHandle, PIHandle, NRepeatProc)]
+
+proc onTimeOut(this: PIHandle): int =
+  var i = -1
+  for n, (_, h, _) in iupHandles:
+    if h != this: continue
+    i = n
+    break
+    
+  if i != -1:
+    if not iupHandles[i][2](): internalStop(iupHandles[i][0])
+
 proc internalRepeat(event: NRepeatProc, ms: int): NRepeatHandle =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalRepeat(event: NRepeatProc, ms: int): NRepeatHandle")
-  else: bError("proc internalRepeat(event: NRepeatProc, ms: int): NRepeatHandle")
+  let t = Timer()
+  SetCallBack(t, "ACTION_CB", cast[ICallBack](onTimeOut))
+  invokeBeelzebubSet(t, IUP_TIME, $ms)
+  invokeBeelzebubSet(t, IUP_RUN, true)
+  add(iupHandles, (cast[NRepeatHandle](t), t, event))
+  return iupHandles[^1][0]
 
 proc internalStop(this: NRepeatHandle) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalStop(this: NRepeatHandle)")
-  else: bError("proc internalStop(this: NRepeatHandle)")
+  for i, (r, h, _) in iupHandles:
+    if r != this: continue
+    Destroy(h)
+    delete(iupHandles, i)
+    break
 
 proc internalSetTime(this: var NRepeatHandle, ms: int) =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
@@ -1022,7 +1053,6 @@ proc internalClipboardAsyncGet(action: NAsyncBitmapProc) =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
   when LAX_ERROR: bInfo("proc internalClipboardAsyncGet(action: NAsyncBitmapProc)")
   else: bError("proc internalClipboardAsyncGet(action: NAsyncBitmapProc)")
-
 
 
 # EVENTS ----------------------------------------

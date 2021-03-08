@@ -275,10 +275,6 @@ proc internalGetOrientation(this: Box): NOrientation
 proc internalSetOrientation(this: Box, value: NOrientation)
 
 
-# GRID ------------------------------------------
-proc internalAdd(this: Grid, that: NElement, r, c, w, h: int) 
-
-
 # TAB -------------------------------------------
 proc internalAdd(this: Tab, that: Container, label: Label)
 proc internalSetReorderable(this: Tab, v: bool)
