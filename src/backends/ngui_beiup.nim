@@ -67,39 +67,49 @@ proc invokeBeelzebubSet[T](this: NElement, p: string, v: T) =
 # EVENT -----------------------------------------
 var iupCurrentEvent: NEventArgs
 
-proc triggerEvent(source: PIHandle, event: NElementEvent) =
+proc triggerEvent(source: PIHandle, event: NElementEvent): int =
   iupCurrentEvent.element = utilElement(source)  
   if not utilTrigger(event, cast[pointer](source)):
     raiseAssert("Event CallBack not found: " & $(event))
   reset(iupCurrentEvent)
+  return # TODO: Check stop propagation value
 
 proc iupGetKeys(c: int): NKey # FD
 
 proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) = 
   proc cbKeyPress(this: PIHandle, c: int): int =
     iupCurrentEvent = NEventArgs(kind: neKeyPress, key: iupGetKeys(c))
-    triggerEvent(this, neKeyPress)
+    return triggerEvent(this, neKeyPress)
     
   proc cbClick(this: PIHandle): int =
     iupCurrentEvent = NEventArgs(kind: neClick)
-    triggerEvent(this, neClick)
+    return triggerEvent(this, neClick)
   
   proc cbRadioClick(this: PIHandle, state: int): int =
     # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iuptoggle.html#Callbacks
     if state != 1: return
     iupCurrentEvent = NEventArgs(kind: neClick)
-    triggerEvent(this, neClick)
+    return triggerEvent(this, neClick)
     
   proc cbListChange(this: PIHandle, text: cstring, i, state: int): int =
     if iupCurrentEvent.kind == neNone:
       iupCurrentEvent = NEventArgs(kind: neChange, index: i - 1)
     else:
       iupCurrentEvent.selected = i - 1
-    triggerEvent(this, neClick)
+    return triggerEvent(this, neClick)
     
   proc cbListClick(this: PIHandle, text: cstring, i, state: int): int =
     if state != 1: return
     return cbListChange(this, text, i, state)
+  
+  proc cbTextChange(this: PIHandle, c: int, text: cstring): int =
+    iupCurrentEvent = NEventArgs(kind: neChange)
+    return triggerEvent(this, neChange)
+  
+  proc cbTextEnter(this: PIHandle, c: int): int =
+    if c == K_CR:
+      iupCurrentEvent = NEventArgs(kind: neEnter)
+      return triggerEvent(this, neEnter)
   
   var
     cb:   ICallback = nil
@@ -114,14 +124,18 @@ proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) 
     
   of neChange:
     name = IUP_ACTION
-    if this of List:
-      setCB(cbListChange)
+    if this of List:    setCB(cbListChange)
+    elif this of Entry: setCB(cbTextChange)
   
   of neClick:
     name = IUP_ACTION
     if this of Radio:  setCB(cbRadioClick)
     elif this of List: setCB(cbListClick)
     else:              setCB(cbClick)
+    
+  of neEnter:
+    name = IUP_K_ANY
+    setCB(cbTextEnter)
 
   else:
     discard
@@ -180,6 +194,10 @@ proc internalNewNElement(kind: NElementKind): NElement =
   of neLabel:
     # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iuplabel.html
     result.data = niup.Label("")
+  
+  of neEntry:
+    # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iuptext.html
+    result.data = niup.Text("")
   
   else:
     discard
@@ -566,16 +584,10 @@ proc internalSetYAlign(this: Label, v: float) =
 
 # ENTRY -----------------------------------------
 proc internalGetText(this: Entry): string =
-  ## Get this Entry's content
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetText(this: Entry): string")
-  else: bError("proc internalGetText(this: Entry): string")
+  invokeBeelzebubGet(this, IUP_VALUE, result)
 
 proc internalSetText(this: Entry, text: string) =
-  ## Set this Entry's content
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetText(this: Entry, text: string)")
-  else: bError("proc internalSetText(this: Entry, text: string)")
+  invokeBeelzebubSet(this, IUP_VALUE, text)
 
 
 # CHECKBOX --------------------------------------
