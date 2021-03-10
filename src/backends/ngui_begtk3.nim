@@ -3,34 +3,6 @@ include private/ngui_common_gtk
 
 
 # WIDGET ----------------------------------------
-proc internalGetOpacity(this: NElement): float =
-  # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-get-opacity
-  float(this.data(gtkWidget).getOpacity())
-  
-proc internalSetOpacity(this: NElement, v: float) =
-  let w = this.data(gtkWidget)
-  
-  # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-set-opacity
-  w.setOpacity(v.cdouble)
-  if not (this of Window): return
-
-  # Transparent window
-  # https://stackoverflow.com/a/3909283
-  proc onScreenChanged(this: gtkWidget, _: (GPointer, GPointer)) {.cdecl.} =
-    this.setVisual(this.getScreen().getRGBAVisual())
-
-  proc onDraw(t: gtkWidget, c: cairo.Context, _: GPointer): GBoolean {.cdecl.} =
-    c.setSourceRGBA(0.0, 1.0, 0.0, 0.5)
-    c.setOPerator(SOURCE)
-    c.paint()
-    return false
-  
-  discard signal(w, "screen-changed", gCALLBACK(onScreenChanged), nil)
-  discard signal(w, "draw", gCALLBACK(onDraw), nil)
-  w.setAppPaintable(true)
-  w.onScreenChanged((nil, nil))
-  # Doesn't work on my computer, why?
-
 proc internalGetBGColor(this: NElement): Pixel =
   # https://developer.gnome.org/gtk3/stable/chap-css-properties.html
   # "Table 10. Background properties"
@@ -68,6 +40,34 @@ proc internalRun(this: App) =
 proc internalStop(this: App) =
   utilStopRepeat()
   gtk.mainQuit()
+
+
+# WINDOW ----------------------------------------
+proc internalGetOpacity(this: Window): float =
+  # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-get-opacity
+  float(this.data(gtkWindow).getOpacity())
+  
+proc internalSetOpacity(this: Window, v: float) =
+  let w = this.data(gtkWindow)
+  # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-set-opacity
+  w.setOpacity(v.cdouble)
+
+  # Transparent window
+  # https://stackoverflow.com/a/3909283
+  proc onScreenChanged(this: gtkWindow, _: (GPointer, GPointer)) {.cdecl.} =
+    this.setVisual(this.getScreen().getRGBAVisual())
+
+  proc onDraw(t: gtkWindow, c: cairo.Context, _: GPointer): GBoolean {.cdecl.} =
+    c.setSourceRGBA(0.0, 1.0, 0.0, 0.5)
+    c.setOPerator(SOURCE)
+    c.paint()
+    return false
+  
+  discard signal(w, "screen-changed", gCALLBACK(onScreenChanged), nil)
+  discard signal(w, "draw", gCALLBACK(onDraw), nil)
+  w.setAppPaintable(true)
+  w.onScreenChanged((nil, nil))
+  # Doesn't work on my computer, why?
 
 
 # BUBBLE ----------------------------------------

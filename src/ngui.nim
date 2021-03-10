@@ -1,4 +1,4 @@
-import std/[strutils, hashes, tables, times, sequtils, os]
+import std/[strutils, hashes, tables, times, sequtils, os, random]
 type pointer = system.pointer
 type STable[A, B] = tables.Table[A, B]
 
@@ -30,8 +30,9 @@ type
     neApp neWindow
     # Containers
     neContainer neBubble
-    neBox neCheckBox neComboBox neCalendar neMenu neBar
+    neBox neCheckBox neComboBox neCalendar
     neTab neList neFrame neTable neTools
+    neMenu neBar
     # Atomic Elements
     neAtom
     neRadio neLabel neEntry neButton neAlert neImage
@@ -59,6 +60,7 @@ type
     id: NID
     kind: NElementKind
 
+  # CONTAINERS ----------------------------------
   Container* = ref object of NElement
   Bubble* = ref object of Container
     ## .. image:: ../assets/bubble.png
@@ -73,19 +75,13 @@ type
   Window* = ref object of Container
     ## .. image:: ../assets/window.png
 
-  ComboBox* = ref object of Container
+  ComboBox* = ref object of Container  # Todo: allow only images/text. Change type to Atom
     ## .. image:: ../assets/combo.png
-  
-  Menu* = ref object of Container
-    ## .. image:: ../assets/calendar_menu.png
-  
-  Bar* = ref object of Container
-    ## .. image:: ../assets/calendar_menu.png
   
   Tab* = ref object of Container
     ## .. image:: ../assets/tabs_progress_list.png
   
-  List* = ref object of Container
+  List* = ref object of Container # Todo: allow only images/text. Change type to Atom
     ## .. image:: ../assets/list.png
   
   Frame* = ref object of Container
@@ -98,11 +94,20 @@ type
     ## .. image:: ../assets/table_bubble.png
   
   NTable* = Table
+  
+  Bar* = ref object of Container
+    ## .. image:: ../assets/calendar_menu.png
 
+  Menu* = ref object of Container
+    ## .. image:: ../assets/calendar_menu.png
+
+
+  # ATOMS ---------------------------------------
   Atom* = ref object of NElement
+
   CheckBox* = ref object of Atom
     ## .. image:: ../assets/checkbox.png
-  
+
   Alert* = ref object of Atom
     ## .. image:: ../assets/alert.png
   
@@ -255,6 +260,13 @@ proc `tag=`*(this: NElement, tag: tuple[key, value: string]) =
   ## Attach a key-value string pair to this element
   tags[this][tag.key] = tag.value
 
+proc `[]=`*(this: NElement, key, value: string) =
+  ## Attach a key-value string pair to this element
+  this.tag = (key, value)
+
+proc `[]=`*(this: NElement, key: string): string =
+  tag(this, key)
+
 proc name*(this: NElement): string =
   ## Get this element's name or ""
   getOrDefault(names, this, "")
@@ -272,9 +284,6 @@ proc element*(name: string): NElement =
   ## Retrieves NElement by name or nil if no element with that name exists
   for e, n in pairs(names):
     if n == name: return e
-
-proc opacity*(this: NElement): float = internalGetOpacity(this)
-proc `opacity=`*(this: NElement, o: float) = internalSetOpacity(this, o)
 
 proc tooltip*(this: NElement): string = internalGetTooltip(this)
 proc `tooltip=`*(this: NElement, text: string) = internalSetTooltip(this, text)
@@ -470,10 +479,13 @@ proc `modal=`*(this: Window, v: bool) = internalsetModal(this, v)
 proc transient*(this: Window): Window = internalGetTransient(this)
 proc `transient=`*(this, that: Window) = internalsetTransient(this, that)
 
+proc opacity*(this: Window): float = internalGetOpacity(this)
+proc `opacity=`*(this: Window, o: float) = internalSetOpacity(this, o)
+
 proc `[]`*(this: Window, index: int): Container =
   Container(internalGetChild(this, index))
 proc `[]`*(this: Window, index: BackwardsIndex): Container =
-  Container(internalGetChild(this, this.internalLen - int(index))) 
+  Container(internalGetChild(this, this.internalLen - int(index)))
 
 
 # NALERT ----------------------------------------
@@ -789,6 +801,9 @@ proc onAdd(this: Container, that: NElement) =
   doAssert that.internalGetParent == nil
   doAssert this.id != 0 and that.id != 0
   
+  doAssert not(this of Bar and that of Menu),
+    "Don't add menu directly to bar. Instead do Bar -> Label -> Menu"
+  
   if this of List:
     doAssert that of Label or that of Image
   
@@ -906,16 +921,19 @@ proc `borderColor=`*(this: Container, color: Pixel) =
 proc bar*(): Bar =
   nguiNew()
 
-#proc add*(this: Bar, label: NElement, menu: Menu) =
-  #internalAdd()
+proc add*(this: Bar, name: string, menu: Menu) =
+  let label = label(name)
+  internalAdd(label, menu)
+  add(this, label)
   
 
 # MENU ------------------------------------------
 proc menu*(): Menu =
   nguiNew()
   
-proc add*(this: NElement, that: Menu) =
+proc add*(this: NElement, that: Menu): NElement {.discardable.} =
   internalAdd(this, that)
+  return this
 
 
 # COMBOBOX --------------------------------------
@@ -925,7 +943,7 @@ proc add*(this: ComboBox, text: string, selected: bool = false) =
 
 proc comboBox*(textList: varargs[string], selected: int = -1): ComboBox =
   nguiNew()
-  for text in textList: result.add(text)
+  for text in textList: internalAdd(result, text)
   internalSetSelectedIndex(result, selected)
 
 proc `[]=`*(this: ComboBox, i: int, text: string) = internalSet(this, text, i)
@@ -1107,7 +1125,7 @@ proc get*(this: NElement, that: NElementAttribute): Attribute =
   of naHasParent:   g(aHasParent, this.hasParent)
   of naFocus:       g(aFocus, this.focused)
   of naSize:        g(aSize, this.size)
-  of naOpacity:     g(aOpacity, this.opacity)
+  of naOpacity:     gt(Window, aOpacity, internalGetOpacity)
   of naVisible:     g(aVisible, internalGetVisible(this))
   of naMaximized:   gt(Window, aMaximized, internalGetMaximized)
   of naMinimized:   gt(Window, aMinimized, internalGetMinimized)
@@ -1148,7 +1166,7 @@ proc set*(this: NElement, that: Attribute) =
   of naFocus:       this.internalSetFocus()
   of naName:        this.name = that.aName
   of naSize:        s(internalSetSize, that.aSize)
-  of naOpacity:     s(internalSetOpacity, that.aOpacity)
+  of naOpacity:     s(Window, internalSetOpacity, that.aOpacity)
   of naValue:       s(Slider, internalSetValue, that.aValue.vFloat)
   of naText:        s(Label, internalSetText, that.aText)
   of naMinimized:   s(Window, internalSetMinimized, that.aMinimized)

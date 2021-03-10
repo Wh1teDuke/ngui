@@ -14,10 +14,6 @@ proc internalEventHandled()
 proc internalNewNElement(kind: NElementKind): NElement
   ## Instantiate a new NElement of provided kind
 
-proc internalGetOpacity(this: NElement): float
-  ## Get Opacity of this element (0.0 - 1.0)
-proc internalSetOpacity(this: NElement, v: float)
-  ## Set Opacity of this element (0.0 - 1.0)
 proc internalGetParent(this: NElement): Container
   ## Get the parent of this element OR nil if it doesn't have one
 proc internalSetVisible(this: NElement, state: bool)
@@ -121,6 +117,10 @@ proc internalSetTransient(this, that: Window)
   ## Set a parent window. This window will appear on top of parent
 proc internalGetTransient(this: Window): Window
   ## Return parent (transient) window if any
+proc internalGetOpacity(this: Window): float
+  ## Get Opacity of this window (0.0 .. 1.0)
+proc internalSetOpacity(this: Window, v: float)
+  ## Set Opacity of this window (0.0 .. 1.0)
 
 
 # ALERT -----------------------------------------

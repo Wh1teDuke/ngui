@@ -105,10 +105,7 @@ proc joinGroup(a, b: gtkRadioButton) =
 include private/ngui_common_gtk
 
 
-# WIDGET ----------------------------------------
-proc internalGetOpacity(this: NElement): float = 1.0
-proc internalSetOpacity(this: NElement, v: float) {.notSupported.}
-
+# NELEMENT --------------------------------------
 proc toColor(p: Pixel): TColor =
   result.pixel = p.a
   result.red   = p.r
@@ -145,6 +142,11 @@ proc internalRun(this: App) =
 proc internalStop(this: App) =
   utilStopRepeat()
   gtk2.mainQuit()
+
+
+# WINDOW ----------------------------------------
+proc internalGetOpacity(this: Window): float = 1.0
+proc internalSetOpacity(this: Window, v: float) {.notSupported.}
 
 
 # BUBBLE ----------------------------------------

@@ -8,7 +8,7 @@ proc main =
   # ALWAYS start with app()
   let app = app()
   let b1 = comboBox("Foo", "Bar", "FileNotFound", selected = 1)
-  let b2 = checkbox("Debug Combobox", true)
+  let b2 = checkBox("Debug Combobox", true)
 
   b1.onChangeDo:
     if b2.checked:
@@ -17,7 +17,7 @@ proc main =
   b2.onChangeDo:
     echo "Debug is ", ["off", "on"][int(b2.checked)]
 
-  app.add(b1, b2)
+  app.add(label("Combobox & CheckButton"), b1, b2)
   # NEVER add new elements to app after run()
   run(app)
 

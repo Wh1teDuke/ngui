@@ -12,7 +12,11 @@ template bError(str: string) =
 
 
 # BASE ------------------------------------------
-var iupRadioParent: STable[NElement, PIHandle]
+var
+  iupRadioParent: STable[NElement, PIHandle]
+  iupMenuSub:     STable[Menu, PIHandle]
+
+template handle(this: NElement): PIHandle = this.data(PIHandle)
 
 
 proc nextID: NID =
@@ -23,10 +27,11 @@ proc nextID: NID =
   
 proc invokeBeelzebubSet[T](this: PIHandle, p: string, v: T) =
   when T is string:
-    SetAttribute(this, p, v)
+    let r = p in [IUP_VALUE, IUP_TITLE]
+    SetAttribute(this, p, (if r: replace(v, "&", "&&") else: v))
   elif T is bool:
     SetAttribute(this, p, ["NO", "YES"][int(v)])
-    if p == IUP_VISIBLE and v: Show(this)
+    #if p == IUP_VISIBLE and v: Show(this)
   elif T is NOrientation:
     SetAttribute(this, p, ["HORIZONTAL", "VERTICAL"][int(v)])
   elif T is NAmount:
@@ -47,6 +52,8 @@ proc invokeBeelzebubGet[T](this: PIHandle, p: string, result: var T) =
   elif T is NAmount:
     result =
       if GetAttribute(this, p) == "YES": naMultiple else: naNone
+  elif T is int:
+    result = parseInt($GetAttribute(this, p))
   elif T is (int, int):
     let
       posStr = $GetAttribute(this, p)
@@ -58,10 +65,29 @@ proc invokeBeelzebubGet[T](this: PIHandle, p: string, result: var T) =
     {.fatal: "Invalid type".}
 
 proc invokeBeelzebubGet[T](this: NElement, p: string, result: var T) =
-  invokeBeelzebubGet(this.data(PIHandle), p, result)
+  invokeBeelzebubGet(this.handle, p, result)
+
+proc invokeBeelzebubGet[T](this: PIHandle, p: string): T =
+  invokeBeelzebubGet(this, p, result)
+  
+proc invokeBeelzebubGet[T](this: NElement, p: string): T =
+  invokeBeelzebubGet(this.handle, p, result)
 
 proc invokeBeelzebubSet[T](this: NElement, p: string, v: T) =
-  invokeBeelzebubSet(this.data(PIHandle), p, v)
+  invokeBeelzebubSet(this.handle, p, v)
+
+proc listAdd(this: NElement, that: string) =
+  # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iuplist.html#Attributes
+  let prop =
+    if init: "APPENDITEM"
+    else: $(parseInt($GetAttribute(this.handle, "COUNT")) + 1)
+
+  SetAttribute(this.handle, prop, that)
+  # TODO: Image
+
+proc listSet(this: NElement, that: string, i: int) =
+  # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iuplist.html#Attributes
+  SetAttribute(this.handle, $i, that)
 
 
 # EVENT -----------------------------------------
@@ -85,6 +111,10 @@ proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) 
     iupCurrentEvent = NEventArgs(kind: neClick)
     return triggerEvent(this, neClick)
   
+  proc cbChange(this: PIHandle): int =
+    iupCurrentEvent = NEventArgs(kind: neChange)
+    return triggerEvent(this, neChange)
+  
   proc cbRadioClick(this: PIHandle, state: int): int =
     # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iuptoggle.html#Callbacks
     if state != 1: return
@@ -96,7 +126,7 @@ proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) 
       iupCurrentEvent = NEventArgs(kind: neChange, index: i - 1)
     else:
       iupCurrentEvent.selected = i - 1
-    return triggerEvent(this, neClick)
+    return triggerEvent(this, neChange)
     
   proc cbListClick(this: PIHandle, text: cstring, i, state: int): int =
     if state != 1: return
@@ -111,12 +141,20 @@ proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) 
       iupCurrentEvent = NEventArgs(kind: neEnter)
       return triggerEvent(this, neEnter)
   
+  proc cbCheckboxChange(this: PIHandle, s: int): int =
+    iupCurrentEvent = NEventArgs(kind: neChange)
+    return triggerEvent(this, neChange)
+  
+  proc cbMenuOpen(this: PIHandle) =
+    iupCurrentEvent = NEventArgs(kind: neOpen)
+    discard triggerEvent(this, neOpen)
+
   var
     cb:   ICallback = nil
     name: string    = ""
-      
+
   template setCB(this) = cb = cast[ICallBack](this)
-  
+
   case event:
   of neKeyPress:
     name = IUP_K_ANY
@@ -124,8 +162,14 @@ proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) 
     
   of neChange:
     name = IUP_ACTION
-    if this of List:    setCB(cbListChange)
-    elif this of Entry: setCB(cbTextChange)
+
+    if this of List:       setCB(cbListChange)
+    elif this of ComboBox: setCB(cbListClick)
+    elif this of Entry:    setCB(cbTextChange)
+    elif this of CheckBox: setCB(cbCheckboxChange)
+    elif this of Calendar:
+      name = "VALUECHANGED_CB"
+      setCB(cbChange)
   
   of neClick:
     name = IUP_ACTION
@@ -136,14 +180,18 @@ proc internalSetEvent(this: NElement, event: NElementEvent, action: NEventProc) 
   of neEnter:
     name = IUP_K_ANY
     setCB(cbTextEnter)
+  
+  of neOpen:
+    name = IUP_OPEN_CB
+    setCB(cbMenuOpen)
 
   else:
     discard
 
   doAssert cb != nil and name != "", $(cb, name, event, this)
 
-  utilSet(event, this.data(PIHandle), action)
-  SetCallBack(this.data(PIHandle), name, cb)
+  utilSet(event, this.handle, action)
+  SetCallBack(this.handle, name, cb)
 
 proc internalGetCurrentEvent: NEventArgs = iupCurrentEvent
 
@@ -179,17 +227,35 @@ proc internalNewNElement(kind: NElementKind): NElement =
     # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iupgridbox.html
     result.data = niup.GridBox(nil)
     invokeBeelzebubSet(result, IUP_ORIENTATION, noVERTICAL)
+    invokeBeelzebubSet(result, "EXPANDCHILDREN", true)
     invokeBeelzebubSet(result, "NUMDIV", 100) # HACK
     
   of neList:
     # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iuplist.html
     result.data = niup.List(nil)
+  
+  of neBar:
+    # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iupmenu.html
+    result.data = niup.Menu(nil)
+  
+  of neMenu:
+    # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iupmenu.html
+    result.data = niup.Menu(nil)
+  
+  of neComboBox:
+    # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iuplist.html
+    result.data = niup.List(nil)
+    invokeBeelzebubSet(result, IUP_DROPDOWN, true)
     
+  of neCheckBox:
+    # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iuptoggle.html
+    result.data = niup.Toggle(nil, nil)
+
   of neRadio:
     # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iupradio.html
     # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iuptoggle.html
     # https://webserver2.tecgraf.puc-rio.br/iup/examples/C/radio.c
-    result.data = niup.Toggle("","")
+    result.data = niup.Toggle(nil, nil)
     
   of neLabel:
     # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iuplabel.html
@@ -198,6 +264,14 @@ proc internalNewNElement(kind: NElementKind): NElement =
   of neEntry:
     # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iuptext.html
     result.data = niup.Text("")
+    
+  of neCalendar:
+    # https://www.tecgraf.puc-rio.br/iup/en/elem/iupcalendar.html
+    result.data = niup.Calendar()
+  
+  of neAlert:
+    # https://webserver2.tecgraf.puc-rio.br/iup/en/dlg/iupmessagedlg.html
+    result.data = niup.MessageDlg()
   
   else:
     discard
@@ -205,24 +279,13 @@ proc internalNewNElement(kind: NElementKind): NElement =
   doAssert result.raw != nil, $kind
   # TODO: On Destroy, clean data
 
-proc internalGetOpacity(this: NElement): float =
-  ## Get Opacity of this element (0.0 - 1.0)
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetOpacity(this: NElement): float")
-  else: bError("proc internalGetOpacity(this: NElement): float")
-
-proc internalSetOpacity(this: NElement, v: float) =
-  ## Set Opacity of this element (0.0 - 1.0)
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetOpacity(this: NElement, v: float)")
-  else: bError("proc internalSetOpacity(this: NElement, v: float)")
-
 proc internalGetDestroy(this: NElement): bool = not utilExists(this)
 
 proc internalGetParent(this: NElement): Container = utilParent(this)
 
 proc internalSetVisible(this: NElement, state: bool) =
   invokeBeelzebubSet(this, IUP_VISIBLE, true)
+  if state and this of Window: Show(this.handle)
 
 proc internalGetVisible(this: NElement): bool =
   invokeBeelzebubGet(this, IUP_VISIBLE, result)
@@ -269,7 +332,7 @@ proc internalSetTooltip(this: NElement, text: string) =
 proc internalGetTooltip(this: NElement): string =
   invokeBeelzebubGet(this, IUP_TIP, result)
 
-proc internalSetDestroy(this: NElement) = Destroy(this.data(PIHandle))
+proc internalSetDestroy(this: NElement) = Destroy(this.handle)
 
 proc internalGetBGColor(this: NElement): Pixel =
   ## Get the background color of this element
@@ -299,52 +362,67 @@ proc internalRemove(this: Container, that: NElement) =
   when LAX_ERROR: bInfo("proc internalRemove(this: Container, that: NElement)")
   else: bError("proc internalRemove(this: Container, that: NElement)")
 
+proc handleMenuBarAdd(this, that: NElement) # FD
+
 proc internalAdd(this: Container, that: NElement) =
   if this of App:
     utilChild(this, that)
     return
-
-  ## MENU/BAR
-  ## (Complex stuff, we need to create MenuItems in the middle)
-  #if (this of Menu or this of Bar) or (that of Menu):
-    #handleMenuBarAdd(this, that)
-    #return
   
   ## TOOLS
   ## Again, create an adapter
   #if this of Tools:
     #handleToolsAdd(Tools(this), that)
     #return
-  
+
+  # echo "DEBUG ", (this.kind, that.kind)
+  ## MENU/BAR
+  if (this of Menu or this of Bar) or (that of Menu):
+    handleMenuBarAdd(this, that)
+    return
+
   utilChild(this, that)
-  let (thisD, thatD) = (this.data(PIHandle), that.data(PIHandle))
+  let (thisD, thatD) = (this.handle, that.handle)
   
-  if that of Radio:
+  if that of Bar:
+    # Can only be added to Dialog
+    let name = "iup_main_menu" & $rand(100_000)
+    niup.SetHandle(name, thatD)
+
+    var p: Container = this
+    while p != nil and not (p of Window):
+      p = utilParent(p)
+      
+    if p != nil:
+      invokeBeelzebubSet(p.handle, IUP_MENU, name)
+
+    else:
+      discard # TODO: Set callback on run to append menu
+    
+    return
+  
+  elif that of Radio:
     # TODO: Create new group if radio not in table
     # TODO: Regroup
     let radioParent = iupRadioParent[that]
     if niup.GetParent(radioParent) == nil:
-      discard thisD.Append(radioParent)
+      doAssert thisD.Append(radioParent) == thisD
   
   #if not utilTryAddChild(thisD, thatD, adapters):
     #thisD.add(thatD)
     
   elif this of List:
-    # https://webserver2.tecgraf.puc-rio.br/iup/en/elem/iuplist.html#Attributes    
-    let prop = if init: "APPENDITEM" else: $internalLen(this)
-
     if that of Label:
-      SetAttribute(thisD, prop, Label(that).internalGetText)
+      listAdd(this, Label(that).internalGetText)
     else:
       discard # TODO IMAGE
-      
     return
     
   else:
-    discard thisD.Append(thatD)
-  
-  invokeBeelzebubSet(that, IUP_VISIBLE, true)
+    doAssert thisD.Append(thatD) == thisD
 
+  niup.Map(thatD)
+  niup.Refresh(thisD)
 
 proc internalReplace(container: Container, this, that: NElement) =
   ## Replace child with another element
@@ -365,10 +443,8 @@ proc internalSetBorder(this: Container, b: int) =
   else: bError("proc internalSetBorder(this: Container, b: int)")
 
 proc internalAddSeparator(this: Container, dir: NOrientation) =
-  ## Add a visual separator after the last added child
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalAddSeparator(this: Container, dir: NOrientation)")
-  else: bError("proc internalAddSeparator(this: Container, dir: NOrientation)")
+  if this of Menu or this of Bar:
+    discard this.handle.Append(niup.Separator())
 
 proc internalGetBorderColor(this: Container): Pixel =
   ## Get the color of this container's border
@@ -408,7 +484,7 @@ proc internalGetResizable(this: Window): bool =
   invokeBeelzebubGet(this, IUP_RESIZE, result)
 
 proc internalSetPosition(this: Window, position: tuple[x, y: int]) =
-  niup.ShowXY(this.data(PIHandle), position.x.cint, position.y.cint)
+  niup.ShowXY(this.handle, position.x.cint, position.y.cint)
 
 proc internalGetPosition(this: Window): tuple[x, y: int] =
   invokeBeelzebubGet(this, "SCREENPOSITION", result)
@@ -450,10 +526,7 @@ proc internalSetMinimized(this: Window, v: bool) =
   else: bError("proc internalSetMinimized(this: Window, v: bool)")
 
 proc internalGetMinimized(this: Window): bool =
-  ## Get whether or not this window is minimized
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetMinimized(this: Window): bool")
-  else: bError("proc internalGetMinimized(this: Window): bool")
+  invokeBeelzebubGet(this, "MINIMIZED", result)
 
 proc internalSetMaximized(this: Window, v: bool) =
   ## Set whether or not this window is maximized
@@ -462,10 +535,7 @@ proc internalSetMaximized(this: Window, v: bool) =
   else: bError("proc internalSetMaximized(this: Window, v: bool)")
 
 proc internalGetMaximized(this: Window): bool =
-  ## Get whether or not this window is maximized
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetMaximized(this: Window): bool")
-  else: bError("proc internalGetMaximized(this: Window): bool")
+  invokeBeelzebubGet(this, "MAXIMIZED", result)
 
 proc internalSetModal(this: Window, v: bool) =
   ## Set whether or not user can interact with other windows
@@ -480,72 +550,66 @@ proc internalGetModal(this: Window): bool =
   else: bError("proc internalGetModal(this: Window): bool")
 
 proc internalSetTransient(this, that: Window) =
-  ## Set a parent window. This window will appear on top of parent
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetTransient(this, that: Window)")
-  else: bError("proc internalSetTransient(this, that: Window)")
+  if this notin tags: tags[this] = initTable[string, string]()
+  
+  let name = "iup_parent_name" & $rand(100_000)
+  tags[this]["iup_parent_name"] = name
+  niup.SetHandle(name, that.handle)
+  invokeBeelzebubSet(this, IUP_PARENTDIALOG, name)
 
 proc internalGetTransient(this: Window): Window =
-  ## Return parent (transient) window if any
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetTransient(this: Window): Window")
-  else: bError("proc internalGetTransient(this: Window): Window")
+  let parent = invokeBeelzebubGet[string](this, IUP_PARENTDIALOG)
+  if parent == "": return
+
+  for element, tagTable in tags:
+    for key, value in tagTable:
+      if value == parent:
+        return Window(element)
+
+proc internalGetOpacity(this: Window): float =
+  # https://webserver2.tecgraf.puc-rio.br/iup/en/dlg/iupdialog.html#Attributes
+  return float(invokeBeelzebubGet[int](this, "OPACITY")) / 255
+
+proc internalSetOpacity(this: Window, v: float) =
+  invokeBeelzebubSet(this, "OPACITY", int(v * 255))
 
 
 # ALERT -----------------------------------------
 proc internalRun(this: Alert) =
-  ## Show this message dialog
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalRun(this: Alert)")
-  else: bError("proc internalRun(this: Alert)")
+  niup.Popup(this.handle, IUP_CURRENT, IUP_CURRENT)
 
-proc internalSetModal(this: Alert, v: bool) =
-  ## Set whether or not user can interact with other windows
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetModal(this: Alert, v: bool)")
-  else: bError("proc internalSetModal(this: Alert, v: bool)")
+proc internalSetModal(this: Alert, v: bool) = discard
 
-proc internalGetModal(this: Alert): bool =
-  ## Get whether or not user can interact with other windows
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetModal(this: Alert): bool")
-  else: bError("proc internalGetModal(this: Alert): bool")
+proc internalGetModal(this: Alert): bool = internalGetTransient(this) != nil
 
 proc internalSetTransient(this: Alert, that: Window) =
-  ## Set a parent window. This alert will appear on top of parent
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetTransient(this: Alert, that: Window)")
-  else: bError("proc internalSetTransient(this: Alert, that: Window)")
+  if this notin tags: tags[this] = initTable[string, string]()
+  
+  let name = "iup_parent_name" & $rand(100_000)
+  tags[this]["iup_parent_name"] = name
+  niup.SetHandle(name, that.handle)
+  invokeBeelzebubSet(this, IUP_PARENTDIALOG, name)
 
 proc internalGetTransient(this: Alert): Window =
-  ## Return parent (transient) window if any
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetTransient(this: Alert): Window")
-  else: bError("proc internalGetTransient(this: Alert): Window")
+  let parent = invokeBeelzebubGet[string](this, IUP_PARENTDIALOG)
+  if parent == "": return
+
+  for element, tagTable in tags:
+    for key, value in tagTable:
+      if value == parent:
+        return Window(element)
 
 proc internalSetText(this: Alert, text: string) =
-  ## Set this Alert's text content
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetText(this: Alert, text: string)")
-  else: bError("proc internalSetText(this: Alert, text: string)")
+  invokeBeelzebubSet(this, IUP_VALUE, text)
 
 proc internalGetText(this: Alert): string =
-  ## Get this Alert's text content
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetText(this: Alert): string")
-  else: bError("proc internalGetText(this: Alert): string")
+  invokeBeelzebubGet(this, IUP_VALUE, result)
 
 proc internalSetTitle(this: Alert, text: string) =
-  ## Set this Alert's title
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetTitle(this: Alert, text: string)")
-  else: bError("proc internalSetTitle(this: Alert, text: string)")
+  invokeBeelzebubSet(this, IUP_TITLE, text)
 
 proc internalGetTitle(this: Alert): string =
-  ## Get this Alert's title
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetTitle(this: Alert): string")
-  else: bError("proc internalGetTitle(this: Alert): string")
+  invokeBeelzebubGet(this, IUP_TITLE, result)
 
 
 # LABEL -----------------------------------------
@@ -592,28 +656,16 @@ proc internalSetText(this: Entry, text: string) =
 
 # CHECKBOX --------------------------------------
 proc internalSetText(this: Checkbox, that: string) =
-  ## Set this CheckBox's text
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetText(this: Checkbox, that: string)")
-  else: bError("proc internalSetText(this: Checkbox, that: string)")
+  invokeBeelzebubSet(this, IUP_TITLE, that)
 
 proc internalGetText(this: Checkbox): string =
-  ## Get this CheckBox's text
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetText(this: Checkbox): string")
-  else: bError("proc internalGetText(this: Checkbox): string")
+  invokeBeelzebubGet(this, IUP_TITLE, result)
 
 proc internalGetChecked(this: Checkbox): bool =
-  ## Get whether or not this CheckBox is checked
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetChecked(this: Checkbox): bool")
-  else: bError("proc internalGetChecked(this: Checkbox): bool")
+  GetAttribute(this.handle, IUP_VALUE) == "ON"
 
 proc internalSetChecked(this: Checkbox, v: bool) =
-  ## Set whether or not this CheckBox is checked
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetChecked(this: Checkbox, v: bool)")
-  else: bError("proc internalSetChecked(this: Checkbox, v: bool)")
+  SetAttribute(this.handle, IUP_VALUE, ["OFF", "ON"][int(v)])
 
 
 # BUTTON ----------------------------------------
@@ -650,7 +702,7 @@ proc internalSetGroup(radios: openArray[Radio]) =
   
   for r in radios:
     iupRadioParent[r] = radio
-    discard box.Append(r.data(PIHandle))
+    discard box.Append(r.handle)
 
 
 # BUBBLE ----------------------------------------
@@ -711,35 +763,18 @@ proc internalGetText(this: TextArea): string =
 
 # CALENDAR --------------------------------------
 proc internalGetDate(this: Calendar): DateTime  =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetDate(this: Calendar): DateTime ")
-  else: bError("proc internalGetDate(this: Calendar): DateTime ")
+  parse(invokeBeelzebubGet[string](this, IUP_VALUE), "yyyy/M/d")
 
 proc internalSetDate(this: Calendar, date: DateTime) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetDate(this: Calendar, date: DateTime)")
-  else: bError("proc internalSetDate(this: Calendar, date: DateTime)")
+  invokeBeelzebubSet(this, IUP_VALUE, format(date, "yyyy/M/d"))
 
-proc internalMark(this: Calendar, day: int) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalMark(this: Calendar, day: int)")
-  else: bError("proc internalMark(this: Calendar, day: int)")
+proc internalMark(this: Calendar, day: int)  {.notSupported.}
 
-proc internalUnmark(this: Calendar, day: int) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalUnmark(this: Calendar, day: int)")
-  else: bError("proc internalUnmark(this: Calendar, day: int)")
+proc internalUnmark(this: Calendar, day: int)  {.notSupported.}
 
-proc internalMarked(this: Calendar, day: int): bool =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalMarked(this: Calendar, day: int): bool")
-  else: bError("proc internalMarked(this: Calendar, day: int): bool")
+proc internalMarked(this: Calendar, day: int): bool  {.notSupported.}
 
-proc internalClear(this: Calendar) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalClear(this: Calendar)")
-  else: bError("proc internalClear(this: Calendar)")
-
+proc internalClear(this: Calendar) {.notSupported.}
 
 
 # SLIDER ----------------------------------------
@@ -821,16 +856,61 @@ proc internalRun(this: FileChoose): int =
   else: bError("proc internalRun(this: FileChoose): int")
 
 
+# BAR/MENU --------------------------------------
+proc labelToSubmenu(this: Label, menu: Menu): (bool, PIHandle) =  
+  let h = this.handle
+  if GetClassName(h) == "submenu":
+    if menu == nil: return (true, h)
 
-# BAR -------------------------------------------
+    let submenu = niup.Submenu(
+      invokeBeelzebubGet[string](h, IUP_TITLE), menu.handle)
+    iupMenuSub[menu] = submenu
+    niup.Destroy(h)
+    
+    return (true, submenu)
+  
+  let submenu = niup.Submenu(internalGetText(Label(this)), menu.handle)
+  if menu != nil: iupMenuSub[menu] = submenu
+  this.data = submenu
+  result = (menu != nil, submenu)
+  
+  # Problem: we may have already created an Item control for this
+  # We need to find our father and update the value
+  if GetClassName(h) == "item":
+    let parent = GetParent(h)
+    doAssert niup.Insert(parent, h, submenu) == parent
+    niup.Detach(h)
 
+  #niup.Destroy(h)
 
-# MENU ------------------------------------------
+proc handleMenuBarAdd(this, that: NElement) =  
+  let
+    (thisD, thatD) = (this.handle, that.handle)
+    #(thisC, thatC) = (GetClassName(thisD), GetClassName(thatD))
+
+  # Label -> Item
+  if this of Menu and that of Label:
+    let item = niup.Item(internalGetText(Label(that)), nil)
+    # niup.Destroy(that.handle)
+    that.data = item
+    utilChild(Container(this), that)
+    doAssert thisD.Append(item) == thisD
+    niup.Map(item)
+    niup.Refresh(thisD)
+
+  # Bar -> Submenu
+  if this of Bar and that of Label:
+    let (_, submenu) = labelToSubmenu(Label(that), nil)
+    utilChild(Container(this), that)
+    doAssert thisD.Append(submenu) == thisD
+    niup.Map(submenu)
+    niup.Refresh(thisD)
+    return
+
 proc internalAdd(this: NElement, that: Menu) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalAdd(this: NElement, that: Menu)")
-  else: bError("proc internalAdd(this: NElement, that: Menu)")
-
+  if this of Label:
+    # TODO: What if 'this' is Image
+    discard labelToSubmenu(Label(this), that)
 
 
 # TABLE -----------------------------------------
@@ -867,19 +947,13 @@ proc internalHeaders(this: NTable, v: bool) =
 
 # COMBOBOX -------------------------------------- 
 proc internalAdd(this: ComboBox, text: string)  =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalAdd(this: ComboBox, text: string) ")
-  else: bError("proc internalAdd(this: ComboBox, text: string) ")
+  listAdd(this, text)
 
 proc internalSet(this: ComboBox, text: string, i: int) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSet(this: ComboBox, text: string, i: int)")
-  else: bError("proc internalSet(this: ComboBox, text: string, i: int)")
+  listSet(this, text, i + 1)
 
 proc internalGet(this: ComboBox, i: int): string =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGet(this: ComboBox, i: int): string")
-  else: bError("proc internalGet(this: ComboBox, i: int): string")
+  $GetAttribute(this.handle, "VALUESTRING")
 
 proc internalGetSelected(this: ComboBox): string  =
   # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
@@ -887,14 +961,10 @@ proc internalGetSelected(this: ComboBox): string  =
   else: bError("proc internalGetSelected(this: ComboBox): string ")
 
 proc internalGetSelectedIndex(this: ComboBox): int  =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalGetSelectedIndex(this: ComboBox): int ")
-  else: bError("proc internalGetSelectedIndex(this: ComboBox): int ")
+  invokeBeelzebubGet[int](this, IUP_VALUE) - 1
 
 proc internalSetSelectedIndex(this: ComboBox, i: int) =
-  # REMOVE BODY AND ADD YOUR OWN IMPLEMENTATION
-  when LAX_ERROR: bInfo("proc internalSetSelectedIndex(this: ComboBox, i: int)")
-  else: bError("proc internalSetSelectedIndex(this: ComboBox, i: int)")
+  invokeBeelzebubSet(this, IUP_VALUE, $(i + 1))
 
 
 # PROGRESS --------------------------------------
@@ -967,7 +1037,7 @@ proc internalSelected(this: List, that: var seq[NElement]) =
     discard # TODO
     
   else:
-    let i = parseInt($GetAttribute(this.data(PIHandle), "VALUE"))
+    let i = parseInt($GetAttribute(this.handle, "VALUE"))
     if i != 0: add(that, internalGetChild(this, i - 1))
 
 

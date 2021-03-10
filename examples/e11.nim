@@ -23,7 +23,7 @@ proc main =
   submenu[0].onClickDo: echo "SubMenu1"
   submenu[1].onClickDo: echo "SubMenu2"
 
-  bar.add(label("MyMenu"), menu)
+  bar.add(add(label("MyMenu"), menu))
   app.add(bar, calendar())
   
   # NEVER add new elements to app after run()

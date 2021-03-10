@@ -657,7 +657,7 @@ proc internalRemove(this: Container, that: NElement) =
   adjustSize(this)
   utilRemove(this, that)
 
-proc reinsert(this: NElement) = utilChildrenReinsert(this.internalGetParent())
+#proc reinsert(this: NElement) = utilChildrenReinsert(this.internalGetParent())
 
 proc internalReplace(container: Container, this, that: NElement) =
   # TODO
@@ -1185,7 +1185,6 @@ proc handleMenuBarAdd(this, that: NElement) =
       utilSet(neClick, mItem, utilGet(neClick, thisD))
       discard signal(
         mItem, "activate", SCB(triggerEvent), cast[pointer](neClick))
-
     return
 
   else:
