@@ -3,6 +3,7 @@
 type
   NguiBackEnd* = enum
     beNIL beGTK2 beGTK3
+    beDOC # Used to generate docs
 
 
 const backend* = static:
@@ -51,6 +52,8 @@ withBackend(kind = beGTK3, dModule = ngui_begtk3)
 # GTK2
 withBackend(kind = beGTK2, dModule = ngui_begtk2)
 # -----------------------------------------------------------------------------
+# DOCS
+withBackend(kind = beDOC, dModule = ../../ngui_backend_interface)
 # -----------------------------------------------------------------------------
 
 when not(DEP_TRUE): {.fatal: "Backend not implemented: " & $backend.}

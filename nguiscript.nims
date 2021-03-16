@@ -146,7 +146,7 @@ task docs, "Gen documentation":
     DF = $CurDir / "docs" / "html"
     arg = "--warnings:off --hints:off --outdir:"
 
-  proc nDoc(a: string) = exec("nim doc $1 $2 $3" % [arg, DF, a])
+  proc nDoc(a: string) = exec("nim doc --index:off -d:nguibackend:doc $1 $2 $3" % [arg, DF, a])
   proc nRSTDoc(a: string) = exec("nim rst2html $1 $2 $3" % [arg, DF, a])
   
 
@@ -173,16 +173,15 @@ task docs, "Gen documentation":
   var head = readFile("src" / "ngui.nim")
   setLen(head, find(head, "include"))
   head =
-    replace(head, "import utils/imageio", "import src/utils/imageio")
+    replace(head, "import utils/stb", "import src/utils/stb")
     .replace("# FD", "= discard")
 
   writeFile(intHead, head)
-  writeFile(intFile, "import fakeimpl,times\l" & html.join("\l"))
+  writeFile(intFile, "import times, fakeimpl\l" & html.join("\l"))
 
   nDoc(intFile)
-
-  rmFile(intFile)
-  rmFile(intHead)
+  writeFile(intFile, replace(readFile(intFile), "*")
+            .replace("import times, fakeimpl"))
 
   writeFile(DF / intFileHTML, replace(readFile(DF / intFileHTML),
     [("fakeimpl", "ngui"), ("Imports", "Included by")]))
@@ -211,3 +210,7 @@ task docs, "Gen documentation":
     line = line[0 ..< S.len] & nlogo & "\");"
 
   writeFile(DF / "nimdoc.out.css", css.join("\l"))
+  
+  # Cleanup
+  rmFile(intFile)
+  rmFile(intHead)

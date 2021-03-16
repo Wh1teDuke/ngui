@@ -1,5 +1,5 @@
 import std/[strutils, hashes, tables, times, sequtils, os]
-import utils/imageio
+import utils/stb
 
 type pointer = system.pointer
 type STable[A, B] = tables.Table[A, B]
