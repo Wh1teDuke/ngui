@@ -195,11 +195,8 @@ proc internalAttach(this: Bubble, that: NElement)
 
 
 # IMAGE -----------------------------------------
-proc internalNewBitmap(file: string): Bitmap
 proc internalGetBitmap(this: Image): Bitmap
 proc internalUpdate(this: Image, that: Bitmap)
-proc internalCopy(this: Bitmap): Bitmap
-proc internalSave(this: Bitmap, path, format: string): bool
 proc internalIconBitmap(name: string): Bitmap
 proc internalIconBitmap(icon: NIcon): Bitmap
 

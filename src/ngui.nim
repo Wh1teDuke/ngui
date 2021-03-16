@@ -1,4 +1,6 @@
-import std/[strutils, hashes, tables, times, sequtils, os, random]
+import std/[strutils, hashes, tables, times, sequtils, os]
+import utils/imageio
+
 type pointer = system.pointer
 type STable[A, B] = tables.Table[A, B]
 
@@ -139,10 +141,9 @@ type
     ## .. image:: ../assets/image.png
 
   Bitmap* = ref object
-    pixels: ptr[UncheckedArray[Pixel]]
+    img:  seq[Pixel]
+    w, h: int
     data: pointer
-    width, height: int
-    channels: int
     path: string
 
   Pixel* = tuple[r, g, b, a: uint8]
@@ -225,10 +226,10 @@ proc toCell(v: int):    NTableCell = NTableCell(kind: ckStr,  vStr: $v)
 proc toCell(v: bool):   NTableCell = NTableCell(kind: ckBool, vBool: v)
 proc toCell(v: string): NTableCell = NTableCell(kind: ckStr,  vStr: v)
 proc toCell(v: Bitmap): NTableCell = NTableCell(kind: ckImg,  vImg: v)
-proc pixel*(r, g, b: uint8, a: uint8 = 255): Pixel =
-  (r, g, b, a)
+proc pixel*(r, g, b: uint8, a: uint8 = 255): Pixel = (r, g, b, a)
 proc pixel*(r, g, b: float, a: float = 1.0): Pixel =
   (uint8(r * 255), uint8(g * 255), uint8(b * 255), uint8(a * 255))
+  
 proc newElement(kind: NElementKind): NElement # FD
 
 var
@@ -596,25 +597,61 @@ proc attach*(this: Bubble, that: NElement, destroyAfterMs: int) =
 
 
 # IMAGE -----------------------------------------
-
 # BITMAP --------------------
 proc bitmap*(file: string): Bitmap =
-  result = internalNewBitmap(file)
+  var x, y, chans: cint
+  
+  let
+    data = readFile(file)
+    buff = cast[ptr[UncheckedArray[Pixel]]](
+      stbi_load_from_memory(
+        data[0].unsafeAddr, data.len.cint, x, y, chans, 4))
+  
+  result = Bitmap(w: x.int, h: y.int, path: file)
+  result.img.setLen(result.w * result.h)
+
+  for i, p in mpairs(result.img): p = buff[i]
+  dealloc(buff)
 
 proc bitmap*(icon: NIcon): Bitmap =
   result = internalIconBitmap(icon)
+
+proc save*(this: Bitmap, path, format: string): bool =
+  let
+    fn        = cstring(path & format)
+    (w, h, c) = (this.w.cint, this.h.cint, 4.cint)
+    data      = this.img[0].unsafeAddr
+  
+  case format:
+  of "png":         stbi_write_png(fn, w, h, c, data, 4 * w) != 0
+  of "jpg", "jpeg": stbi_write_jpg(fn, w, h, c, data, 80) != 0
+  of "bmp":         stbi_write_bmp(fn, w, h, c, data) != 0
+  of "tga":         stbi_write_tga(fn, w, h, c, data) != 0
+  else:             false
+
+proc save*(this: Bitmap, path: string): bool =
+  save(this, path, toLowerAscii(splitFile(path).ext[1..^1]))
+
+proc save*(this: Bitmap): bool =
+  doAssert this.path != "", "Error: Bitmap doesn't have a path assigned"
+  return save(this, this.path)
+
+proc width*(this: Bitmap): int {.inline.} = this.w
+proc height*(this: Bitmap): int {.inline.} = this.h
+proc size*(this: Bitmap): tuple[w, h: int] = (w: this.w, h: this.h)
+proc len*(this: Bitmap): int = this.w * this.h
   
 proc `[]`*(this: Bitmap, i: int): Pixel {.inline.} =
-  this.pixels[i]
+  this.img[i]
   
 proc `[]=`*(this: Bitmap, i: int, p: Pixel) {.inline.} =
-  this.pixels[i] = p
+  this.img[i] = p
 
 proc `[]`*(this: Bitmap, x, y: int): Pixel {.inline.} =
-  this[(y * this.width + x)]
+  this[(y * this.w + x)]
   
 proc `[]=`*(this: Bitmap, x, y: int, p: Pixel) {.inline.} =
-  this[(y * this.width + x)] = p
+  this[(y * this.w + x)] = p
   
 proc `[]`*(this: Bitmap, point: tuple[x, y: int]): Pixel {.inline.} =
   this[point.x, point.y]
@@ -622,37 +659,29 @@ proc `[]`*(this: Bitmap, point: tuple[x, y: int]): Pixel {.inline.} =
 proc `[]=`*(this: Bitmap, point: tuple[x, y: int], p: Pixel) {.inline.} =
   this[point.x, point.y] = p
 
-proc width*(this: Bitmap): int = this.width
-proc height*(this: Bitmap): int = this.height
-proc size*(this: Bitmap): tuple[w, h: int] = (w: this.width, h: this.height)
-proc len*(this: Bitmap): int = this.width * this.height
-
 iterator items*(this: Bitmap): Pixel =
-  for i in 0 ..< this.height * this.width: yield this[i]
+  for i in 0 ..< this.h * this.w: yield this[i]
 
 iterator mitems*(this: Bitmap): var Pixel =
-  for i in 0 ..< this.height * this.width: yield this.pixels[i]
+  for i in 0 ..< this.h * this.w: yield this.img[i]
 
 iterator pairs*(this: Bitmap): (int, Pixel) =
-  for i in 0 ..< this.height * this.width: yield (i, this[i])
+  for i in 0 ..< this.h * this.w: yield (i, this[i])
 
 iterator mpairs*(this: Bitmap): (int, var Pixel) =
-  for i in 0 ..< this.height * this.width: yield (i, this[i])
+  for i in 0 ..< this.h * this.w: yield (i, this[i])
 
 proc forEach*(this: Bitmap, action: (proc(p: Pixel): Pixel)) =
   for p in mitems(this): p = action(p)
 
-proc copy*(this: Bitmap): Bitmap = internalCopy(this)
+proc copy*(this: Bitmap): Bitmap =
+  result      = Bitmap()
+  result.w    = this.w
+  result.h    = this.h
+  result.img  = this.img
+  result.path = this.path
+  result.data = this.data
 
-proc save*(this: Bitmap, path, format: string): bool =
-  internalSave(this, path, format)
-
-proc save*(this: Bitmap, path: string): bool =
-  save(this, path, splitFile(path).ext[1..^1])
-
-proc save*(this: Bitmap): bool =
-  doAssert this.path != "", "Error: Bitmap doesn't have a path assigned"
-  return save(this, this.path)
 
 # NElement ------------------
 proc image*(bitmap: Bitmap = nil): Image =
@@ -1107,11 +1136,11 @@ proc `orientation=`*(this: Tools, value: NOrientation) =
 proc get*(this: NElement, that: NElementAttribute): Attribute =
   ## Find the attribute value of this element. If `attribute.found` is `false`,
   ## then this element doesn't support it.
-  result = Attribute(kind: that, found: false)
-  template g(n, v) =
+  result = Attribute(kind: that)
+  template g(n: untyped, v) {.dirty.} =
     result.n     = v
     result.found = true
-  template gt(t: typedesc, n, v: untyped) =
+  template gt(t: typedesc, n, v: untyped) {.dirty.} =
     if this of t:
       result.n     = t(this).v
       result.found = true

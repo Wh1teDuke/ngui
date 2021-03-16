@@ -73,9 +73,9 @@ when not v2:
     gtk.MessageType.OTHER,
     gtk.ButtonsType.CLOSE,
     nil)
-  proc loadPixbuf(file: string): GDKPixbuf =
-    var error: glib.GError
-    return newPixbufFromFile(file, error)
+  #proc loadPixbuf(file: string): GDKPixbuf =
+    #var error: glib.GError
+    #return newPixbufFromFile(file, error)
 
 
 let # Doesn't work with const, but one day ...
@@ -1027,41 +1027,33 @@ proc newBitmap(pixbuf: GDKPixbuf): Bitmap =
   
   var
     data   = pixbuf
-    pixels = getPixels(pixbuf)
     (w, h) = (getWidth(pixbuf), getHeight(pixbuf))
     c      = getNChannels(pixbuf)
-    
+
   doAssert c in 3 .. 4
     
   if c == 3:
     const Z = when v2: 0 else: 0.cuchar
     data   = pixbuf.addAlpha(false, Z, Z, Z)
-    pixels = data.getPixels()
 
-  return Bitmap(
-    width: w, height: h,
-    pixels: cast[ptr[UncheckedArray[Pixel]]](pixels),
-    data: pointer(data),
-    channels: 4)
-
-proc internalNewBitmap(file: string): Bitmap =
-  result = newBitmap(loadPixbuf(file))
-  if not isNil(result): result.path = file
+  result = Bitmap(w: w, h: h)
+  result.img.setLen(w * h)
+  let pixels = cast[ptr[UncheckedArray[Pixel]]](data.getPixels())
+  for i, p in mpairs(result.img): p = pixels[i]
 
 proc internalGetBitmap(this: Image): Bitmap =
   bitmaps[this.id]
 
 proc internalUpdate(this: Image, that: Bitmap) =
+  if that.data == nil:
+    const rgb = when v2: COLORSPACE_RGB else: GdkColorspace.RGB
+    that.data = cast[pointer](newPixbuf(rgb, true, 8, that.w.cint, that.h.cint))
+      
+  let b = cast[ptr[UncheckedArray[Pixel]]](getPixels(cast[GDKPixbuf](that.data)))
+  for i, p in pairs(that.img): b[i] = p
+  
   bitmaps[this.id] = that
   setFromPixbuf(this.data(gtkImage), cast[GDKPixbuf](that.data))
-
-proc internalCopy(this: Bitmap): Bitmap =
-  newBitmap(copy(pixbuf = cast[GDKPixbuf](this.data)))
-
-proc internalSave(this: Bitmap, path, format: string): bool =
-  when v2: (var error: pointer)
-  else:    (var error: GError)
-  return cast[GDKPixbuf](this.data).save(path, format, error, nil)
 
 proc internalIconBitmap(name: string): Bitmap =
   # https://developer.gnome.org/gtk3/stable/GtkIconTheme.html#gtk-icon-theme-load-icon

@@ -2,7 +2,7 @@
 
 type
   NguiBackEnd* = enum
-    beNIL beGTK2 beGTK3 beIUP
+    beNIL beGTK2 beGTK3
 
 
 const backend* = static:
@@ -51,8 +51,6 @@ withBackend(kind = beGTK3, dModule = ngui_begtk3)
 # GTK2
 withBackend(kind = beGTK2, dModule = ngui_begtk2)
 # -----------------------------------------------------------------------------
-# IUP
-withBackend(kind = beIUP, dModule = ngui_beiup)
 # -----------------------------------------------------------------------------
 
 when not(DEP_TRUE): {.fatal: "Backend not implemented: " & $backend.}

@@ -40,7 +40,7 @@ proc main =
 
   discard repeatDo t.int:
     let bitmap = image.bitmap
-    
+
     for p in mitems(bitmap):
       p = (p.r+r[0], p.g+r[1], p.b+r[2], p.a)
 

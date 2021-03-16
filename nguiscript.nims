@@ -24,18 +24,19 @@ task newBackend, "Gen Backend Interface Template":
 #     v-- Set 'LAX_ERROR' to false to see fireworks
 const LAX_ERROR = true
   
-template bInfo(str: string) =
+template beInfo(str: string) =
   echo("[NGUI_INFO] " & str & " NOT IMPLEMENTED")
-template bError(str: string) =
+template beError(str: string) =
   raiseAssert("[NGUI_ERROR] " & str & " NOT IMPLEMENTED")
+template beMsg(str: string) = 
+  when LAX_ERROR: beInfo(str) else: beError(str)
 """
 
   var procDef = ""
   
   proc addBody() =
     if procDef == "": return
-    add(str, "  when LAX_ERROR: bInfo(\"" & procDef & "\")\l")
-    add(str, "  else: bError(\"" & procDef & "\")\l\l")
+    add(str, "  beMsg(\"$1\")\l\l" % [procDef])
     procDef = ""
   
   for line in splitLines(

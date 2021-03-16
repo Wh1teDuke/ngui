@@ -30,8 +30,6 @@ Installation
   https://nim-lang.org/install.html
   # Install GTK2/3
   https://www.gtk.org/docs/installations/
-  # Install IUP
-  https://www.tecgraf.puc-rio.br/iup/
   # Install NGUI
   git clone https://github.com/Wh1teDuke/ngui
   # OPTIONAL
@@ -48,8 +46,14 @@ Backend Source
 ======= =====================================================================
 GTK2    https://github.com/nim-lang/gtk2 *Domo arigato gozaimashita*
 GTK3    https://github.com/StefanSalewski/oldgtk3 *Domo arigato gozaimashita*
-IUP     https://github.com/dariolah/niup *Domo arigato gozaimashita*
 ======= =====================================================================
+
+|
+
+Other Utils Included
+====================
+
+- `STB Image <https://github.com/nothings/stb>`_
 
 |
 

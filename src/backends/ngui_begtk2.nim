@@ -52,6 +52,7 @@ const
   signal       = gtk2.signalConnect
   gtkDestroy   = proc(w: gtkWidget) = gtk2.destroy(w)
   objectUnref  = gObjectUnref
+  newPixbuf    = pixbuf_new
 
 
 proc gtkRef(w: PWidget): auto = reference(w)
