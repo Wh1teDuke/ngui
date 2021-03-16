@@ -172,6 +172,9 @@ task docs, "Gen documentation":
     
   var head = readFile("src" / "ngui.nim")
   setLen(head, find(head, "include"))
+  head =
+    replace(head, "import utils/imageio", "import src/utils/imageio")
+    .replace("# FD", "= discard")
 
   writeFile(intHead, head)
   writeFile(intFile, "import fakeimpl,times\l" & html.join("\l"))
