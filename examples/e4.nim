@@ -24,7 +24,8 @@ proc main =
     ]#
   
   app.add(radios)
+  app[Box, 0, 0].orientation = noVertical
   # NEVER add new elements to app after run()
   run(app)
-  
+
 main()

@@ -37,7 +37,7 @@ Installation
   nim addPath nguiscript.nims
 
 |
-  
+
 Backends
 ========
 
@@ -46,6 +46,7 @@ Backend Source
 ======= =====================================================================
 GTK2    https://github.com/nim-lang/gtk2 *Domo arigato gozaimashita*
 GTK3    https://github.com/StefanSalewski/oldgtk3 *Domo arigato gozaimashita*
+Nuklear https://github.com/johnnovak/nim-glfw *Domo arigato gozaimashita*
 ======= =====================================================================
 
 |
@@ -54,6 +55,9 @@ Other Utils Included
 ====================
 
 - `STB Image <https://github.com/nothings/stb>`_
+- `GLFW3 <https://www.glfw.org/>`_
+- `GLAD <https://github.com/Dav1dde/glad>`_
+- `Kiwi <https://github.com/yglukhov/kiwi>`_
 
 |
 

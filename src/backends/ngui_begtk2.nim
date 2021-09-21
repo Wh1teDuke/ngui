@@ -1,5 +1,6 @@
-
-import private/gtk2/[gtk2, gdk2, glib2, gdk2, gdk2pixbuf, cairo]
+# TODO: Kill this
+import private/gtk2/[gtk2, glib2, gdk2pixbuf, cairo]
+import private/gtk2/gdk2 except string
 
 
 # -----------------------------------------------
@@ -12,6 +13,7 @@ type
   gtkContainer         = gtk2.PContainer
   gtkComboBox          = gtk2.PComboBox
   gtkListStore         = gtk2.PListStore
+  gtkTreeStore         = gtk2.PTreeStore
   gtkTreeIterObj       = gtk2.TTreeIter
   gtkTreeModel         = gtk2.PTreeModel
   gtkNoteBook          = gtk2.PNoteBook
@@ -45,6 +47,12 @@ type
   GValueObj            = glib2.TGValue  
   ClipBoard            = gtk2.PClipboard
   GDKPixbuf            = gdk2pixbuf.PPixbuf
+  GSize                = cuint
+  gtkSelectionMode     = TSelectionMode
+  gtkTreeViewColumn    = PTreeViewColumn
+  gtkTreePath          = PTreePath
+  gtkScrolledWindow    = PScrolledWindow
+  ResponseType         = TResponseType        
 
 
 const
@@ -53,8 +61,16 @@ const
   gtkDestroy   = proc(w: gtkWidget) = gtk2.destroy(w)
   objectUnref  = gObjectUnref
   newPixbuf    = pixbuf_new
+  gTypeCheckInstanceType = G_TYPE_CHECK_INSTANCE_TYPE
+  newScrolledWindow   = scrolled_window_new
+  newTreeViewColumn = tree_view_column_new
+  newCellRendererText = cell_renderer_text_new
+  newCellRendererToggle = cell_renderer_toggle_new
+  newCellRendererPixbuf = cell_renderer_pixbuf_new
+  isFileChooser         = IS_FILE_CHOOSER
 
 
+proc typeScrolledWindow: auto = TYPE_SCROLLED_WINDOW()
 proc gtkRef(w: PWidget): auto = reference(w)
 proc gtkRef(w: GPointer): auto = gObjectRef(w)
 proc newMenuItem(): auto = gtk2.menu_item_new()
@@ -78,7 +94,6 @@ proc newMenuBar(): auto = gtk2.menu_bar_new()
 proc newMenu(): auto = gtk2.menu_new()
 proc newComboBox(): auto = gtk2.comboBox_new_with_model(
   cast[gtkTreeModel](gtk2.list_store_new(1, G_TYPE_STRING)))
-proc newCellRendererText(): auto = gtk2.cell_renderer_text_new()
 proc newProgressBar(): auto = gtk2.progress_bar_new()
 proc newScale(): auto = gtk2.hscale_new(nil) # TODO change orientation
 proc newBox(): auto = gtk2.vbox_new(true, 0) # TODO change Orientation
@@ -88,7 +103,8 @@ proc newFrame(): auto = gtk2.frame_new("")
 proc newListBox(): auto = gtk2.clist_new(1) # https://developer.gnome.org/gtk2/2.24/GtkCList.html
 proc newTreePath(a, b: int): auto = gtk2.tree_path_new_from_string($a & ":" & $b)
 proc newSeparator(o: Orientation): gtkWidget =
-  if int(o) == 1: vseparator_new() else: hseparator_new()
+  # Looks like a bug, but it is not.
+  if o == ORIENTATION_HORIZONTAL: vseparator_new() else: hseparator_new()
 proc newSeparatorMenuItem(): gtkWidget = separator_menu_item_new()
 proc newMessageDialog(): auto = gtk2.message_dialog_new(
   nil,
@@ -101,8 +117,20 @@ proc loadPixbuf(file: string): GDKPixbuf =
   return pixbuf_new_from_file(file, error)
 proc joinGroup(a, b: gtkRadioButton) =
   a.setGroup(b.getGroup())
+  
+proc newTreePath(i: pointer, len: GSize): PTreePath =
+  var str: string
+  var i = i
+  for j in 0 ..< len:
+    add(str, $cast[ptr[cint]](i)[])
+    add(str, ":")
+    if j != len - 1:
+      i = cast[pointer](cast[int](i) + sizeOf(cint))
+  setLen(str, high(str))
+  return tree_path_new_from_string(cstring(str))
+    
+  
 # -----------------------------------------------
-
 include private/ngui_common_gtk
 
 
@@ -124,6 +152,7 @@ proc internalSetBGColor(this: NElement, color: Pixel) =
   let
     c = toColor(color)
     w = this.data(gtkWidget)
+
   modify_bg(w, w.get_state, c.unsafeAddr)
 
 
@@ -136,9 +165,9 @@ proc internalSetBorderColor(this: Container, color: Pixel) {.notSupported.}
 
 # APP -------------------------------------------
 proc internalRun(this: App) =
-  for c in utilItems(this):
-    c.data(gtkWindow).showAll()
-  gtk2.main() # Blocking
+  #for c in utilItems(this):
+    #c.data(gtkWindow).showAll()
+  gtk2.main() # Blocks
 
 proc internalStop(this: App) =
   utilStopRepeat()
@@ -152,23 +181,6 @@ proc internalSetOpacity(this: Window, v: float) {.notSupported.}
 
 # BUBBLE ----------------------------------------
 proc internalAttach(this: Bubble, that: NElement) {.notSupported.}
-
-
-# GRID ------------------------------------------
-proc internalAdd(this: Grid, that: NElement, r, c, w, h: int)  =
-  # https://developer.gnome.org/gtk2/2.24/GtkTable.html
-
-  let
-    thisD         = this.data(gtkGrid)
-    (r, c, w, h)  = (guint(r), guint(c), guint(w), guint(h))
-
-  var tR, tC: guint
-  
-  thisD.getSize(tR, tC)
-  if r + h > tR or c + w > tC: thisD.resize(max(tR, r + h), max(tC, c + w))
-
-  thisD.attachDefaults(that.data(gtkWidget), c, c + w, r, r + h)
-  utilChild(this, that)
 
 
 # CLIPBOARD -------------------------------------

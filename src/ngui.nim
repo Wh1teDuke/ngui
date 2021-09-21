@@ -1,12 +1,13 @@
 import std/[strutils, hashes, tables, times, sequtils, os]
 import utils/stb
 
-type pointer = system.pointer
+type pointer      = system.pointer
 type STable[A, B] = tables.Table[A, B]
 
 
 # Increment if someone complains
 const version* = 0 ## Bugs counter, nothing to see here.
+
 
 # TYPES -----------------------------------------
 type
@@ -16,13 +17,8 @@ type
   NSide* = enum
     nsTop nsBottom nsLeft nsRight
   
-  NAmount* = enum
+  NAmount* = enum # TODO: NSelection
     naNone naMinOne naOne naMultiple
-  
-  NIcon* = enum
-    niFOLDER
-    niFILE niFILE_OPEN
-    niEXECUTABLE
   
   NID* = uint32
 
@@ -32,31 +28,31 @@ type
     neApp neWindow
     # Containers
     neContainer neBubble
-    neBox neCheckBox neComboBox neCalendar
-    neTab neList neFrame neTable neTools
-    neMenu neBar
+    neBox neComboBox neCalendar
+    neTab neList neTable neTools
+    neMenu neBar neTree
     # Atomic Elements
     neAtom
+    neCheckBox
     neRadio neLabel neEntry neButton neAlert neImage
     neProgress neTextArea neSlider neFileChoose
+    # TODO neFileChoose -> neFileBrowser
 
   NElementEvent* = enum
     neNONE neCLICK neCLICK_RELEASE neMOVE
     neENTER neCHANGE neOPEN
     neFOCUS_ON neFOCUS_OFF neDESTROY
     neSHOW neHIDE neKEY_PRESS neKEY_RELEASE
+    neFILE_CHOOSE_ACCEPT
 
   NKey* = enum
-    nkNone nkEsc nkControl nkShift
+    nkNone nkEsc nkControl nkShift nkEnter
      nkA nkB nkC nkD nkE nkF nkG nkH nkI nkJ nkK nkL nkM nkN nkO nkP nkQ
      nkR nkS nkT nkU nkV nkW nkX nkY nkZ
      nk0 nk1 nk2 nk3 nk4 nk5 nk6 nk7 nk8 nk9
 
   NMouse* = enum
     nm1 nm2 nm3
-  
-  NCellKind* = enum
-    ckImg ckBool ckStr
 
   NElement* = ref object of RootObj
     id: NID
@@ -70,10 +66,9 @@ type
   Box* = ref object of Container
     ## .. image:: ../assets/box.png
   
-  Grid* = ref object of Container
-    ## .. image:: ../assets/grid.png
+  App* = ref object of Container # TODO: Do not inherate from Container
+    init: bool
   
-  App* = ref object of Container
   Window* = ref object of Container
     ## .. image:: ../assets/window.png
 
@@ -86,13 +81,10 @@ type
   List* = ref object of Container # Todo: allow only images/text. Change type to Atom
     ## .. image:: ../assets/list.png
   
-  Frame* = ref object of Container
-    ## .. image:: ../assets/frame.png
-  
   Tools* = ref object of Container
     ## .. image:: ../assets/tools.png
   
-  Table* = ref object of Container
+  Table* = ref object of Container # TODO See list
     ## .. image:: ../assets/table_bubble.png
   
   NTable* = Table
@@ -102,6 +94,8 @@ type
 
   Menu* = ref object of Container
     ## .. image:: ../assets/calendar_menu.png
+    
+  Tree* = ref object of Container # TODO See Table
 
 
   # ATOMS ---------------------------------------
@@ -143,41 +137,60 @@ type
   Bitmap* = ref object
     img:  seq[Pixel]
     w, h: int
-    data: pointer
+    #data: pointer
     path: string
 
-  Pixel* = tuple[r, g, b, a: uint8]
+  Pixel* = object
+    r*, g*, b*, a*: uint8
 
   NElementAttribute* = enum
     naMinimized naMaximized
     naKind naVisible naHasParent naFocus naSize naOpacity
-    naLen naText naWrap naResizable naValue naOrientation
-    naIndex naReorderable naName naSide naBGColor
-    naModal naTransient
+    naLen naText naToolTip naWrap naResizable naValue naOrientation
+    naIndex naReorderable naName naSide naBGColor naBorderColor
+    naBorder
+    naModal naTransient naMode naDate naRange naStep naDecimals
+    naSelected naScrolled naHeader naHeaders naRows naSelectedCells
+    naImg
 
   Attribute* = object
     case kind*:       NElementAttribute
     of naKind:        aKind*: NElementKind
     of naText:        aText*: string
+    of naToolTip:     aToolTip*: string
     of naName:        aName*: string
     of naVisible:     aVisible*: bool
     of naWrap:        aWrap*: bool
+    of naDate:        aDate*: DateTime
     of naResizable:   aResizable*: bool
     of naHasParent:   aHasParent*: bool
     of naFocus:       aFocus*: bool
     of naSize:        aSize*: tuple[w, h: int]
     of naValue:       aValue*: tuple[vInt: int, vFloat: float]
+    of naRange:       aRange*: Slice[float]
+    of naStep:        aStep*: float
     of naOpacity:     aOpacity*: float
     of naLen:         aLen*: int
+    of naDecimals:    aDecimals*: int
     of naMinimized:   aMinimized*: bool
     of naMaximized:   aMaximized*: bool
     of naOrientation: aOrientation*: NOrientation
     of naIndex:       aIndex*: int
+    of naSelected:    aSelected*: int
     of naReorderable: aReorderable*: bool
     of naSide:        aSide*: NSide
     of naBGColor:     aBGColor*: Pixel
+    of naBorder:      aBorder*: int
+    of naBorderColor: aBorderColor*: Pixel
     of naModal:       aModal*: bool
+    of naMode:        aMode*: NAmount
     of naTransient:   aTransient*: Window
+    of naScrolled:    aScrolled*:  bool
+    of naHeader:      aHeader: seq[tuple[kind: NCellKind, name: string]]
+    of naHeaders:     aHeaders: bool
+    of naRows:        aRows: seq[NRow]
+    of naSelectedCells:aSelectedCells: seq[tuple[x, y: int]]
+    of naImg:         aImg: Bitmap
     found*:           bool
     
   Attributes* = array[NElementAttribute, Attribute]
@@ -189,11 +202,14 @@ type
       mouse*: set[NMouse]
       x*, y*: int
       selected*: int
+      double*: bool
     of neChange:
       index*: int
     of neKeyPress, neKeyRelease:
       mods*: set[NKey]
       key*: NKey
+    of neFILE_CHOOSE_ACCEPT:
+      files*: seq[string]
     else:
       discard
   
@@ -204,54 +220,45 @@ type
   NAsyncBitmapProc* = (proc(bitmap: Bitmap) {.closure.})
   NRepeatProc* = (proc(): bool {.closure.})
   NRepeatHandle* = distinct int # TODO: Ref object
+
+  NCellKind* = enum ckImg ckBool ckStr ckInt
   
-  NTableCell* = object
+  NCell* = object
     case kind: NCellKind:
-    of ckBool: vBool: bool
-    of ckImg:  vImg: Bitmap
-    of ckStr:  vStr: string
+    of ckBool: vBool*: bool
+    of ckImg:  vImg*:  Bitmap
+    of ckStr:  vStr*:  string
+    of ckInt:  vInt*:  int
   
-  NTableRow* = object
-    list: ptr[UncheckedArray[NTableCell]]
-    len:  int
+  NRow* = ref object
+    cells*:    seq[NCell]
+    children*: seq[NRow]
+
 
 
 proc `$`*(this: NElementKind): string = system.`$`(this)[2..^1]
-proc `$`*(this: NElement): string # FD
 proc hash*(this: NElement): Hash = hash(this.id)
 proc hash*(this: Bitmap): Hash = hash(cast[pointer](this))
 proc hash*(this: NRepeatHandle): Hash = hash(int(this))
 proc `==`*(this, that: NRepeatHandle): bool {.borrow.}
-proc toCell(v: int):    NTableCell = NTableCell(kind: ckStr,  vStr: $v)
-proc toCell(v: bool):   NTableCell = NTableCell(kind: ckBool, vBool: v)
-proc toCell(v: string): NTableCell = NTableCell(kind: ckStr,  vStr: v)
-proc toCell(v: Bitmap): NTableCell = NTableCell(kind: ckImg,  vImg: v)
-proc pixel*(r, g, b: uint8, a: uint8 = 255): Pixel = (r, g, b, a)
-proc pixel*(r, g, b: float, a: float = 1.0): Pixel =
-  (uint8(r * 255), uint8(g * 255), uint8(b * 255), uint8(a * 255))
-  
-proc newElement(kind: NElementKind): NElement # FD
 
 var
   tags:  STable[NElement, STable[string, string]]
   names: STable[NElement, string]
-  init:  bool
-  pApp:  App
 
-include backends/ngui_backend
-
-let # const
+let # TODO: const when implementation works
   NSEPARATOR* = NElement(kind: neKindInvalid, id: 5) ## Pseudoelement
 
 const
   nmLEFT*   = nm1 ## Alias for nm1
   nmMIDDLE* = nm2 ## Alias for nm2
   nmRIGHT*  = nm3 ## Alias for nm3
+  # TODO: FEATURE = [NElementKind, set[NElementAttribute and NElementEvent]]
+
+include backends/ngui_backend
 
 
 # NElement --------------------------------------
-proc add*(this: Container, that: NElement) # FD
-
 proc tag*(this: NElement, key: string): string =
   ## Return the value for this key attached to this element or ""
   tags.withValue(this, elementTags):
@@ -350,6 +357,11 @@ proc eventHandled*() =
 
 proc onEvent*(this: NElement, event: NElementEvent, action: NEventProc) =
   internalSetEvent(this, event, action)
+  
+proc trigger*(event: NEventArgs) =
+  doAssert event.element != nil
+  doAssert event.kind != neNONE
+  internalTriggerEvent(event)
 
 # Ain't typing all that by.hand()
 import macros
@@ -384,35 +396,32 @@ proc `of`*(this: NElement, that: NElementKind): bool =
 
   genOfProc()
 
-proc newElement(kind: NElementKind): NElement =
-  macro genNewProc: untyped =
-    result = newStmtList()
-    for k in NElementKind:
-      if k == neKindInvalid: continue
-      let (k, t) = (ident(system.`$`(k)), ident($k))
-      result.add quote do:
-        if kind == `k`: return `t`(kind: kind)
-  
-  genNewProc()
+proc nextID: NID =
+  var pool {.global.}: NID = 100_000
+  result = pool
+  inc(pool)
+  doAssert pool != 0, "Error: Too many NElements"
   
 template nguiNew() {.dirty.} =
   const kind = parseEnum[NElementKind](
     if typeOf(result) is NTable: "neTable" else: "ne" & $(typeOf(result)))
-  result = typeOf(result)(internalNewNElement(kind))
+  result = typeOf(result)(kind: kind, id: nextID())
+  internalInitNElement(NElement(result))
   when result is Window:
     internalSetText(
       result, changeFileExt(extractFilename(getAppFilename()), ""))
 
-proc nguiNew[N: NElement](_: typedesc[N]): N =
-  nguiNew()
+proc nguiNew[N: NElement](_: typedesc[N]): N = nguiNew()
 
 
 # APP -------------------------------------------
+var pApp: App
+
 proc getApp*: App =
   result = pApp
   doAssert result != nil
 
-proc app*(): App =
+proc app*: App =
   ## Initialize the library and create the App context. This is the
   ## main container, which can contain one or more windows.
   ## You can only call this procedure once
@@ -423,9 +432,19 @@ proc app*(): App =
 
 proc run*(this: App) =
   ## Display any window and listen to user input
-  doAssert(not init)
-  init = true
+  doAssert(not this.init)
+  this.init = true
   internalRun(this)
+
+proc stop*(this: App) =
+  internalStop(this)
+  this.init = false
+  
+template startApp*(body: untyped) =
+  block:
+    let app {.inject.} = app()
+    body
+    run(app)
 
 proc `[]`*(this: App, index: int): Window =
   Window(internalGetChild(this, index))
@@ -520,12 +539,6 @@ proc `text=`*(this: Label, text: string) = internalSetText(this, text)
 proc wrap*(this: Label): bool = internalGetWrap(this)
 proc `wrap=`*(this: Label, state: bool) = internalSetWrap(this, state)
 
-proc xAlign*(this: Label): float = internalGetXAlign(this)
-proc YAlign*(this: Label): float = internalGetYAlign(this)
-
-proc `xAlign=`*(this: Label, v: float) = internalSetXAlign(this, v)
-proc `yAlign=`*(this: Label, v: float) = internalSetYAlign(this, v)
-
 
 # ENTRY -----------------------------------------
 proc entry*(text: string = ""): Entry =
@@ -543,14 +556,11 @@ proc button*(text: string = "", onEventClick: NEventProc = nil): Button =
   if onEventClick != nil: result.onClick(onEventClick)
 
 proc button*(img: Bitmap, onEventClick: NEventProc = nil): Button =
-  doAssert img != nil
+  doAssert img != nil # TODO: By default, display broken synmbol img
   
   nguiNew()
   internalSetImage(result, img)
   if onEventClick != nil: result.onClick(onEventClick)
-
-proc button*(icon: NIcon, onEventClick: NEventProc = nil): Button =
-  button(internalIconBitmap(icon), onEventClick)
 
 template button*(text: string, onEventClickDo: untyped): Button =
   block:
@@ -588,9 +598,6 @@ proc bubble*(child: NElement): Bubble =
 proc attach*(this: Bubble, that: NElement) =
   internalAttach(this, that)
 
-
-proc later*(event: NEventProc, ms: int) # FD
-
 proc attach*(this: Bubble, that: NElement, destroyAfterMs: int) =
   attach(this, that)
   later(proc() = tryDestroy(this), destroyAfterMs)
@@ -598,23 +605,31 @@ proc attach*(this: Bubble, that: NElement, destroyAfterMs: int) =
 
 # IMAGE -----------------------------------------
 # BITMAP --------------------
-proc bitmap*(file: string): Bitmap =
+proc pixel*(r, g, b: uint8, a: uint8 = 255): Pixel {.inline.} = 
+  Pixel(r: r, g: g, b: b, a: a)
+
+proc pixel*(r, g, b: float, a: float = 1.0): Pixel {.inline.} =
+  result.r = uint8(r * 255)
+  result.g = uint8(g * 255)
+  result.b = uint8(b * 255)
+  result.a = uint8(a * 255)
+
+proc newBitmap*(data: string): Bitmap =
   var x, y, chans: cint
+
+  let buff = cast[ptr[UncheckedArray[Pixel]]](
+    stbi_load_from_memory(
+      data[0].unsafeAddr, data.len.cint, x, y, chans, 4))
   
-  let
-    data = readFile(file)
-    buff = cast[ptr[UncheckedArray[Pixel]]](
-      stbi_load_from_memory(
-        data[0].unsafeAddr, data.len.cint, x, y, chans, 4))
-  
-  result = Bitmap(w: x.int, h: y.int, path: file)
+  result = Bitmap(w: x.int, h: y.int)
   result.img.setLen(result.w * result.h)
 
   for i, p in mpairs(result.img): p = buff[i]
-  dealloc(buff)
+  stbi_image_free(cast[pointer](buff))
 
-proc bitmap*(icon: NIcon): Bitmap =
-  result = internalIconBitmap(icon)
+proc bitmap*(file: string): Bitmap =
+  result = newBitmap(readFile(file))
+  result.path = file
 
 proc save*(this: Bitmap, path, format: string): bool =
   let
@@ -680,7 +695,6 @@ proc copy*(this: Bitmap): Bitmap =
   result.h    = this.h
   result.img  = this.img
   result.path = this.path
-  result.data = this.data
 
 
 # NElement ------------------
@@ -729,7 +743,7 @@ proc clear*(this: Calendar) = internalClear(this)
 # SLIDER ----------------------------------------
 proc slider*(
     range: Slice[float] = 1.0 .. 100.0,
-    value: float = 0,
+    value: float = range.a,
     orientation: NOrientation = noHORIZONTAL,
     decimals: int = 0,
     step: float = 1): Slider =
@@ -761,28 +775,21 @@ proc `orientation`*(this: Slider, value: NOrientation) =
 
 
 # FILECHOOSE ------------------------------------
-proc fileChoose*(button: string, buttons: varargs[string]): FileChoose =
-  nguiNew()
-  internalSetButton(result, button, 0)
-  for i, button in buttons: internalSetButton(result, button, i + 1)
-
-proc run*(this: FileChoose): int = internalRun(this)
-
-proc multiple*(this: FileChoose): bool =
-  internalGetMultiple(this)
-
-proc `multiple=`*(this: FileChoose, state: bool) =
-  internalSetMultiple(this, state)
-
-proc text*(this: FileChoose): string = internalGetText(this)
-proc `text=`*(this: FileChoose, text: string) = internalSetText(this, text)
+proc fileChoose*(
+    onAccept: NEventProc,
+    text:     string = "Open File",
+    multiple: bool = false) =
   
-proc files*(this: FileChoose): seq[string] =
-  internalGetFiles(this)
+  let fc = nguiNew(FileChoose)
+  if text != "": internalSetText(fc, text)
+  internalSetMultiple(fc, multiple)
+  onEvent(fc, neFileChooseAccept, onAccept)
+  internalRun(fc)
 
-proc file*(this: FileChoose): string =
-  let files = this.files
-  if len(files) > 0: return files[0]
+#proc fileChoose*(text: string = "Open File"): FileChoose =
+  #nguiNew()
+  #if text != "": internalSetText(result, text)
+  #internalRun(fc)
 
 
 # CHECKBOX --------------------------------------
@@ -799,11 +806,26 @@ proc `checked=`*(this: Checkbox, v: bool) = internalSetChecked(this, v)
 
 # CONTAINER -------------------------------------
 proc len*(this: Container): int = internalLen(this)
+proc high*(this: Container): int = len(this) - 1
+proc empty*(this: Container): bool = len(this) == 0
 
 proc `[]`*(this: Container, index: int): NElement =
-  internalGetChild(this, index)
+  result = internalGetChild(this, index)
+  doAssert result != nil, $(this, index)
+
+proc `[]`*[T: NElement](
+    this:      Container,
+    typ:       typedesc[T],
+    indexList: varargs[int]): T =
+
+  var parent = this
+  for i, idx in indexList:
+    let e = parent[idx]
+    if i == high(indexList): return type(result)(e)
+    parent = Container(e)
+
 proc `[]`*(this: Container, index: BackwardsIndex): NElement =
-  internalGetChild(this, this.len - int(index))
+  this[this.len - int(index)]
 
 iterator items*(this: Container): NElement =
   for i in 0 ..< this.len: yield this[i]
@@ -827,11 +849,23 @@ proc addSeparator*(this: Container) =
   internalAddSeparator(this, o)
 
 proc onAdd(this: Container, that: NElement) =
+  doAssert this != nil and that != nil
   doAssert that.internalGetParent == nil
   doAssert this.id != 0 and that.id != 0
-  
+
   doAssert not(this of Bar and that of Menu),
     "Don't add menu directly to bar. Instead do Bar -> Label -> Menu"
+  
+  if that of Bar and not (this of App or this of Window):
+    doAssert internalLen(this) == 0,
+      "Bar must be the first element to be added, but this " &
+      "container has " & $internalLen(this) & " element(s)"
+    
+  proc insertBox(this: Container, that: NElement) =
+    let box = nguiNew(Box)
+    internalSetOrientation(box, noVERTICAL)
+    onAdd(box, that)
+    onAdd(this, box)
   
   if this of List:
     doAssert that of Label or that of Image
@@ -849,46 +883,30 @@ proc onAdd(this: Container, that: NElement) =
         return
 
     else:
-      let box = nguiNew(Box)
-      onAdd(box, that)
-      onAdd(this, box)
+      insertBox(this, that)
       return
 
   if this of Window:
-    for c in items(this):
-      onAdd(Container(c), that)
+    if not (that of Box) or len(this) > 0:
+      if len(this) == 0:
+        let b = nguiNew(Box)
+        internalSetOrientation(b, noVERTICAL)
+        onAdd(Window(this), b)
+
+      onAdd(Window(this)[0], that)
       return
 
-    if not (that of Container):
-      let box = nguiNew(Box)
-      onAdd(box, that)
-      onAdd(this, box)
-      return
-  
   if this of App:
     if not(that of Window):
-      if that of Box or that of Grid:
-        for c in items(this):
-          onAdd(Container(c), that)
-          return
-
-        let w =  nguiNew(Window)
-        onAdd(w, that)
+      if len(this) == 0:
+        let w = nguiNew(Window)
         onAdd(this, w)
-
-      else:
-        for c in items(this):
-          for c in items(Container(c)):
-            onAdd(Container(c), that)
-            return
-
-        let b = nguiNew(Box)
-        onAdd(b, that)
-        onAdd(this, b)
-
+        
+      onAdd(App(this)[0], that)
       return
-
-    Window(that).show()
+    
+    else:
+      Window(that).show()
 
   internalAdd(this, that)
 
@@ -903,11 +921,14 @@ proc add*(this: Container, text: string) = this.add(label(text))
 
 proc add*(this: Container, one, two: NElement, list: varargs[NElement]) =
   # Edge case: I want to add one box and some elements AFTER said box
-  # TODO: if this of Window/App ?
-  if one of Container: this.add(nguiNew(Box))
-  this.add(one)
-  this.add(two)
-  for that in list: this.add(that)
+  if (this of Window or this of App) and len(this) == 0:
+    let b = nguiNew(Box)
+    internalSetOrientation(b, noVERTICAL)
+    add(this, b)
+
+  add(this, one)
+  add(this, two)
+  for that in list: add(this, that)
 
 proc add*[N: NElement](this: Container, list: openArray[N]) =
   for that in list: this.add(that)
@@ -916,6 +937,14 @@ proc remove*(this: Container, that: NElement) =
   ## Remove that element from this container. The container must be
   ## the parent of the element
   internalRemove(this, that)
+
+proc removeAll*(this: Container) =
+  if this of NTable:
+    internalClear(NTable(this))
+    return
+
+  for i in countDown(high(this), 0):
+    remove(this, this[i])
 
 proc replace(container: Container, this, that: NElement) =
   internalReplace(container, this, that)
@@ -998,82 +1027,135 @@ proc `value=`*(this: Progress, v: float) =
 
 # BOX -------------------------------------------
 proc box*(
-    elements: openArray[NElement],
+    elements:    openArray[NElement],
     orientation: NOrientation = noVERTICAL,
-    spacing: int = 0): Box =
+    ): Box =
 
   nguiNew()
   internalSetOrientation(result, orientation)
-  internalSetSpacing(result, spacing)
   for e in elements: result.add(e)
 
-proc box*(elements: varargs[NElement]): Box = box(elements, noVERTICAL, 0)
-proc vbox*(children: varargs[NElement]): Box = box(children, noVERTICAL, 0)
-proc hbox*(children: varargs[NElement]): Box = box(children, noHORIZONTAL, 0)
+proc box*(elements: varargs[NElement]): Box = box(elements, noVERTICAL)
+proc vbox*(children: varargs[NElement]): Box = box(children, noVERTICAL)
+proc hbox*(children: varargs[NElement]): Box = box(children, noHORIZONTAL)
 
 proc orientation*(this: Box): NOrientation =
   internalGetOrientation(this)
 proc `orientation=`*(this: Box, value: NOrientation) =
   internalSetOrientation(this, value)
 
+proc `scrolled=`*(this: Box, state: bool) = internalScrollbar(this, state)
+proc scrolled*(this: Box): bool = internalScrollbar(this)
+
+
+# COMMON TABLE/TREE -----------------------------
+proc `$`*(c: NCell): string =
+  case c.kind:
+  of ckInt:  $c.vInt
+  of ckBool: $c.vBool
+  of ckImg:  $(w: c.vImg.w, h: c.vImg.h)
+  of ckStr:  c.vStr
+
+proc toCell*(v: int):    NCell = NCell(kind: ckInt,  vInt:  v)
+proc toCell*(v: bool):   NCell = NCell(kind: ckBool, vBool: v)
+proc toCell*(v: string): NCell = NCell(kind: ckStr,  vStr:  v)
+proc toCell*(v: Bitmap): NCell = NCell(kind: ckImg,  vImg:  v)
+proc toCell*(v: NCell):  NCell = v
+
+# TODO: typed -> NCellType
+macro toNCellArray(values: untyped): array =
+  result = newNimNode(nnkBracket)
+  template call(a) = toCell(a)
+  for v in values: add(result, getAst(call(v)))
+
+template toNRow*(values: varargs[typed]): NRow =
+  NRow(cells: @(toNCellArray(values)))
+
+proc add*(this: NTable | Tree, values: NRow) = internalAdd(this, values)
+
+proc add*(this: NTable | Tree, values: openArray[NCell]) =
+  add(this, NRow(cells: @values))
+
+template head*(this: NTable | Tree, values: varargs[string]) = th(this, values)
+
+proc headers*(this: NTable | Tree): bool = internalHeaders(this)
+proc `headers=`*(this: NTable | Tree, v: bool) = internalHeaders(this, v)
+
+proc len*(this: NRow): int = this.cells.len
+
 
 # TABLE -----------------------------------------
-proc table*(): NTable =
+proc table*(header: openArray[(NCellKind, string)]): NTable =
   nguiNew()
+  internalHeader(result, header)
+  internalHeaders(result, true)
 
-proc addRow(this: NTable, values: varargs[NTableCell]) =
-  var
-    list {.global.}: seq[NTableCell]
-    row: NTableRow
+proc table*(header: openArray[NCellKind]): NTable =
+  var h = newSeq[(NCellKind, string)](len(header))
+  for i, e in mpairs(h): e = (header[i], "")
+  return table(header = h)
 
-  setLen(list, 0)
-  for v in values: list.add(v)
-  row.list = cast[ptr[UncheckedArray[NTableCell]]](list[0].addr)
-  row.len  = len(list)
-  internalAdd(this, row)
-  
-proc headers*(this: NTable): bool = internalHeaders(this)
-proc `headers=`*(this: NTable, v: bool) = internalHeaders(this, v)
-
-proc th*(this: NTable, values: varargs[string]) = internalHeader(this, values)
-
-macro tr*(this: NTable, values: varargs[typed]) =
-  template call(f) = addRow(f)
-  template row(f) = toCell(f)
-  
-  result = getAst(call(this))
-  for v in values: result.add(getAst(row(v)))
-
-template head*(this: NTable, values: varargs[string]) = th(this, values)
-template row*(this: NTable, values: varargs[untyped]) = tr(this, values)
+proc `[]=`*(this: NTable, x, y: int, that: NCell) =
+  internalSet(this, that, x, y)
 
 template `[]=`*(this: NTable, x, y: int, that: typed) =
-  internalSet(this, toCell(that), x, y)
+  this[x, y] = toCell(that)
 
 template `[]=`*(this: NTable, p: tuple[x, y: int], that: typed) =
-  internalSet(this, toCell(that), p[0], p[1])
+  this[p[0], p[1]] = toCell(that)
+  
+proc `[]`*(this: NTable, x, y: int): NCell =
+  internalGet(this, x, y)
 
-template cell*(this: NTable, x, y: int, body: untyped) =
-  block:
-    let c = internalGet(this, x, y)
+proc `[]`*(this: NTable, p: tuple[x, y: int]): NCell =
+  internalGet(this, p.x, p.y)
 
-    template ofImg(v, op: untyped) {.used.} =
-      if c.kind == ckImg:
-        let `v` = c.vImg
-        op
-    template ofStr(v, op: untyped) {.used.} =
-      if c.kind == ckStr:
-        let `v` = c.vStr
-        op
-    template ofBool(v, op: untyped) {.used.} =
-      if c.kind == ckBool:
-        let `v` = c.vBool
-        op
+template row*(this: NTable, values: varargs[typed]) =
+  internalAdd(this, toNRow(values))
+  
+proc mode*(this: NTable): NAmount = internalGetSelection(this)
+proc `mode=`*(this: NTable, mode: NAmount) = internalSetSelection(this, mode)
 
-    body
+proc columns*(this: NTable): int = len(internalHeader(this))
 
-template cell*(this: NTable, p: tuple[x, y: int], body: untyped) =
-  cell(this, p[0], p[1], body)
+proc selected*(this: NTable): seq[tuple[x, y: int]] =
+  internalGet(this, result)
+
+proc `selected=`*(this: NTable, list: openArray[tuple[x, y: int]]) =
+  internalSet(this, list)
+  
+proc selectedCells*(this: NTable): seq[NCell] =
+  for s in selected(this):
+    add(result, this[s])
+
+proc selectedRows*(this: NTable): seq[NRow] =
+  for (_, y) in selected(this):
+    let r = internalGet(this, y)
+    if r notin result: add(result, r)
+
+
+# TREE ------------------------------------------
+proc tree*(header: openArray[(NCellKind, string)]): Tree =
+  nguiNew()
+  internalHeader(result, header)
+  internalHeaders(result, true)
+
+proc tree*(header: openArray[NCellKind]): Tree =
+  var h = newSeq[(NCellKind, string)](len(header))
+  for i, e in mpairs(h): e = (header[i], "")
+  return tree(h)
+
+template row*(this: Tree, depth: openArray[int], values: varargs[untyped]) =
+  internalAdd(this, toNRow(values), depth)
+
+template row*(this: Tree, values: varargs[untyped]) =
+  internalAdd(this, toNRow(values), [])
+
+template `[]=`*(this: Tree, depth: openArray[int], column: int, that: typed) =
+  internalSet(this, toCell(that), depth, column)
+
+proc `[]`*(this: Tree, depth: openArray[int], column: int): NCell =
+  internalGet(this, depth, column)
 
 
 # TAB -------------------------------------------
@@ -1083,6 +1165,9 @@ proc tab*(reorderable: bool = false): Tab =
   internalSetReorderable(result, reorderable)
 
 proc add*(this: Tab, that: Container, label: Label) =
+  doAssert this != nil
+  doAssert that != nil
+  doAssert label != nil
   internalAdd(this, that, label)
 
 proc reorderable*(this: Tab): bool = internalGetReorderable(this)
@@ -1104,19 +1189,6 @@ proc selected*(this: List, that: var seq[NElement]) =
   internalSelected(this, that)
 
 proc selected*(this: List): seq[NElement] = selected(this, result)
-
-
-# FRAME -----------------------------------------
-proc frame*(text: string, list: varargs[NElement]): Frame =
-  nguiNew()
-  if text != "": internalSetText(result, text)
-  for element in list: result.add(element)
-
-proc frame*(list: varargs[NElement]): Frame =
-  frame("", list)
-
-proc text*(this: Frame): string = internalGetText(this)
-proc `text=`*(this: Frame, text: string) = internalSetText(this, text)
 
 
 # TOOLS -----------------------------------------
@@ -1148,6 +1220,8 @@ proc get*(this: NElement, that: NElementAttribute): Attribute =
   case that:
   of naKind:        g(aKind, this.kind)
   of naBGColor:     g(aBGColor, this.bgColor)
+  of naBorderColor: gt(Container, aBorderColor, internalGetBorderColor)
+  of naToolTip:     g(aToolTip, this.tooltip)
   of naName:
     if this in names: g(aName, names[this])
   of naIndex:       g(aIndex, this.index)
@@ -1159,10 +1233,37 @@ proc get*(this: NElement, that: NElementAttribute): Attribute =
   of naMaximized:   gt(Window, aMaximized, internalGetMaximized)
   of naMinimized:   gt(Window, aMinimized, internalGetMinimized)
   of naLen:         gt(Container, aLen, internalLen)
+  of naBorder:      gt(Container, aBorder, internalGetBorder)
   of naReorderable: gt(Tab, aReorderable, internalGetReorderable)
   of naSide:        gt(Tab, aSide, internalGetSide)
   of naModal:       gt(Window, aModal, internalGetModal)
+  of naDate:        gt(Calendar, aDate, internalGetDate)
+  of naImg:         gt(Button, aImg, internalGetImage)
+  of naMode:
+    gt(List, aMode, internalGetMode)
+    template gt(t) = gt(t, aMode, internalGetSelection)
+    gt(NTable); gt(Tree);
+
   of naTransient:   gt(Window, aTransient, internalGetTransient)
+  of naStep:        gt(Slider, aStep, internalGetStep)
+  of naDecimals:    gt(Slider, aDecimals, internalGetDecimals)
+  of naScrolled:    gt(Box, aScrolled, internalScrollbar)
+  of naHeader:
+    template gt(t) = gt(t, aHeader, internalHeader)
+    gt(NTable); gt(Tree);
+  of naHeaders:
+    template gt(t) = gt(t, aHeaders, internalHeaders)
+    gt(NTable); gt(Tree);
+  of naRows:
+    template gt(t) = gt(t, aRows, internalRows)
+    gt(NTable); gt(Tree);
+  of naSelectedCells:
+    if this of NTable:
+      internalGet(NTable(this), result.aSelectedCells)
+      result.found = true
+  of naSelected:
+    template gt(t) = gt(t, aSelected, internalGetSelectedIndex)
+    gt(Tab)
   of naOrientation:
     template gt(t) = gt(t, aOrientation, internalGetOrientation)
     gt(Box); gt(Slider); gt(Tools)
@@ -1171,6 +1272,7 @@ proc get*(this: NElement, that: NElementAttribute): Attribute =
     gt(Window); gt(Button); gt(Label); gt(Radio); gt(Entry);
   of naWrap:      gt(Label, aWrap, internalGetWrap)
   of naResizable: gt(Window, aResizable, internalGetResizable)
+  of naRange:     gt(Slider, aRange, internalGetRange)
   of naValue:
     if this of Slider:
       let v = internalGetValue(Slider(this))
@@ -1192,18 +1294,45 @@ proc set*(this: NElement, that: Attribute) =
   case that.kind:
   of naVisible:     s(internalSetVisible, that.aVisible)
   of naBGColor:     s(internalSetBGColor, that.aBGColor)
+  of naBorderColor: s(Container, internalSetBorderColor, that.aBorderColor)
+  of naBorder:      s(Container, internalSetBorder, that.aBorder)
   of naFocus:       this.internalSetFocus()
   of naName:        this.name = that.aName
+  of naToolTip:     s(internalSetTooltip, that.aToolTip)
   of naSize:        s(internalSetSize, that.aSize)
   of naOpacity:     s(Window, internalSetOpacity, that.aOpacity)
   of naValue:       s(Slider, internalSetValue, that.aValue.vFloat)
+  of naRange:       s(Slider, internalSetRange, that.aRange)
   of naText:        s(Label, internalSetText, that.aText)
   of naMinimized:   s(Window, internalSetMinimized, that.aMinimized)
   of naMaximized:   s(Window, internalSetMaximized, that.aMaximized)
   of naReorderable: s(Tab, internalSetReorderable, that.aReorderable)
   of naModal:       s(Window, internalsetModal, that.aModal)
+  of naMode:
+    s(List, internalSetMode, that.aMode)
+    template s(t) = s(t, internalSetSelection, that.aMode)
+    s(NTable); s(Tree);
+    
   of naTransient:   s(Window, internalsetTransient, that.aTransient)
   of naSide:        s(Tab, internalSetSide, that.aSide)
+  of naStep:        s(Slider, internalSetStep, that.aStep)
+  of naDecimals:    s(Slider, internalSetDecimals, that.aDecimals)
+  of naDate:        s(Calendar, internalSetDate, that.aDate)
+  of naScrolled:    s(Box, internalScrollbar, that.aScrolled)
+  of naImg:         s(Button, internalSetImage, that.aImg)
+  of naHeader:
+    s(NTable, internalHeader, that.aHeader)
+    s(Tree,   internalHeader, that.aHeader)
+  of naHeaders:
+    s(NTable, internalHeaders, that.aHeaders)
+    s(Tree,   internalHeaders, that.aHeaders)
+  of naRows:
+    s(NTable, internalRows, that.aRows)
+    s(Tree,   internalRows, that.aRows)
+  of naSelectedCells:
+    s(NTable, internalSet, that.aSelectedCells)
+  of naSelected:
+    s(Tab,    internalSetSelectedIndex, that.aSelected)
   of naOrientation:
     s(Box,    internalSetOrientation, that.aOrientation)
     s(Slider, internalSetOrientation, that.aOrientation)
@@ -1219,10 +1348,10 @@ proc set*(this: NElement, that: Attribute) =
     raiseAssert("Not Implemented: " & $that.kind)
 
 proc attributes*(this: NElement): Attributes =
-  ## Returns a list of attributes for this element. Attributes not supported
+  ## Returns a list of attributes from this element. Attributes not supported
   ## will set their `found` field to false
   for attrKind in NElementAttribute:
-    result[attrKind] = this.get(attrKind)
+    result[attrKind] = get(this, attrKind)
 
 proc `$`*(this: Attribute): string =
   if not this.found: return "[" & $this.kind & "] NOT FOUND"
@@ -1233,55 +1362,28 @@ proc `$`*(this: NElement): string =
   if this == nil: return "NElement(nil)"
   
   let attrs = attributes(this)
-  result = $attrs[naKind].aKind & "("
+  result = $attrs[naKind].aKind
   
   for kind, attr in attrs:
     if not attr.found: continue
     if kind == naKind: continue
-    result &= $attr & ", "
+    result &= "\l  " & $attr
 
-  setLen(result, len(result) - 2)
-  result &= ")"
+proc treeStr*(
+    this:    NElement,
+    pad:     string = "",
+    debug:   bool = false): string =
 
-proc element*(kind: NElementKind): NElement =
-  ## Create a new element of this kind. Some kinds are not valid for
-  ## Initialization using this method, like abstract kinds (Atom, Container).
-  
-  case kind:
-  # VALID
-  of neApp:        app()
-  of neWindow:     window()
-  of neBox:        box()
-  of neList:       list()
-  of neTab:        tab()
-  of neMenu:       menu()
-  of neBar:        bar()
-  of neFrame:      frame()
-  of neRadio:      radio()
-  of neButton:     button()
-  of neComboBox:   comboBox()
-  of neCalendar:   calendar()
-  of neImage:      image()
-  of neProgress:   progress()
-  of neTextArea:   textArea()
-  of neLabel:      label()
-  of neEntry:      entry()
-  of neSlider:     slider()
-  of neCheckBox:   checkbox()
-  of neTable:      table()
-  of neTools:      tools()
-  of neBubble:     bubble()
-  # INVALID
-  of neAlert, neFileChoose, neContainer, neAtom, neKindInvalid:
-    raiseAssert("Can't create element of " & $kind & " using this method")
+  result = pad & $this.kind & " "
 
-proc element*(this: Attributes): NElement =
-  ## Create a new element from this list of attributes.
-  result = element(this[naKind].aKind)
-  for attrKind in NElementAttribute:
-    if attrKind == naKind: continue
-    let attr = this[attrKind]
-    if attr.found: result.set(attr)  
+  if debug: result &= $(
+    ID:   this.id,
+    size: internalGetSize(this),
+  )
+
+  if this of Container:
+    for child in Container(this):
+      result &= "\l" & treeStr(child, pad & "|  ", debug)
 
 # proc toJson*(this: Attributes | NElement): JSonNode
 # proc toNElement*(this: JSonNode): NElement

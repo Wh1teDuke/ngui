@@ -42,7 +42,7 @@ proc main =
     let bitmap = image.bitmap
 
     for p in mitems(bitmap):
-      p = (p.r+r[0], p.g+r[1], p.b+r[2], p.a)
+      p = pixel(p.r + r[0], p.g + r[1], p.b + r[2], p.a)
 
     t = max(20, t * 0.99)
     image.update()

@@ -34,15 +34,13 @@ proc main =
     Label(this.next).text = $Slider(this).value.int
 
   tabPage2[2].onClickDo:
-    let fc = fileChoose("Cancel", "Accept")
-    
-    fc.onClickDo:
-      echo fc.files
-      
-    Label(tabPage2[3]).text =
-      if run(fc) > 0: fc.file else: ""
+    fileChoose() do:
+      let files = currentEvent().files
 
-    fc.destroy
+      Label(tabPage2[3]).text =
+        (if len(files) > 0: files[0] else: "")
+
+      echo Label(tabPage2[3]).text
 
   tab.add(tabPage1, label("Main Content"))
   tab.add(named(tabPage2, "More Stuff"))
@@ -54,8 +52,7 @@ proc main =
   
   # Status ===
   let status = label("Done")
-  let statusBorder = frame(status)
-  status.xAlign = 0.05
+  let statusBorder = box(status)
   
   when ngui.backend != beGTK2:
     statusBorder.border      = 2
@@ -70,21 +67,20 @@ proc main =
     status.text = "Progress " & $int(progress.value * 100) & "%"
 
   # App ===
-  app.add(tab, statusBorder)
+  add(app, tab, statusBorder)
   app[0].icon = bitmap(currentSourcePath() / ParDir / "assets" / "icon1.png")
 
   app[0].onFocusOffDo: echo "FocusOff"
   app[0].onFocusOnDo: echo "FocusOn"
   app[0].onKeyPressDo:
     if event.key == nkV: eventHandled() # Won't propagate to textArea
-    elif event.key == nkEsc: quit()
+    elif event.key == nkEsc: stop(app)
     else: echo "P: ", event.key # currentEvent()
 
   app[0].onKeyReleaseDo:
     echo "R: ", event.key
 
   textArea.focus
-
   run(app)
 
 main()

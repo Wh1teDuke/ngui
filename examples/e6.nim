@@ -8,12 +8,11 @@ proc main =
   let app = app()
   let list = list()
   
-  for i in 0 .. 9:
-    list.add(label("I'm number " & $succ(i)))
+  for i in 1 .. 10:
+    list.add(label("I'm number " & $i))
 
   app.add(list)
-  
-  
+
   list.onClickDo:
     echo Label(list.selected[0]).text
   

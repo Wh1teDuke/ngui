@@ -8,7 +8,7 @@ proc main =
   # ALWAYS start with app()
   let app = app()
   let b1 = comboBox("Foo", "Bar", "FileNotFound", selected = 1)
-  let b2 = checkBox("Debug Combobox", true)
+  let b2 = checkBox("Debug Combobox", on)
 
   b1.onChangeDo:
     if b2.checked:

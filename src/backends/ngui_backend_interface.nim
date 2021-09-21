@@ -1,4 +1,3 @@
-# INTERFACE
 
 
 # EVENT -----------------------------------------
@@ -8,12 +7,13 @@ proc internalGetCurrentEvent: NEventArgs
   ## Get the args from the event that is currently being dispatched
 proc internalEventHandled()
   ## Stop event propagation
+proc internalTriggerEvent(event: NEventArgs)
+  ## Trigger custom event to the choosen element
 
 
 # NElement ----------------------------------------
-proc internalNewNElement(kind: NElementKind): NElement
-  ## Instantiate a new NElement of provided kind
-
+proc internalInitNElement(this: var NElement)
+  ## Initialize a NElement
 proc internalGetParent(this: NElement): Container
   ## Get the parent of this element OR nil if it doesn't have one
 proc internalSetVisible(this: NElement, state: bool)
@@ -153,10 +153,6 @@ proc internalSetWrap(this: Label, state: bool)
   ## Set whether or not this element is allowed to wrap the content if it becomes too big
 proc internalGetWrap(this: Label): bool
   ## Get whether or not this element is allowed to wrap the content if it becomes too big
-proc internalGetXAlign(this: Label): float
-proc internalGetYAlign(this: Label): float
-proc internalSetXAlign(this: Label, v: float)
-proc internalSetYAlign(this: Label, v: float)
 
 
 # ENTRY -----------------------------------------
@@ -197,8 +193,6 @@ proc internalAttach(this: Bubble, that: NElement)
 # IMAGE -----------------------------------------
 proc internalGetBitmap(this: Image): Bitmap
 proc internalUpdate(this: Image, that: Bitmap)
-proc internalIconBitmap(name: string): Bitmap
-proc internalIconBitmap(icon: NIcon): Bitmap
 
 
 # TEXTAREA --------------------------------------
@@ -219,7 +213,9 @@ proc internalClear(this: Calendar)
 proc internalSetDecimals(this: Slider, decimals: int)
 proc internalGetDecimals(this: Slider): int
 proc internalSetRange(this: Slider, range: Slice[float])
+proc internalGetRange(this: Slider): Slice[float]
 proc internalSetStep(this: Slider, step: float)
+proc internalGetStep(this: Slider): float
 proc internalGetValue(this: Slider): float
 proc internalSetValue(this: Slider, value: float)
 proc internalGetOrientation(this: Slider): NOrientation
@@ -228,15 +224,8 @@ proc internalSetOrientation(this: Slider, value: NOrientation)
 
 # FILECHOOSE ------------------------------------
 proc internalSetMultiple(this: FileChoose, state: bool)
-proc internalGetMultiple(this: FileChoose): bool
-proc internalGetFiles(this: FileChoose): seq[string]
 proc internalSetText(this: FileChoose, text: string)
-proc internalGetText(this: FileChoose): string
-proc internalSetButton(this: FileChoose, button: string, index: int)
-proc internalRun(this: FileChoose): int
-
-
-# BAR -------------------------------------------
+proc internalRun(this: FileChoose)
 
 
 # MENU ------------------------------------------
@@ -244,12 +233,40 @@ proc internalAdd(this: NElement, that: Menu)
 
 
 # TABLE -----------------------------------------
-proc internalAdd(this: Table, that: NTableRow)
-proc internalSet(this: Table, that: NTableCell, x, y: int)
-proc internalGet(this: Table, x, y: int): NTableCell
-proc internalHeader(this: NTable, headers: openArray[string])
+proc internalAdd(this: NTable, that: NRow)
+proc internalRows(this: NTable, that: openArray[NRow])
+proc internalRows(this: NTable): seq[NRow]
+proc internalSet(this: NTable, that: NCell, x, y: int)
+proc internalGet(this: NTable, x, y: int): NCell
+proc internalSet(this: NTable, that: NRow, y: int)
+proc internalGet(this: NTable, y: int): NRow
+proc internalClear(this: NTable, row: int)
+proc internalClear(this: NTable)
+proc internalHeader(this: NTable, header: openArray[tuple[kind: NCellKind, name: string]])
+proc internalHeader(this: NTable): seq[tuple[kind: NCellKind, name: string]]
 proc internalHeaders(this: NTable): bool
 proc internalHeaders(this: NTable, v: bool)
+proc internalSetSelection(this: NTable, mode: NAmount)
+proc internalGetSelection(this: NTable): NAmount
+proc internalGet(this: NTable, that: var seq[tuple[x, y: int]])# TODO: HashSet
+proc internalSet(this: NTable, that: openArray[tuple[x, y: int]])
+
+
+# TREE ------------------------------------------
+proc internalAdd(this: Tree, that: NRow, depth: openArray[int])
+proc internalRows(this: Tree, that: openArray[NRow])
+proc internalRows(this: Tree): seq[NRow]
+proc internalSet(this: Tree, that: NCell, depth: openArray[int], column: int)
+proc internalGet(this: Tree, depth: openArray[int], column: int): NCell
+#skip proc internalClear(this: Tree, depth: openArray[int], row: int)
+proc internalClear(this: Tree)
+proc internalHeader(this: Tree, header: openArray[tuple[kind: NCellKind, name: string]])
+proc internalHeader(this: Tree): seq[tuple[kind: NCellKind, name: string]]
+proc internalHeaders(this: Tree): bool
+proc internalHeaders(this: Tree, v: bool)
+proc internalSetSelection(this: Tree, mode: NAmount)
+proc internalGetSelection(this: Tree): NAmount
+
 
 
 # COMBOBOX -------------------------------------- 
@@ -266,10 +283,11 @@ proc internalValue(this: Progress): float
 proc internalValue(this: Progress, v: float)
 
 
-# BOX ------------------------------------------- 
-proc internalSetSpacing(this: Box, spacing: int) 
+# BOX -------------------------------------------
 proc internalGetOrientation(this: Box): NOrientation
 proc internalSetOrientation(this: Box, value: NOrientation)
+proc internalScrollbar(this: Box, state: bool)
+proc internalScrollbar(this: Box): bool
 
 
 # TAB -------------------------------------------
@@ -278,6 +296,8 @@ proc internalSetReorderable(this: Tab, v: bool)
 proc internalGetReorderable(this: Tab): bool
 proc internalGetSide(this: Tab): NSide
 proc internalSetSide(this: Tab, side: NSide)
+proc internalGetSelectedIndex(this: Tab): int 
+proc internalSetSelectedIndex(this: Tab, i: int)
 
 
 # LIST ------------------------------------------
@@ -286,15 +306,9 @@ proc internalSetMode(this: List, mode: NAmount)
 proc internalSelected(this: List, that: var seq[NElement])
 
 
-# FRAME -----------------------------------------
-proc internalSetText(this: Frame, text: string)
-proc internalGetText(this: Frame): string
-
-
 # TOOLS -----------------------------------------
 proc internalGetOrientation(this: Tools): NOrientation
 proc internalSetOrientation(this: Tools, value: NOrientation)
-#proc internalAdd(this: Tools, value: NOrientation)
 
 
 # TIMERS -----------------------------------------

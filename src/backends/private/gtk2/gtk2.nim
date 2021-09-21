@@ -5276,8 +5276,6 @@ proc set_shadow_type*(clist: PCList, thetype: TShadowType){.cdecl,
 proc set_selection_mode*(clist: PCList, mode: TSelectionMode){.cdecl,
     dynlib: lib, importc: "gtk_clist_set_selection_mode".}
 # NGUI
-proc get_selection_mode*(clist: PCList): TSelectionMode{.cdecl,
-    dynlib: lib, importc: "gtk_clist_get_selection_mode".}
 proc set_reorderable*(clist: PCList, reorderable: gboolean){.cdecl,
     dynlib: lib, importc: "gtk_clist_set_reorderable".}
 proc set_use_drag_icons*(clist: PCList, use_icons: gboolean){.cdecl,
@@ -7444,6 +7442,10 @@ proc get_indices*(path: PTreePath): Pgint{.cdecl, dynlib: lib,
     importc: "gtk_tree_path_get_indices".}
 proc free*(path: PTreePath){.cdecl, dynlib: lib,
                                        importc: "gtk_tree_path_free".}
+# NGUI
+proc gtk_tree_path_free*(path: PTreePath){.cdecl, dynlib: lib,
+                                       importc: "gtk_tree_path_free".}
+# ---
 proc copy*(path: PTreePath): PTreePath{.cdecl, dynlib: lib,
     importc: "gtk_tree_path_copy".}
 proc tree_path_get_type*(): GType{.cdecl, dynlib: lib,
@@ -17394,11 +17396,15 @@ proc add_attribute*(cell: PPGtkCellLayout,
                                      cell_renderer: PCellRenderer,
                                      attribute: cstring, column: gint){.cdecl,
     dynlib: lib, importc: "gtk_tree_view_column_add_attribute".}
-proc load_icon*(theme: pointer, name: string, size: cint, flags: uint8, error: pointer): pointer {.cdecl,
+proc load_icon*(theme: pointer, name: string, size: cint, flags: cint, error: pointer): pointer {.cdecl,
                    dynlib: lib, importc: "gtk_icon_theme_load_icon".}
 proc iconThemeGetDefault*(): pointer {.cdecl,
                    dynlib: lib, importc: "gtk_icon_theme_get_default".}
-const GENERIC_FALLBACK* = 3.uint8
+proc lookup_icon*(theme: pointer, name: cstring, size: cint, flags: cint): pointer {.cdecl,
+                   dynlib: lib, importc: "gtk_icon_theme_lookup_icon".}
+proc gtk_icon_theme_has_icon*(theme: pointer, name: cstring): gboolean {.cdecl,
+                   dynlib: lib, importc: "gtk_icon_theme_has_icon".}
+const GENERIC_FALLBACK* = 3.cint
 proc set_orientation*(orientable: PWidget, orientation: TOrientation){.
     cdecl, dynlib: lib, importc: "gtk_orientable_set_orientation".}
 proc get_orientation*(orientable: PWidget): TOrientation{.
