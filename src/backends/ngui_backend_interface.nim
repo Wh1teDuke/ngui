@@ -248,7 +248,8 @@ proc internalHeaders(this: NTable): bool
 proc internalHeaders(this: NTable, v: bool)
 proc internalSetSelection(this: NTable, mode: NAmount)
 proc internalGetSelection(this: NTable): NAmount
-proc internalGet(this: NTable, that: var seq[tuple[x, y: int]])# TODO: HashSet
+#skip v-- TODO: HashSet
+proc internalGet(this: NTable, that: var seq[tuple[x, y: int]])
 proc internalSet(this: NTable, that: openArray[tuple[x, y: int]])
 
 

@@ -145,13 +145,15 @@ task examples, "Compile and execute all the examples in order":
   except:
     discard # C'est fini
 
-task docs, "Gen documentation":
+task docs, "Gen documentation":  
   const
     DF = $CurDir / "docs" / "html"
     arg = "--warnings:off --hints:off --outdir:"
 
-  proc nDoc(a: string) = exec("nim doc --index:off -d:nguibackend:doc $1 $2 $3" % [arg, DF, a])
-  proc nRSTDoc(a: string) = exec("nim rst2html $1 $2 $3" % [arg, DF, a])
+  proc nDoc(a: string) =
+    exec("nim doc --index:off -d:nguibackend:doc $1 $2 $3" % [arg, DF, a])
+  proc nRSTDoc(a: string) =
+    exec("nim rst2html $1 $2 $3" % [arg, DF, a])
   
 
   # Code Documentation ----------------

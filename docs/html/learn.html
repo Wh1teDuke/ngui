@@ -34,7 +34,6 @@ function main() {
     }
   }
 
-  const toggleSwitch = document.querySelector('.theme-switch input[type="checkbox"]');
   function switchTheme(e) {
       if (e.target.checked) {
           document.documentElement.setAttribute('data-theme', 'dark');
@@ -45,13 +44,19 @@ function main() {
       }
   }
 
-  toggleSwitch.addEventListener('change', switchTheme, false);
+  const toggleSwitch = document.querySelector('.theme-switch input[type="checkbox"]');
+  if (toggleSwitch !== null) {
+    toggleSwitch.addEventListener('change', switchTheme, false);
+  }
 
-  const currentTheme = localStorage.getItem('theme') ? localStorage.getItem('theme') : null;
+  var currentTheme = localStorage.getItem('theme');
+  if (!currentTheme && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    currentTheme = 'dark';
+  }
   if (currentTheme) {
     document.documentElement.setAttribute('data-theme', currentTheme);
 
-    if (currentTheme === 'dark') {
+    if (currentTheme === 'dark' && toggleSwitch !== null) {
       toggleSwitch.checked = true;
     }
   }
@@ -107,8 +112,8 @@ window.addEventListener('DOMContentLoaded', main);
   <div class="nine columns" id="content">
   <div id="tocRoot"></div>
   
-  <p class="module-desc"><table class="docinfo" frame="void" rules="none"><col class="docinfo-name" /><col class="docinfo-content" /><tbody valign="top"><tr><th class="docinfo-name">Author:</th><td> WhiteDuke</td></tr>
-<tr><th class="docinfo-name">Summary:</th><td> NGUI tutorial</td></tr>
+  <p class="module-desc"><table class="docinfo" frame="void" rules="none"><col class="docinfo-name" /><col class="docinfo-content" /><tbody valign="top"><tr><th class="docinfo-name">Author:</th><td>WhiteDuke</td></tr>
+<tr><th class="docinfo-name">Summary:</th><td>NGUI tutorial</td></tr>
 </tbody></table>
 <h1><a class="toc-backref" id="introduction" href="#introduction">Introduction</a></h1><p>In this document <strong>ngui</strong> is introducted. <strong>Ngui</strong> uses many conventions commonly used in gui toolkits, so you may benefit from reviewing them. Here is a list of useful links in case you need them:</p>
 
@@ -187,7 +192,7 @@ WORK IN PROGRESS</div>
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br/>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2021-03-16 13:08:25 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2021-09-21 17:35:21 UTC</small>
       </div>
     </div>
   </div>
