@@ -28,8 +28,6 @@ from pango import FontDescription, Layout, AttrList, Context, EllipsizeMode, Wra
 from gio import GFile, GMenu, GMenuModel, GActionGroup, GAppInfo, GApplication, GApplicationClass, GMountOperation, GAsyncReadyCallback,
   GMountOperationClass, GEmblemedIcon, GEmblemedIconClass, GIcon, GPermission, GAsyncResult, GCancellable, GApplicationFlags
 
-from atk import Object, ObjectClass, RelationSet, Role, CoordType
-
 const
   GDK_MULTIHEAD_SAFE = true
   DISABLE_DEPRECATED = false
@@ -661,7 +659,6 @@ type
                      result: DragResult): Gboolean {.cdecl.}
     popupMenu*: proc (widget: Widget): Gboolean {.cdecl.}
     showHelp*: proc (widget: Widget; helpType: WidgetHelpType): Gboolean {.cdecl.}
-    getAccessible*: proc (widget: Widget): atk.Object {.cdecl.}
     screenChanged*: proc (widget: Widget; previousScreen: gdk.Screen) {.cdecl.}
     canActivateAccel*: proc (widget: Widget; signalId: cuint): Gboolean {.cdecl.}
     compositedChanged*: proc (widget: Widget) {.cdecl.}
@@ -1237,14 +1234,6 @@ proc setAccessibleType*(widgetClass: WidgetClass; `type`: GType) {.
 
 proc `accessibleType=`*(widgetClass: WidgetClass; `type`: GType) {.
     importc: "gtk_widget_class_set_accessible_type", libgtk.}
-proc setAccessibleRole*(widgetClass: WidgetClass; role: atk.Role) {.
-    importc: "gtk_widget_class_set_accessible_role", libgtk.}
-proc `accessibleRole=`*(widgetClass: WidgetClass; role: atk.Role) {.
-    importc: "gtk_widget_class_set_accessible_role", libgtk.}
-proc getAccessible*(widget: Widget): atk.Object {.
-    importc: "gtk_widget_get_accessible", libgtk.}
-proc accessible*(widget: Widget): atk.Object {.
-    importc: "gtk_widget_get_accessible", libgtk.}
 
 proc getHalign*(widget: Widget): Align {.
     importc: "gtk_widget_get_halign", libgtk.}
@@ -2999,11 +2988,6 @@ type
     gtkReserved123*: proc () {.cdecl.}
     gtkReserved124*: proc () {.cdecl.}
 
-  Accessible* =  ptr AccessibleObj
-  AccessiblePtr* = ptr AccessibleObj
-  AccessibleObj = object of atk.ObjectObj
-    priv21: pointer
-
 proc labelGetType*(): GType {.importc: "gtk_label_get_type", libgtk.}
 proc newLabel*(str: cstring): Label {.importc: "gtk_label_new", libgtk.}
 proc newLabelWithMnemonic*(str: cstring): Label {.
@@ -3216,15 +3200,6 @@ template accelLabelGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeAccelLabel, AccelLabelClassObj))
 
 type
-  AccessibleClass* =  ptr AccessibleClassObj
-  AccessibleClassPtr* = ptr AccessibleClassObj
-  AccessibleClassObj = object of atk.ObjectClassObj
-    connectWidgetDestroyed*: proc (accessible: Accessible) {.cdecl.}
-    widgetSet*: proc (accessible: Accessible) {.cdecl.}
-    widgetUnset*: proc (accessible: Accessible) {.cdecl.}
-    gtkReserved133*: proc () {.cdecl.}
-    gtkReserved134*: proc () {.cdecl.}
-
   AccelMap* =  ptr AccelMapObj
   AccelMapPtr* = ptr AccelMapObj
   AccelMapObj* = object
@@ -3358,16 +3333,6 @@ type
                                targetValue: glib.GVariant) {.cdecl.}
 
 proc accessibleGetType*(): GType {.importc: "gtk_accessible_get_type", libgtk.}
-proc setWidget*(accessible: Accessible; widget: Widget) {.
-    importc: "gtk_accessible_set_widget", libgtk.}
-proc `widget=`*(accessible: Accessible; widget: Widget) {.
-    importc: "gtk_accessible_set_widget", libgtk.}
-proc getWidget*(accessible: Accessible): Widget {.
-    importc: "gtk_accessible_get_widget", libgtk.}
-proc widget*(accessible: Accessible): Widget {.
-    importc: "gtk_accessible_get_widget", libgtk.}
-proc connectWidgetDestroyed*(accessible: Accessible) {.
-    importc: "gtk_accessible_connect_widget_destroyed", libgtk.}
 
 template typeActionable*(): untyped =
   (actionableGetType())
@@ -7447,10 +7412,6 @@ proc popupForDevice*(comboBox: ComboBox; device: gdk.Device) {.
     importc: "gtk_combo_box_popup_for_device", libgtk.}
 proc popdown*(comboBox: ComboBox) {.
     importc: "gtk_combo_box_popdown", libgtk.}
-proc getPopupAccessible*(comboBox: ComboBox): atk.Object {.
-    importc: "gtk_combo_box_get_popup_accessible", libgtk.}
-proc popupAccessible*(comboBox: ComboBox): atk.Object {.
-    importc: "gtk_combo_box_get_popup_accessible", libgtk.}
 proc getIdColumn*(comboBox: ComboBox): cint {.
     importc: "gtk_combo_box_get_id_column", libgtk.}
 proc idColumn*(comboBox: ComboBox): cint {.
@@ -25146,16 +25107,6 @@ template isPrintUnixDialogClass*(klass: untyped): untyped =
 template printUnixDialogGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typePrintUnixDialog, PrintUnixDialogClassObj))
 
-type
-  WidgetAccessible* =  ptr WidgetAccessibleObj
-  WidgetAccessiblePtr* = ptr WidgetAccessibleObj
-  WidgetAccessibleObj = object of AccessibleObj
-    priv146: pointer
-
-  WidgetAccessibleClass* =  ptr WidgetAccessibleClassObj
-  WidgetAccessibleClassPtr* = ptr WidgetAccessibleClassObj
-  WidgetAccessibleClassObj = object of AccessibleClassObj
-    notifyGtk*: proc (`object`: GObject; pspec: gobject.GParamSpec) {.cdecl.}
 
 proc printUnixDialogGetType*(): GType {.importc: "gtk_print_unix_dialog_get_type",
                                         libgtk.}
@@ -25261,16 +25212,6 @@ template isWidgetAccessibleClass*(klass: untyped): untyped =
 template widgetAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeWidgetAccessible, WidgetAccessibleClassObj))
 
-type
-  ArrowAccessible* =  ptr ArrowAccessibleObj
-  ArrowAccessiblePtr* = ptr ArrowAccessibleObj
-  ArrowAccessibleObj*{.final.} = object of WidgetAccessibleObj
-    priv147: pointer
-
-  ArrowAccessibleClass* =  ptr ArrowAccessibleClassObj
-  ArrowAccessibleClassPtr* = ptr ArrowAccessibleClassObj
-  ArrowAccessibleClassObj*{.final.} = object of WidgetAccessibleClassObj
-
 proc widgetAccessibleGetType*(): GType {.
     importc: "gtk_widget_accessible_get_type", libgtk.}
 
@@ -25291,17 +25232,6 @@ template isArrowAccessibleClass*(klass: untyped): untyped =
 
 template arrowAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeArrowAccessible, ArrowAccessibleClassObj))
-
-type
-  CellAccessible* =  ptr CellAccessibleObj
-  CellAccessiblePtr* = ptr CellAccessibleObj
-  CellAccessibleObj = object of AccessibleObj
-    priv148: pointer
-
-  CellAccessibleClass* =  ptr CellAccessibleClassObj
-  CellAccessibleClassPtr* = ptr CellAccessibleClassObj
-  CellAccessibleClassObj = object of AccessibleClassObj
-    updateCache*: proc (cell: CellAccessible; emitSignal: Gboolean) {.cdecl.}
 
 proc arrowAccessibleGetType*(): GType {.importc: "gtk_arrow_accessible_get_type",
                                         libgtk.}
@@ -25324,16 +25254,6 @@ template isCellAccessibleClass*(klass: untyped): untyped =
 template cellAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeCellAccessible, CellAccessibleClassObj))
 
-type
-  RendererCellAccessibleClass* =  ptr RendererCellAccessibleClassObj
-  RendererCellAccessibleClassPtr* = ptr RendererCellAccessibleClassObj
-  RendererCellAccessibleClassObj = object of CellAccessibleClassObj
-
-  RendererCellAccessible* =  ptr RendererCellAccessibleObj
-  RendererCellAccessiblePtr* = ptr RendererCellAccessibleObj
-  RendererCellAccessibleObj = object of CellAccessibleObj
-    priv149: pointer
-
 proc cellAccessibleGetType*(): GType {.importc: "gtk_cell_accessible_get_type",
                                        libgtk.}
 
@@ -25355,20 +25275,8 @@ template isRendererCellAccessibleClass*(klass: untyped): untyped =
 template rendererCellAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeRendererCellAccessible, RendererCellAccessibleClassObj))
 
-type
-  BooleanCellAccessible* =  ptr BooleanCellAccessibleObj
-  BooleanCellAccessiblePtr* = ptr BooleanCellAccessibleObj
-  BooleanCellAccessibleObj*{.final.} = object of RendererCellAccessibleObj
-    priv150: pointer
-
-  BooleanCellAccessibleClass* =  ptr BooleanCellAccessibleClassObj
-  BooleanCellAccessibleClassPtr* = ptr BooleanCellAccessibleClassObj
-  BooleanCellAccessibleClassObj*{.final.} = object of RendererCellAccessibleClassObj
-
 proc rendererCellAccessibleGetType*(): GType {.
     importc: "gtk_renderer_cell_accessible_get_type", libgtk.}
-proc newRendererCellAccessible*(renderer: CellRenderer): atk.Object {.
-    importc: "gtk_renderer_cell_accessible_new", libgtk.}
 
 template typeBooleanCellAccessible*(): untyped =
   (booleanCellAccessibleGetType())
@@ -25387,18 +25295,6 @@ template isBooleanCellAccessibleClass*(klass: untyped): untyped =
 
 template booleanCellAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeBooleanCellAccessible, BooleanCellAccessibleClassObj))
-
-type
-  ContainerAccessibleClass* =  ptr ContainerAccessibleClassObj
-  ContainerAccessibleClassPtr* = ptr ContainerAccessibleClassObj
-  ContainerAccessibleClassObj = object of WidgetAccessibleClassObj
-    addGtk*: proc (container: Container; widget: Widget; data: Gpointer): cint {.cdecl.}
-    removeGtk*: proc (container: Container; widget: Widget; data: Gpointer): cint {.cdecl.}
-
-  ContainerAccessible* =  ptr ContainerAccessibleObj
-  ContainerAccessiblePtr* = ptr ContainerAccessibleObj
-  ContainerAccessibleObj = object of WidgetAccessibleObj
-    priv151: pointer
 
 proc booleanCellAccessibleGetType*(): GType {.
     importc: "gtk_boolean_cell_accessible_get_type", libgtk.}
@@ -25421,16 +25317,6 @@ template isContainerAccessibleClass*(klass: untyped): untyped =
 template containerAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeContainerAccessible, ContainerAccessibleClassObj))
 
-type
-  ButtonAccessible* =  ptr ButtonAccessibleObj
-  ButtonAccessiblePtr* = ptr ButtonAccessibleObj
-  ButtonAccessibleObj = object of ContainerAccessibleObj
-    priv152: pointer
-
-  ButtonAccessibleClass* =  ptr ButtonAccessibleClassObj
-  ButtonAccessibleClassPtr* = ptr ButtonAccessibleClassObj
-  ButtonAccessibleClassObj = object of ContainerAccessibleClassObj
-
 proc containerAccessibleGetType*(): GType {.
     importc: "gtk_container_accessible_get_type", libgtk.}
 
@@ -25452,33 +25338,6 @@ template isButtonAccessibleClass*(klass: untyped): untyped =
 template buttonAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeButtonAccessible, ButtonAccessibleClassObj))
 
-type
-  CellAccessibleParent* =  ptr CellAccessibleParentObj
-  CellAccessibleParentPtr* = ptr CellAccessibleParentObj
-  CellAccessibleParentObj* = object
-
-  CellAccessibleParentIface* =  ptr CellAccessibleParentIfaceObj
-  CellAccessibleParentIfacePtr* = ptr CellAccessibleParentIfaceObj
-  CellAccessibleParentIfaceObj*{.final.} = object of gobject.GTypeInterfaceObj
-    getCellExtents*: proc (parent: CellAccessibleParent;
-                         cell: CellAccessible; x: var cint; y: var cint;
-                         width: var cint; height: var cint; coordType: atk.CoordType) {.cdecl.}
-    getCellArea*: proc (parent: CellAccessibleParent;
-                      cell: CellAccessible; cellRect: gdk.Rectangle) {.cdecl.}
-    grabFocus*: proc (parent: CellAccessibleParent;
-                    cell: CellAccessible): Gboolean {.cdecl.}
-    getChildIndex*: proc (parent: CellAccessibleParent;
-                        cell: CellAccessible): cint {.cdecl.}
-    getRendererState*: proc (parent: CellAccessibleParent;
-                           cell: CellAccessible): CellRendererState {.cdecl.}
-    expandCollapse*: proc (parent: CellAccessibleParent;
-                         cell: CellAccessible) {.cdecl.}
-    activate*: proc (parent: CellAccessibleParent; cell: CellAccessible) {.cdecl.}
-    edit*: proc (parent: CellAccessibleParent; cell: CellAccessible) {.cdecl.}
-    updateRelationset*: proc (parent: CellAccessibleParent;
-                            cell: CellAccessible;
-                            relationset: atk.RelationSet) {.cdecl.}
-
 proc buttonAccessibleGetType*(): GType {.
     importc: "gtk_button_accessible_get_type", libgtk.}
 
@@ -25495,54 +25354,10 @@ template cellAccessibleParent*(obj: untyped): untyped =
 template cellAccessibleParentGetIface*(obj: untyped): untyped =
   (gTypeInstanceGetInterface(obj, typeCellAccessibleParent, CellAccessibleParentIfaceObj))
 
-type
-  MenuItemAccessible* =  ptr MenuItemAccessibleObj
-  MenuItemAccessiblePtr* = ptr MenuItemAccessibleObj
-  MenuItemAccessibleObj = object of ContainerAccessibleObj
-    priv153: pointer
-
-  MenuItemAccessibleClass* =  ptr MenuItemAccessibleClassObj
-  MenuItemAccessibleClassPtr* = ptr MenuItemAccessibleClassObj
-  MenuItemAccessibleClassObj = object of ContainerAccessibleClassObj
 
 proc cellAccessibleParentGetType*(): GType {.
     importc: "gtk_cell_accessible_parent_get_type", libgtk.}
-proc getCellExtents*(parent: CellAccessibleParent;
-    cell: CellAccessible; x: var cint; y: var cint; width: var cint;
-    height: var cint; coordType: atk.CoordType) {.
-    importc: "gtk_cell_accessible_parent_get_cell_extents", libgtk.}
-proc getCellArea*(parent: CellAccessibleParent;
-                                        cell: CellAccessible;
-                                        cellRect: gdk.Rectangle) {.
-    importc: "gtk_cell_accessible_parent_get_cell_area", libgtk.}
-proc grabFocus*(parent: CellAccessibleParent;
-                                      cell: CellAccessible): Gboolean {.
-    importc: "gtk_cell_accessible_parent_grab_focus", libgtk.}
-proc getChildIndex*(parent: CellAccessibleParent;
-    cell: CellAccessible): cint {.importc: "gtk_cell_accessible_parent_get_child_index",
-                                     libgtk.}
-proc childIndex*(parent: CellAccessibleParent;
-    cell: CellAccessible): cint {.importc: "gtk_cell_accessible_parent_get_child_index",
-                                     libgtk.}
-proc getRendererState*(
-    parent: CellAccessibleParent; cell: CellAccessible): CellRendererState {.
-    importc: "gtk_cell_accessible_parent_get_renderer_state", libgtk.}
-proc rendererState*(
-    parent: CellAccessibleParent; cell: CellAccessible): CellRendererState {.
-    importc: "gtk_cell_accessible_parent_get_renderer_state", libgtk.}
-proc expandCollapse*(parent: CellAccessibleParent;
-    cell: CellAccessible) {.importc: "gtk_cell_accessible_parent_expand_collapse",
-                                libgtk.}
-proc activate*(parent: CellAccessibleParent;
-                                     cell: CellAccessible) {.
-    importc: "gtk_cell_accessible_parent_activate", libgtk.}
-proc edit*(parent: CellAccessibleParent;
-                                 cell: CellAccessible) {.
-    importc: "gtk_cell_accessible_parent_edit", libgtk.}
-proc updateRelationset*(
-    parent: CellAccessibleParent; cell: CellAccessible;
-    relationset: atk.RelationSet) {.importc: "gtk_cell_accessible_parent_update_relationset",
-                                    libgtk.}
+
 
 template typeMenuItemAccessible*(): untyped =
   (menuItemAccessibleGetType())
@@ -25562,15 +25377,6 @@ template isMenuItemAccessibleClass*(klass: untyped): untyped =
 template menuItemAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeMenuItemAccessible, MenuItemAccessibleClassObj))
 
-type
-  CheckMenuItemAccessible* =  ptr CheckMenuItemAccessibleObj
-  CheckMenuItemAccessiblePtr* = ptr CheckMenuItemAccessibleObj
-  CheckMenuItemAccessibleObj = object of MenuItemAccessibleObj
-    priv154: pointer
-
-  CheckMenuItemAccessibleClass* =  ptr CheckMenuItemAccessibleClassObj
-  CheckMenuItemAccessibleClassPtr* = ptr CheckMenuItemAccessibleClassObj
-  CheckMenuItemAccessibleClassObj = object of MenuItemAccessibleClassObj
 
 proc menuItemAccessibleGetType*(): GType {.
     importc: "gtk_menu_item_accessible_get_type", libgtk.}
@@ -25593,16 +25399,6 @@ template isCheckMenuItemAccessibleClass*(klass: untyped): untyped =
 template checkMenuItemAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeCheckMenuItemAccessible, CheckMenuItemAccessibleClassObj))
 
-type
-  ComboBoxAccessible* =  ptr ComboBoxAccessibleObj
-  ComboBoxAccessiblePtr* = ptr ComboBoxAccessibleObj
-  ComboBoxAccessibleObj*{.final.} = object of ContainerAccessibleObj
-    priv155: pointer
-
-  ComboBoxAccessibleClass* =  ptr ComboBoxAccessibleClassObj
-  ComboBoxAccessibleClassPtr* = ptr ComboBoxAccessibleClassObj
-  ComboBoxAccessibleClassObj*{.final.} = object of ContainerAccessibleClassObj
-
 proc checkMenuItemAccessibleGetType*(): GType {.
     importc: "gtk_check_menu_item_accessible_get_type", libgtk.}
 
@@ -25624,15 +25420,6 @@ template isComboBoxAccessibleClass*(klass: untyped): untyped =
 template comboBoxAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeComboBoxAccessible, ComboBoxAccessibleClassObj))
 
-type
-  ContainerCellAccessibleClass* =  ptr ContainerCellAccessibleClassObj
-  ContainerCellAccessibleClassPtr* = ptr ContainerCellAccessibleClassObj
-  ContainerCellAccessibleClassObj*{.final.} = object of CellAccessibleClassObj
-
-  ContainerCellAccessible* =  ptr ContainerCellAccessibleObj
-  ContainerCellAccessiblePtr* = ptr ContainerCellAccessibleObj
-  ContainerCellAccessibleObj*{.final.} = object of CellAccessibleObj
-    priv156: pointer
 
 proc comboBoxAccessibleGetType*(): GType {.
     importc: "gtk_combo_box_accessible_get_type", libgtk.}
@@ -25655,32 +25442,8 @@ template isContainerCellAccessibleClass*(klass: untyped): untyped =
 template containerCellAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeContainerCellAccessible, ContainerCellAccessibleClassObj))
 
-type
-  EntryAccessible* =  ptr EntryAccessibleObj
-  EntryAccessiblePtr* = ptr EntryAccessibleObj
-  EntryAccessibleObj = object of WidgetAccessibleObj
-    priv157: pointer
-
-  EntryAccessibleClass* =  ptr EntryAccessibleClassObj
-  EntryAccessibleClassPtr* = ptr EntryAccessibleClassObj
-  EntryAccessibleClassObj = object of WidgetAccessibleClassObj
-
 proc containerCellAccessibleGetType*(): GType {.
     importc: "gtk_container_cell_accessible_get_type", libgtk.}
-proc newContainerCellAccessible*(): ContainerCellAccessible {.
-    importc: "gtk_container_cell_accessible_new", libgtk.}
-proc addChild*(container: ContainerCellAccessible;
-                                        child: CellAccessible) {.
-    importc: "gtk_container_cell_accessible_add_child", libgtk.}
-proc removeChild*(
-    container: ContainerCellAccessible; child: CellAccessible) {.
-    importc: "gtk_container_cell_accessible_remove_child", libgtk.}
-proc getChildren*(
-    container: ContainerCellAccessible): glib.GList {.
-    importc: "gtk_container_cell_accessible_get_children", libgtk.}
-proc children*(
-    container: ContainerCellAccessible): glib.GList {.
-    importc: "gtk_container_cell_accessible_get_children", libgtk.}
 
 template typeEntryAccessible*(): untyped =
   (entryAccessibleGetType())
@@ -25700,15 +25463,6 @@ template isEntryAccessibleClass*(klass: untyped): untyped =
 template entryAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeEntryAccessible, EntryAccessibleClassObj))
 
-type
-  ExpanderAccessibleClass* =  ptr ExpanderAccessibleClassObj
-  ExpanderAccessibleClassPtr* = ptr ExpanderAccessibleClassObj
-  ExpanderAccessibleClassObj*{.final.} = object of ContainerAccessibleClassObj
-
-  ExpanderAccessible* =  ptr ExpanderAccessibleObj
-  ExpanderAccessiblePtr* = ptr ExpanderAccessibleObj
-  ExpanderAccessibleObj*{.final.} = object of ContainerAccessibleObj
-    priv158: pointer
 
 proc entryAccessibleGetType*(): GType {.importc: "gtk_entry_accessible_get_type",
                                         libgtk.}
@@ -25733,16 +25487,6 @@ template isExpanderAccessibleClass*(klass: untyped): untyped =
 template expanderAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeExpanderAccessible, ExpanderAccessibleClassObj))
 
-type
-  FlowBoxAccessible* =  ptr FlowBoxAccessibleObj
-  FlowBoxAccessiblePtr* = ptr FlowBoxAccessibleObj
-  FlowBoxAccessibleObj*{.final.} = object of ContainerAccessibleObj
-    priv159: pointer
-
-  FlowBoxAccessibleClass* =  ptr FlowBoxAccessibleClassObj
-  FlowBoxAccessibleClassPtr* = ptr FlowBoxAccessibleClassObj
-  FlowBoxAccessibleClassObj*{.final.} = object of ContainerAccessibleClassObj
-
 proc expanderAccessibleGetType*(): GType {.
     importc: "gtk_expander_accessible_get_type", libgtk.}
 
@@ -25763,15 +25507,6 @@ template isFlowBoxAccessibleClass*(klass: untyped): untyped =
 
 template flowBoxAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeFlowBoxAccessible, FlowBoxAccessibleClassObj))
-
-type
-  FlowBoxChildAccessible* =  ptr FlowBoxChildAccessibleObj
-  FlowBoxChildAccessiblePtr* = ptr FlowBoxChildAccessibleObj
-  FlowBoxChildAccessibleObj*{.final.} = object of ContainerAccessibleObj
-
-  FlowBoxChildAccessibleClass* =  ptr FlowBoxChildAccessibleClassObj
-  FlowBoxChildAccessibleClassPtr* = ptr FlowBoxChildAccessibleClassObj
-  FlowBoxChildAccessibleClassObj*{.final.} = object of ContainerAccessibleClassObj
 
 proc flowBoxAccessibleGetType*(): GType {.
     importc: "gtk_flow_box_accessible_get_type", libgtk.}
@@ -25794,16 +25529,6 @@ template isFlowBoxChildAccessibleClass*(klass: untyped): untyped =
 template flowBoxChildAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeFlowBoxChildAccessible, FlowBoxChildAccessibleClassObj))
 
-type
-  FrameAccessible* =  ptr FrameAccessibleObj
-  FrameAccessiblePtr* = ptr FrameAccessibleObj
-  FrameAccessibleObj*{.final.} = object of ContainerAccessibleObj
-    priv160: pointer
-
-  FrameAccessibleClass* =  ptr FrameAccessibleClassObj
-  FrameAccessibleClassPtr* = ptr FrameAccessibleClassObj
-  FrameAccessibleClassObj*{.final.} = object of ContainerAccessibleClassObj
-
 proc flowBoxChildAccessibleGetType*(): GType {.
     importc: "gtk_flow_box_child_accessible_get_type", libgtk.}
 
@@ -25824,16 +25549,6 @@ template isFrameAccessibleClass*(klass: untyped): untyped =
 
 template frameAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeFrameAccessible, FrameAccessibleClassObj))
-
-type
-  IconViewAccessible* =  ptr IconViewAccessibleObj
-  IconViewAccessiblePtr* = ptr IconViewAccessibleObj
-  IconViewAccessibleObj*{.final.} = object of ContainerAccessibleObj
-    priv161: pointer
-
-  IconViewAccessibleClass* =  ptr IconViewAccessibleClassObj
-  IconViewAccessibleClassPtr* = ptr IconViewAccessibleClassObj
-  IconViewAccessibleClassObj*{.final.} = object of ContainerAccessibleClassObj
 
 proc frameAccessibleGetType*(): GType {.importc: "gtk_frame_accessible_get_type",
                                         libgtk.}
@@ -25856,16 +25571,6 @@ template isIconViewAccessibleClass*(klass: untyped): untyped =
 template iconViewAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeIconViewAccessible, IconViewAccessibleClassObj))
 
-type
-  ImageAccessibleClass* =  ptr ImageAccessibleClassObj
-  ImageAccessibleClassPtr* = ptr ImageAccessibleClassObj
-  ImageAccessibleClassObj*{.final.} = object of WidgetAccessibleClassObj
-
-  ImageAccessible* =  ptr ImageAccessibleObj
-  ImageAccessiblePtr* = ptr ImageAccessibleObj
-  ImageAccessibleObj*{.final.} = object of WidgetAccessibleObj
-    priv162: pointer
-
 proc iconViewAccessibleGetType*(): GType {.
     importc: "gtk_icon_view_accessible_get_type", libgtk.}
 
@@ -25886,16 +25591,6 @@ template isImageAccessibleClass*(klass: untyped): untyped =
 
 template imageAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeImageAccessible, ImageAccessibleClassObj))
-
-type
-  ImageCellAccessible* =  ptr ImageCellAccessibleObj
-  ImageCellAccessiblePtr* = ptr ImageCellAccessibleObj
-  ImageCellAccessibleObj*{.final.} = object of RendererCellAccessibleObj
-    priv163: pointer
-
-  ImageCellAccessibleClass* =  ptr ImageCellAccessibleClassObj
-  ImageCellAccessibleClassPtr* = ptr ImageCellAccessibleClassObj
-  ImageCellAccessibleClassObj*{.final.} = object of RendererCellAccessibleClassObj
 
 proc imageAccessibleGetType*(): GType {.importc: "gtk_image_accessible_get_type",
                                         libgtk.}
@@ -25918,16 +25613,6 @@ template isImageCellAccessibleClass*(klass: untyped): untyped =
 template imageCellAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeImageCellAccessible, ImageCellAccessibleClassObj))
 
-type
-  LabelAccessibleClass* =  ptr LabelAccessibleClassObj
-  LabelAccessibleClassPtr* = ptr LabelAccessibleClassObj
-  LabelAccessibleClassObj*{.final.} = object of WidgetAccessibleClassObj
-
-  LabelAccessible* =  ptr LabelAccessibleObj
-  LabelAccessiblePtr* = ptr LabelAccessibleObj
-  LabelAccessibleObj*{.final.} = object of WidgetAccessibleObj
-    priv164: pointer
-
 proc imageCellAccessibleGetType*(): GType {.
     importc: "gtk_image_cell_accessible_get_type", libgtk.}
 
@@ -25948,16 +25633,6 @@ template isLabelAccessibleClass*(klass: untyped): untyped =
 
 template labelAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeLabelAccessible, LabelAccessibleClassObj))
-
-type
-  LevelBarAccessibleClass* =  ptr LevelBarAccessibleClassObj
-  LevelBarAccessibleClassPtr* = ptr LevelBarAccessibleClassObj
-  LevelBarAccessibleClassObj*{.final.} = object of WidgetAccessibleClassObj
-
-  LevelBarAccessible* =  ptr LevelBarAccessibleObj
-  LevelBarAccessiblePtr* = ptr LevelBarAccessibleObj
-  LevelBarAccessibleObj*{.final.} = object of WidgetAccessibleObj
-    priv165: pointer
 
 proc labelAccessibleGetType*(): GType {.importc: "gtk_label_accessible_get_type",
                                         libgtk.}
@@ -25980,16 +25655,6 @@ template isLevelBarAccessibleClass*(klass: untyped): untyped =
 template levelBarAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeLevelBarAccessible, LevelBarAccessibleClassObj))
 
-type
-  LinkButtonAccessible* =  ptr LinkButtonAccessibleObj
-  LinkButtonAccessiblePtr* = ptr LinkButtonAccessibleObj
-  LinkButtonAccessibleObj*{.final.} = object of ButtonAccessibleObj
-    priv166: pointer
-
-  LinkButtonAccessibleClass* =  ptr LinkButtonAccessibleClassObj
-  LinkButtonAccessibleClassPtr* = ptr LinkButtonAccessibleClassObj
-  LinkButtonAccessibleClassObj*{.final.} = object of ButtonAccessibleClassObj
-
 proc levelBarAccessibleGetType*(): GType {.
     importc: "gtk_level_bar_accessible_get_type", libgtk.}
 
@@ -26010,16 +25675,6 @@ template isLinkButtonAccessibleClass*(klass: untyped): untyped =
 
 template linkButtonAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeLinkButtonAccessible, LinkButtonAccessibleClassObj))
-
-type
-  ListBoxAccessible* =  ptr ListBoxAccessibleObj
-  ListBoxAccessiblePtr* = ptr ListBoxAccessibleObj
-  ListBoxAccessibleObj*{.final.} = object of ContainerAccessibleObj
-    priv167: pointer
-
-  ListBoxAccessibleClass* =  ptr ListBoxAccessibleClassObj
-  ListBoxAccessibleClassPtr* = ptr ListBoxAccessibleClassObj
-  ListBoxAccessibleClassObj*{.final.} = object of ContainerAccessibleClassObj
 
 proc linkButtonAccessibleGetType*(): GType {.
     importc: "gtk_link_button_accessible_get_type", libgtk.}
@@ -26042,15 +25697,6 @@ template isListBoxAccessibleClass*(klass: untyped): untyped =
 template listBoxAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeListBoxAccessible, ListBoxAccessibleClassObj))
 
-type
-  ListBoxRowAccessible* =  ptr ListBoxRowAccessibleObj
-  ListBoxRowAccessiblePtr* = ptr ListBoxRowAccessibleObj
-  ListBoxRowAccessibleObj*{.final.} = object of ContainerAccessibleObj
-
-  ListBoxRowAccessibleClass* =  ptr ListBoxRowAccessibleClassObj
-  ListBoxRowAccessibleClassPtr* = ptr ListBoxRowAccessibleClassObj
-  ListBoxRowAccessibleClassObj*{.final.} = object of ContainerAccessibleClassObj
-
 proc listBoxAccessibleGetType*(): GType {.
     importc: "gtk_list_box_accessible_get_type", libgtk.}
 
@@ -26071,16 +25717,6 @@ template isListBoxRowAccessibleClass*(klass: untyped): untyped =
 
 template listBoxRowAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeListBoxRowAccessible, ListBoxRowAccessibleClassObj))
-
-type
-  LockButtonAccessible* =  ptr LockButtonAccessibleObj
-  LockButtonAccessiblePtr* = ptr LockButtonAccessibleObj
-  LockButtonAccessibleObj*{.final.} = object of ButtonAccessibleObj
-    priv168: pointer
-
-  LockButtonAccessibleClass* =  ptr LockButtonAccessibleClassObj
-  LockButtonAccessibleClassPtr* = ptr LockButtonAccessibleClassObj
-  LockButtonAccessibleClassObj*{.final.} = object of ButtonAccessibleClassObj
 
 proc listBoxRowAccessibleGetType*(): GType {.
     importc: "gtk_list_box_row_accessible_get_type", libgtk.}
@@ -26103,16 +25739,6 @@ template isLockButtonAccessibleClass*(klass: untyped): untyped =
 template lockButtonAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeLockButtonAccessible, LockButtonAccessibleClassObj))
 
-type
-  MenuShellAccessible* =  ptr MenuShellAccessibleObj
-  MenuShellAccessiblePtr* = ptr MenuShellAccessibleObj
-  MenuShellAccessibleObj = object of ContainerAccessibleObj
-    priv169: pointer
-
-  MenuShellAccessibleClass* =  ptr MenuShellAccessibleClassObj
-  MenuShellAccessibleClassPtr* = ptr MenuShellAccessibleClassObj
-  MenuShellAccessibleClassObj = object of ContainerAccessibleClassObj
-
 proc lockButtonAccessibleGetType*(): GType {.
     importc: "gtk_lock_button_accessible_get_type", libgtk.}
 
@@ -26133,16 +25759,6 @@ template isMenuShellAccessibleClass*(klass: untyped): untyped =
 
 template menuShellAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeMenuShellAccessible, MenuShellAccessibleClassObj))
-
-type
-  MenuAccessible* =  ptr MenuAccessibleObj
-  MenuAccessiblePtr* = ptr MenuAccessibleObj
-  MenuAccessibleObj*{.final.} = object of MenuShellAccessibleObj
-    priv170: pointer
-
-  MenuAccessibleClass* =  ptr MenuAccessibleClassObj
-  MenuAccessibleClassPtr* = ptr MenuAccessibleClassObj
-  MenuAccessibleClassObj*{.final.} = object of MenuShellAccessibleClassObj
 
 proc menuShellAccessibleGetType*(): GType {.
     importc: "gtk_menu_shell_accessible_get_type", libgtk.}
@@ -26165,16 +25781,6 @@ template isMenuAccessibleClass*(klass: untyped): untyped =
 template menuAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeMenuAccessible, MenuAccessibleClassObj))
 
-type
-  ToggleButtonAccessible* =  ptr ToggleButtonAccessibleObj
-  ToggleButtonAccessiblePtr* = ptr ToggleButtonAccessibleObj
-  ToggleButtonAccessibleObj = object of ButtonAccessibleObj
-    priv171: pointer
-
-  ToggleButtonAccessibleClass* =  ptr ToggleButtonAccessibleClassObj
-  ToggleButtonAccessibleClassPtr* = ptr ToggleButtonAccessibleClassObj
-  ToggleButtonAccessibleClassObj = object of ButtonAccessibleClassObj
-
 proc menuAccessibleGetType*(): GType {.importc: "gtk_menu_accessible_get_type",
                                        libgtk.}
 
@@ -26195,16 +25801,6 @@ template isToggleButtonAccessibleClass*(klass: untyped): untyped =
 
 template toggleButtonAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeToggleButtonAccessible, ToggleButtonAccessibleClassObj))
-
-type
-  MenuButtonAccessibleClass* =  ptr MenuButtonAccessibleClassObj
-  MenuButtonAccessibleClassPtr* = ptr MenuButtonAccessibleClassObj
-  MenuButtonAccessibleClassObj*{.final.} = object of ToggleButtonAccessibleClassObj
-
-  MenuButtonAccessible* =  ptr MenuButtonAccessibleObj
-  MenuButtonAccessiblePtr* = ptr MenuButtonAccessibleObj
-  MenuButtonAccessibleObj*{.final.} = object of ToggleButtonAccessibleObj
-    priv172: pointer
 
 proc toggleButtonAccessibleGetType*(): GType {.
     importc: "gtk_toggle_button_accessible_get_type", libgtk.}
@@ -26227,16 +25823,6 @@ template isMenuButtonAccessibleClass*(klass: untyped): untyped =
 template menuButtonAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeMenuButtonAccessible, MenuButtonAccessibleClassObj))
 
-type
-  NotebookAccessible* =  ptr NotebookAccessibleObj
-  NotebookAccessiblePtr* = ptr NotebookAccessibleObj
-  NotebookAccessibleObj*{.final.} = object of ContainerAccessibleObj
-    priv173: pointer
-
-  NotebookAccessibleClass* =  ptr NotebookAccessibleClassObj
-  NotebookAccessibleClassPtr* = ptr NotebookAccessibleClassObj
-  NotebookAccessibleClassObj*{.final.} = object of ContainerAccessibleClassObj
-
 proc menuButtonAccessibleGetType*(): GType {.
     importc: "gtk_menu_button_accessible_get_type", libgtk.}
 
@@ -26257,16 +25843,6 @@ template isNotebookAccessibleClass*(klass: untyped): untyped =
 
 template notebookAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeNotebookAccessible, NotebookAccessibleClassObj))
-
-type
-  NotebookPageAccessible* =  ptr NotebookPageAccessibleObj
-  NotebookPageAccessiblePtr* = ptr NotebookPageAccessibleObj
-  NotebookPageAccessibleObj*{.final.} = object of atk.ObjectObj
-    priv174: pointer
-
-  NotebookPageAccessibleClass* =  ptr NotebookPageAccessibleClassObj
-  NotebookPageAccessibleClassPtr* = ptr NotebookPageAccessibleClassObj
-  NotebookPageAccessibleClassObj*{.final.} = object of atk.ObjectClassObj
 
 proc notebookAccessibleGetType*(): GType {.
     importc: "gtk_notebook_accessible_get_type", libgtk.}
@@ -26289,22 +25865,8 @@ template isNotebookPageAccessibleClass*(klass: untyped): untyped =
 template notebookPageAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeNotebookPageAccessible, NotebookPageAccessibleClassObj))
 
-type
-  PopoverAccessible* =  ptr PopoverAccessibleObj
-  PopoverAccessiblePtr* = ptr PopoverAccessibleObj
-  PopoverAccessibleObj*{.final.} = object of ContainerAccessibleObj
-
-  PopoverAccessibleClass* =  ptr PopoverAccessibleClassObj
-  PopoverAccessibleClassPtr* = ptr PopoverAccessibleClassObj
-  PopoverAccessibleClassObj*{.final.} = object of ContainerAccessibleClassObj
-
 proc notebookPageAccessibleGetType*(): GType {.
     importc: "gtk_notebook_page_accessible_get_type", libgtk.}
-proc newNotebookPageAccessible*(notebook: NotebookAccessible;
-                                  child: Widget): atk.Object {.
-    importc: "gtk_notebook_page_accessible_new", libgtk.}
-proc invalidate*(page: NotebookPageAccessible) {.
-    importc: "gtk_notebook_page_accessible_invalidate", libgtk.}
 
 template typePopoverAccessible*(): untyped =
   (popoverAccessibleGetType())
@@ -26323,16 +25885,6 @@ template isPopoverAccessibleClass*(klass: untyped): untyped =
 
 template popoverAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typePopoverAccessible, PopoverAccessibleClassObj))
-
-type
-  PanedAccessibleClass* =  ptr PanedAccessibleClassObj
-  PanedAccessibleClassPtr* = ptr PanedAccessibleClassObj
-  PanedAccessibleClassObj*{.final.} = object of ContainerAccessibleClassObj
-
-  PanedAccessible* =  ptr PanedAccessibleObj
-  PanedAccessiblePtr* = ptr PanedAccessibleObj
-  PanedAccessibleObj*{.final.} = object of ContainerAccessibleObj
-    priv175: pointer
 
 proc popoverAccessibleGetType*(): GType {.
     importc: "gtk_popover_accessible_get_type", libgtk.}
@@ -26355,16 +25907,6 @@ template isPanedAccessibleClass*(klass: untyped): untyped =
 template panedAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typePanedAccessible, PanedAccessibleClassObj))
 
-type
-  ProgressBarAccessible* =  ptr ProgressBarAccessibleObj
-  ProgressBarAccessiblePtr* = ptr ProgressBarAccessibleObj
-  ProgressBarAccessibleObj*{.final.} = object of WidgetAccessibleObj
-    priv176: pointer
-
-  ProgressBarAccessibleClass* =  ptr ProgressBarAccessibleClassObj
-  ProgressBarAccessibleClassPtr* = ptr ProgressBarAccessibleClassObj
-  ProgressBarAccessibleClassObj*{.final.} = object of WidgetAccessibleClassObj
-
 proc panedAccessibleGetType*(): GType {.importc: "gtk_paned_accessible_get_type",
                                         libgtk.}
 
@@ -26385,16 +25927,6 @@ template isProgressBarAccessibleClass*(klass: untyped): untyped =
 
 template progressBarAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeProgressBarAccessible, ProgressBarAccessibleClassObj))
-
-type
-  RadioButtonAccessibleClass* =  ptr RadioButtonAccessibleClassObj
-  RadioButtonAccessibleClassPtr* = ptr RadioButtonAccessibleClassObj
-  RadioButtonAccessibleClassObj*{.final.} = object of ToggleButtonAccessibleClassObj
-
-  RadioButtonAccessible* =  ptr RadioButtonAccessibleObj
-  RadioButtonAccessiblePtr* = ptr RadioButtonAccessibleObj
-  RadioButtonAccessibleObj*{.final.} = object of ToggleButtonAccessibleObj
-    priv177: pointer
 
 proc progressBarAccessibleGetType*(): GType {.
     importc: "gtk_progress_bar_accessible_get_type", libgtk.}
@@ -26417,446 +25949,6 @@ template isRadioButtonAccessibleClass*(klass: untyped): untyped =
 template radioButtonAccessibleGetClass*(obj: untyped): untyped =
   (gTypeInstanceGetClass(obj, typeRadioButtonAccessible, RadioButtonAccessibleClassObj))
 
-type
-  RadioMenuItemAccessibleClass* =  ptr RadioMenuItemAccessibleClassObj
-  RadioMenuItemAccessibleClassPtr* = ptr RadioMenuItemAccessibleClassObj
-  RadioMenuItemAccessibleClassObj*{.final.} = object of CheckMenuItemAccessibleClassObj
-
-  RadioMenuItemAccessible* =  ptr RadioMenuItemAccessibleObj
-  RadioMenuItemAccessiblePtr* = ptr RadioMenuItemAccessibleObj
-  RadioMenuItemAccessibleObj*{.final.} = object of CheckMenuItemAccessibleObj
-    priv178: pointer
-
-proc radioButtonAccessibleGetType*(): GType {.
-    importc: "gtk_radio_button_accessible_get_type", libgtk.}
-
-template typeRadioMenuItemAccessible*(): untyped =
-  (radioMenuItemAccessibleGetType())
-
-template radioMenuItemAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceCast(obj, typeRadioMenuItemAccessible, RadioMenuItemAccessibleObj))
-
-template radioMenuItemAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassCast(klass, typeRadioMenuItemAccessible, RadioMenuItemAccessibleClassObj))
-
-template isRadioMenuItemAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceType(obj, typeRadioMenuItemAccessible))
-
-template isRadioMenuItemAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassType(klass, typeRadioMenuItemAccessible))
-
-template radioMenuItemAccessibleGetClass*(obj: untyped): untyped =
-  (gTypeInstanceGetClass(obj, typeRadioMenuItemAccessible, RadioMenuItemAccessibleClassObj))
-
-type
-  RangeAccessible* =  ptr RangeAccessibleObj
-  RangeAccessiblePtr* = ptr RangeAccessibleObj
-  RangeAccessibleObj = object of WidgetAccessibleObj
-    priv179: pointer
-
-  RangeAccessibleClass* =  ptr RangeAccessibleClassObj
-  RangeAccessibleClassPtr* = ptr RangeAccessibleClassObj
-  RangeAccessibleClassObj = object of WidgetAccessibleClassObj
-
-proc radioMenuItemAccessibleGetType*(): GType {.
-    importc: "gtk_radio_menu_item_accessible_get_type", libgtk.}
-
-template typeRangeAccessible*(): untyped =
-  (rangeAccessibleGetType())
-
-template rangeAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceCast(obj, typeRangeAccessible, RangeAccessibleObj))
-
-template rangeAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassCast(klass, typeRangeAccessible, RangeAccessibleClassObj))
-
-template isRangeAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceType(obj, typeRangeAccessible))
-
-template isRangeAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassType(klass, typeRangeAccessible))
-
-template rangeAccessibleGetClass*(obj: untyped): untyped =
-  (gTypeInstanceGetClass(obj, typeRangeAccessible, RangeAccessibleClassObj))
-
-type
-  ScaleAccessible* =  ptr ScaleAccessibleObj
-  ScaleAccessiblePtr* = ptr ScaleAccessibleObj
-  ScaleAccessibleObj*{.final.} = object of RangeAccessibleObj
-    priv180: pointer
-
-  ScaleAccessibleClass* =  ptr ScaleAccessibleClassObj
-  ScaleAccessibleClassPtr* = ptr ScaleAccessibleClassObj
-  ScaleAccessibleClassObj*{.final.} = object of RangeAccessibleClassObj
-
-proc rangeAccessibleGetType*(): GType {.importc: "gtk_range_accessible_get_type",
-                                        libgtk.}
-
-template typeScaleAccessible*(): untyped =
-  (scaleAccessibleGetType())
-
-template scaleAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceCast(obj, typeScaleAccessible, ScaleAccessibleObj))
-
-template scaleAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassCast(klass, typeScaleAccessible, ScaleAccessibleClassObj))
-
-template isScaleAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceType(obj, typeScaleAccessible))
-
-template isScaleAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassType(klass, typeScaleAccessible))
-
-template scaleAccessibleGetClass*(obj: untyped): untyped =
-  (gTypeInstanceGetClass(obj, typeScaleAccessible, ScaleAccessibleClassObj))
-
-type
-  ScaleButtonAccessible* =  ptr ScaleButtonAccessibleObj
-  ScaleButtonAccessiblePtr* = ptr ScaleButtonAccessibleObj
-  ScaleButtonAccessibleObj*{.final.} = object of ButtonAccessibleObj
-    priv181: pointer
-
-  ScaleButtonAccessibleClass* =  ptr ScaleButtonAccessibleClassObj
-  ScaleButtonAccessibleClassPtr* = ptr ScaleButtonAccessibleClassObj
-  ScaleButtonAccessibleClassObj*{.final.} = object of ButtonAccessibleClassObj
-
-proc scaleAccessibleGetType*(): GType {.importc: "gtk_scale_accessible_get_type",
-                                        libgtk.}
-
-template typeScaleButtonAccessible*(): untyped =
-  (scaleButtonAccessibleGetType())
-
-template scaleButtonAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceCast(obj, typeScaleButtonAccessible, ScaleButtonAccessibleObj))
-
-template scaleButtonAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassCast(klass, typeScaleButtonAccessible, ScaleButtonAccessibleClassObj))
-
-template isScaleButtonAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceType(obj, typeScaleButtonAccessible))
-
-template isScaleButtonAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassType(klass, typeScaleButtonAccessible))
-
-template scaleButtonAccessibleGetClass*(obj: untyped): untyped =
-  (gTypeInstanceGetClass(obj, typeScaleButtonAccessible, ScaleButtonAccessibleClassObj))
-
-type
-  ScrolledWindowAccessibleClass* =  ptr ScrolledWindowAccessibleClassObj
-  ScrolledWindowAccessibleClassPtr* = ptr ScrolledWindowAccessibleClassObj
-  ScrolledWindowAccessibleClassObj*{.final.} = object of ContainerAccessibleClassObj
-
-  ScrolledWindowAccessible* =  ptr ScrolledWindowAccessibleObj
-  ScrolledWindowAccessiblePtr* = ptr ScrolledWindowAccessibleObj
-  ScrolledWindowAccessibleObj*{.final.} = object of ContainerAccessibleObj
-    priv182: pointer
-
-proc scaleButtonAccessibleGetType*(): GType {.
-    importc: "gtk_scale_button_accessible_get_type", libgtk.}
-
-template typeScrolledWindowAccessible*(): untyped =
-  (scrolledWindowAccessibleGetType())
-
-template scrolledWindowAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceCast(obj, typeScrolledWindowAccessible, ScrolledWindowAccessibleObj))
-
-template scrolledWindowAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassCast(klass, typeScrolledWindowAccessible, ScrolledWindowAccessibleClassObj))
-
-template isScrolledWindowAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceType(obj, typeScrolledWindowAccessible))
-
-template isScrolledWindowAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassType(klass, typeScrolledWindowAccessible))
-
-template scrolledWindowAccessibleGetClass*(obj: untyped): untyped =
-  (gTypeInstanceGetClass(obj, typeScrolledWindowAccessible, ScrolledWindowAccessibleClassObj))
-
-type
-  SpinButtonAccessible* =  ptr SpinButtonAccessibleObj
-  SpinButtonAccessiblePtr* = ptr SpinButtonAccessibleObj
-  SpinButtonAccessibleObj*{.final.} = object of EntryAccessibleObj
-    priv183: pointer
-
-  SpinButtonAccessibleClass* =  ptr SpinButtonAccessibleClassObj
-  SpinButtonAccessibleClassPtr* = ptr SpinButtonAccessibleClassObj
-  SpinButtonAccessibleClassObj*{.final.} = object of EntryAccessibleClassObj
-
-proc scrolledWindowAccessibleGetType*(): GType {.
-    importc: "gtk_scrolled_window_accessible_get_type", libgtk.}
-
-template typeSpinButtonAccessible*(): untyped =
-  (spinButtonAccessibleGetType())
-
-template spinButtonAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceCast(obj, typeSpinButtonAccessible, SpinButtonAccessibleObj))
-
-template spinButtonAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassCast(klass, typeSpinButtonAccessible, SpinButtonAccessibleClassObj))
-
-template isSpinButtonAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceType(obj, typeSpinButtonAccessible))
-
-template isSpinButtonAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassType(klass, typeSpinButtonAccessible))
-
-template spinButtonAccessibleGetClass*(obj: untyped): untyped =
-  (gTypeInstanceGetClass(obj, typeSpinButtonAccessible, SpinButtonAccessibleClassObj))
-
-type
-  SpinnerAccessibleClass* =  ptr SpinnerAccessibleClassObj
-  SpinnerAccessibleClassPtr* = ptr SpinnerAccessibleClassObj
-  SpinnerAccessibleClassObj*{.final.} = object of WidgetAccessibleClassObj
-
-  SpinnerAccessible* =  ptr SpinnerAccessibleObj
-  SpinnerAccessiblePtr* = ptr SpinnerAccessibleObj
-  SpinnerAccessibleObj*{.final.} = object of WidgetAccessibleObj
-    priv184: pointer
-
-proc spinButtonAccessibleGetType*(): GType {.
-    importc: "gtk_spin_button_accessible_get_type", libgtk.}
-
-template typeSpinnerAccessible*(): untyped =
-  (spinnerAccessibleGetType())
-
-template spinnerAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceCast(obj, typeSpinnerAccessible, SpinnerAccessibleObj))
-
-template spinnerAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassCast(klass, typeSpinnerAccessible, SpinnerAccessibleClassObj))
-
-template isSpinnerAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceType(obj, typeSpinnerAccessible))
-
-template isSpinnerAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassType(klass, typeSpinnerAccessible))
-
-template spinnerAccessibleGetClass*(obj: untyped): untyped =
-  (gTypeInstanceGetClass(obj, typeSpinnerAccessible, SpinnerAccessibleClassObj))
-
-type
-  StatusbarAccessible* =  ptr StatusbarAccessibleObj
-  StatusbarAccessiblePtr* = ptr StatusbarAccessibleObj
-  StatusbarAccessibleObj*{.final.} = object of ContainerAccessibleObj
-    priv185: pointer
-
-  StatusbarAccessibleClass* =  ptr StatusbarAccessibleClassObj
-  StatusbarAccessibleClassPtr* = ptr StatusbarAccessibleClassObj
-  StatusbarAccessibleClassObj*{.final.} = object of ContainerAccessibleClassObj
-
-proc spinnerAccessibleGetType*(): GType {.
-    importc: "gtk_spinner_accessible_get_type", libgtk.}
-
-template typeStatusbarAccessible*(): untyped =
-  (statusbarAccessibleGetType())
-
-template statusbarAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceCast(obj, typeStatusbarAccessible, StatusbarAccessibleObj))
-
-template statusbarAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassCast(klass, typeStatusbarAccessible, StatusbarAccessibleClassObj))
-
-template isStatusbarAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceType(obj, typeStatusbarAccessible))
-
-template isStatusbarAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassType(klass, typeStatusbarAccessible))
-
-template statusbarAccessibleGetClass*(obj: untyped): untyped =
-  (gTypeInstanceGetClass(obj, typeStatusbarAccessible, StatusbarAccessibleClassObj))
-
-type
-  SwitchAccessible* =  ptr SwitchAccessibleObj
-  SwitchAccessiblePtr* = ptr SwitchAccessibleObj
-  SwitchAccessibleObj*{.final.} = object of WidgetAccessibleObj
-    priv186: pointer
-
-  SwitchAccessibleClass* =  ptr SwitchAccessibleClassObj
-  SwitchAccessibleClassPtr* = ptr SwitchAccessibleClassObj
-  SwitchAccessibleClassObj*{.final.} = object of WidgetAccessibleClassObj
-
-proc statusbarAccessibleGetType*(): GType {.
-    importc: "gtk_statusbar_accessible_get_type", libgtk.}
-
-template typeSwitchAccessible*(): untyped =
-  (switchAccessibleGetType())
-
-template switchAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceCast(obj, typeSwitchAccessible, SwitchAccessibleObj))
-
-template switchAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassCast(klass, typeSwitchAccessible, SwitchAccessibleClassObj))
-
-template isSwitchAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceType(obj, typeSwitchAccessible))
-
-template isSwitchAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassType(klass, typeSwitchAccessible))
-
-template switchAccessibleGetClass*(obj: untyped): untyped =
-  (gTypeInstanceGetClass(obj, typeSwitchAccessible, SwitchAccessibleClassObj))
-
-type
-  TextCellAccessible* =  ptr TextCellAccessibleObj
-  TextCellAccessiblePtr* = ptr TextCellAccessibleObj
-  TextCellAccessibleObj*{.final.} = object of RendererCellAccessibleObj
-    priv187: pointer
-
-  TextCellAccessibleClass* =  ptr TextCellAccessibleClassObj
-  TextCellAccessibleClassPtr* = ptr TextCellAccessibleClassObj
-  TextCellAccessibleClassObj*{.final.} = object of RendererCellAccessibleClassObj
-
-proc switchAccessibleGetType*(): GType {.
-    importc: "gtk_switch_accessible_get_type", libgtk.}
-
-template typeTextCellAccessible*(): untyped =
-  (textCellAccessibleGetType())
-
-template textCellAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceCast(obj, typeTextCellAccessible, TextCellAccessibleObj))
-
-template textCellAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassCast(klass, textCellAccessible, gtkTextCellAccessibleClass))
-
-template isTextCellAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceType(obj, typeTextCellAccessible))
-
-template isTextCellAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassType(klass, typeTextCellAccessible))
-
-template textCellAccessibleGetClass*(obj: untyped): untyped =
-  (gTypeInstanceGetClass(obj, typeTextCellAccessible, TextCellAccessibleClassObj))
-
-type
-  TextViewAccessible* =  ptr TextViewAccessibleObj
-  TextViewAccessiblePtr* = ptr TextViewAccessibleObj
-  TextViewAccessibleObj*{.final.} = object of ContainerAccessibleObj
-    priv188: pointer
-
-  TextViewAccessibleClass* =  ptr TextViewAccessibleClassObj
-  TextViewAccessibleClassPtr* = ptr TextViewAccessibleClassObj
-  TextViewAccessibleClassObj*{.final.} = object of ContainerAccessibleClassObj
-
-proc textCellAccessibleGetType*(): GType {.
-    importc: "gtk_text_cell_accessible_get_type", libgtk.}
-
-template typeTextViewAccessible*(): untyped =
-  (textViewAccessibleGetType())
-
-template textViewAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceCast(obj, typeTextViewAccessible, TextViewAccessibleObj))
-
-template textViewAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassCast(klass, typeTextViewAccessible, TextViewAccessibleClassObj))
-
-template isTextViewAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceType(obj, typeTextViewAccessible))
-
-template isTextViewAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassType(klass, typeTextViewAccessible))
-
-template textViewAccessibleGetClass*(obj: untyped): untyped =
-  (gTypeInstanceGetClass(obj, typeTextViewAccessible, TextViewAccessibleClassObj))
-
-type
-  ToplevelAccessibleClass* =  ptr ToplevelAccessibleClassObj
-  ToplevelAccessibleClassPtr* = ptr ToplevelAccessibleClassObj
-  ToplevelAccessibleClassObj*{.final.} = object of atk.ObjectClassObj
-
-  ToplevelAccessible* =  ptr ToplevelAccessibleObj
-  ToplevelAccessiblePtr* = ptr ToplevelAccessibleObj
-  ToplevelAccessibleObj*{.final.} = object of atk.ObjectObj
-    priv189: pointer
-
-proc textViewAccessibleGetType*(): GType {.
-    importc: "gtk_text_view_accessible_get_type", libgtk.}
-
-template typeToplevelAccessible*(): untyped =
-  (toplevelAccessibleGetType())
-
-template toplevelAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceCast(obj, typeToplevelAccessible, ToplevelAccessibleObj))
-
-template toplevelAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassCast(klass, typeToplevelAccessible, ToplevelAccessibleClassObj))
-
-template isToplevelAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceType(obj, typeToplevelAccessible))
-
-template isToplevelAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassType(klass, typeToplevelAccessible))
-
-template toplevelAccessibleGetClass*(obj: untyped): untyped =
-  (gTypeInstanceGetClass(obj, typeToplevelAccessible, ToplevelAccessibleClassObj))
-
-type
-  TreeViewAccessible* =  ptr TreeViewAccessibleObj
-  TreeViewAccessiblePtr* = ptr TreeViewAccessibleObj
-  TreeViewAccessibleObj*{.final.} = object of ContainerAccessibleObj
-    priv190: pointer
-
-  TreeViewAccessibleClass* =  ptr TreeViewAccessibleClassObj
-  TreeViewAccessibleClassPtr* = ptr TreeViewAccessibleClassObj
-  TreeViewAccessibleClassObj*{.final.} = object of ContainerAccessibleClassObj
-
-proc toplevelAccessibleGetType*(): GType {.
-    importc: "gtk_toplevel_accessible_get_type", libgtk.}
-proc getChildren*(accessible: ToplevelAccessible): glib.GList {.
-    importc: "gtk_toplevel_accessible_get_children", libgtk.}
-proc children*(accessible: ToplevelAccessible): glib.GList {.
-    importc: "gtk_toplevel_accessible_get_children", libgtk.}
-
-template typeTreeViewAccessible*(): untyped =
-  (treeViewAccessibleGetType())
-
-template treeViewAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceCast(obj, typeTreeViewAccessible, TreeViewAccessibleObj))
-
-template treeViewAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassCast(klass, typeTreeViewAccessible, TreeViewAccessibleClassObj))
-
-template isTreeViewAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceType(obj, typeTreeViewAccessible))
-
-template isTreeViewAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassType(klass, typeTreeViewAccessible))
-
-template treeViewAccessibleGetClass*(obj: untyped): untyped =
-  (gTypeInstanceGetClass(obj, typeTreeViewAccessible, TreeViewAccessibleClassObj))
-
-type
-  WindowAccessible* =  ptr WindowAccessibleObj
-  WindowAccessiblePtr* = ptr WindowAccessibleObj
-  WindowAccessibleObj*{.final.} = object of ContainerAccessibleObj
-    priv191: pointer
-
-  WindowAccessibleClass* =  ptr WindowAccessibleClassObj
-  WindowAccessibleClassPtr* = ptr WindowAccessibleClassObj
-  WindowAccessibleClassObj*{.final.} = object of ContainerAccessibleClassObj
-
-proc treeViewAccessibleGetType*(): GType {.
-    importc: "gtk_tree_view_accessible_get_type", libgtk.}
-
-template typeWindowAccessible*(): untyped =
-  (windowAccessibleGetType())
-
-template windowAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceCast(obj, typeWindowAccessible, WindowAccessibleObj))
-
-template windowAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassCast(klass, typeWindowAccessible, WindowAccessibleClassObj))
-
-template isWindowAccessible*(obj: untyped): untyped =
-  (gTypeCheckInstanceType(obj, typeWindowAccessible))
-
-template isWindowAccessibleClass*(klass: untyped): untyped =
-  (gTypeCheckClassType(klass, typeWindowAccessible))
-
-template windowAccessibleGetClass*(obj: untyped): untyped =
-  (gTypeInstanceGetClass(obj, typeWindowAccessible, WindowAccessibleClassObj))
-
-proc windowAccessibleGetType*(): GType {.
-    importc: "gtk_window_accessible_get_type", libgtk.}
 
 proc addButton*(dialog: Dialog; buttonText: cstring; responseId: cint): Button {.
     importc: "gtk_dialog_add_button", libgtk.}
