@@ -3,7 +3,7 @@
 type
   NguiBackEnd* = enum
     beNIL beDOC # Used to generate docs
-    beGTK2 beGTK3
+    beGTK3
     beNUKLEAR
 
 
@@ -63,9 +63,6 @@ include ngui_api
 # -----------------------------------------------------------------------------
 # GTK3
 withBackend(kind = beGTK3, dModule = ngui_begtk3)
-# -----------------------------------------------------------------------------
-# GTK2
-withBackend(kind = beGTK2, dModule = ngui_begtk2)
 # -----------------------------------------------------------------------------
 # NUKLEAR
 withBackend(kind = beNUKLEAR, dModule = ngui_benuklear)

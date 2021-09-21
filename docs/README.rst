@@ -28,7 +28,7 @@ Installation
 
   # Install Nim
   https://nim-lang.org/install.html
-  # Install GTK2/3
+  # Install 3
   https://www.gtk.org/docs/installations/
   # Install NGUI
   git clone https://github.com/Wh1teDuke/ngui
@@ -44,7 +44,6 @@ Backends
 ======= =====================================================================
 Backend Source
 ======= =====================================================================
-GTK2    https://github.com/nim-lang/gtk2 *Domo arigato gozaimashita*
 GTK3    https://github.com/StefanSalewski/oldgtk3 *Domo arigato gozaimashita*
 Nuklear https://github.com/johnnovak/nim-glfw *Domo arigato gozaimashita*
 ======= =====================================================================

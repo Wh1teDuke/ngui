@@ -1,14 +1,13 @@
 includeUtils ELEMENT, CONTAINER, EVENT, TIMER, ADAPTER
 
 
-# INCLUDED IN ngui_begtk3, ngui_begtk2
+# INCLUDED IN ngui_begtk3
 const
-  v2 = backend == beGTK2
   v3 = backend == beGTK3
 
 
 # GTK3 START ------------------------------------  
-when not v2:
+when true:
   import oldgtk3/[gtk, glib, gobject, gdk, cairo, gdk_pixbuf]
   
   type
@@ -122,21 +121,13 @@ let # Doesn't work with const, but one day ...
 
         return parent
       ,cast[gtkContainer](p).remove(cast[gtkWidget](c))
-      ,
-      block:
-        when v2:
-          if gTypeCheckInstanceType(p, typeScrolledWindow()):
-            cast[gtkScrolledWindow](p).addWithViewport(cast[gtkWidget](c))
-            return
-
-        cast[gtkContainer](p).add(cast[gtkWidget](c))
+      ,cast[gtkContainer](p).add(cast[gtkWidget](c))
     ),
     block:
       let sw = newScrolledWindow(nil, nil)
       # https://stackoverflow.com/questions/14250927/gtk-scroll-window-size-in-a-grid
-      when not v2:
-        setVExpand(sw, true)
-        setHExpand(sw, true)
+      setVExpand(sw, true)
+      setHExpand(sw, true)
       sw
     ,(discard gtkRef(cast[gtkWidget](c)))
   )
@@ -166,44 +157,43 @@ template gtkAAAAAAAAAAAAAAA() {.dirty.} =
     else: discard
 
   unset(v.addr)
-  
-when not v2:
-  proc invokeSatanSet(
-      this: NElement, css: string, args: varargs[string, `$`]): bool =
-      
-    let
-      # The evil that men do lives on and on
-      # https://developer.gnome.org/gtk3/stable/chap-css-properties.html
-      # https://developer.gnome.org/gtk3/stable/GtkStyleContext.html
-      context  = this.data(gtkWidget).getStyleContext()
-      provider = newCssProvider()
-      css      = css % args
-      
-    doAssert context != nil
-    doAssert provider != nil
 
-    var error: GError
-    result = provider.loadFromData(css, css.len, error)
-    context.addProvider(
-      cast[StyleProvider](provider), STYLE_PROVIDER_PRIORITY_USER)
+proc invokeSatanSet(
+    this: NElement, css: string, args: varargs[string, `$`]): bool =
+    
+  let
+    # The evil that men do lives on and on
+    # https://developer.gnome.org/gtk3/stable/chap-css-properties.html
+    # https://developer.gnome.org/gtk3/stable/GtkStyleContext.html
+    context  = this.data(gtkWidget).getStyleContext()
+    provider = newCssProvider()
+    css      = css % args
+    
+  doAssert context != nil
+  doAssert provider != nil
 
-  proc invokeSatanGet[T](this: NElement, prop: string, val: var T) =
-    let
-      thisD   = this.data(gtkWidget)
-      context = thisD.getStyleContext()
+  var error: GError
+  result = provider.loadFromData(css, css.len, error)
+  context.addProvider(
+    cast[StyleProvider](provider), STYLE_PROVIDER_PRIORITY_USER)
 
-    when val is Pixel:
-      var c: RGBA
-      # https://stackoverflow.com/a/47373201
-      context.get(thisD.getStateFlags(), prop, c.addr, nil)
-      if c != nil:
-        val = pixel(c.red, c.green, c.blue, c.alpha)
-        rgbaFree(c)
-      
-    else:
-      var v: GValueObj
-      context.getProperty(prop, thisD.getStateFlags(), v.addr)
-      gtkAAAAAAAAAAAAAAA()
+proc invokeSatanGet[T](this: NElement, prop: string, val: var T) =
+  let
+    thisD   = this.data(gtkWidget)
+    context = thisD.getStyleContext()
+
+  when val is Pixel:
+    var c: RGBA
+    # https://stackoverflow.com/a/47373201
+    context.get(thisD.getStateFlags(), prop, c.addr, nil)
+    if c != nil:
+      val = pixel(c.red, c.green, c.blue, c.alpha)
+      rgbaFree(c)
+    
+  else:
+    var v: GValueObj
+    context.getProperty(prop, thisD.getStateFlags(), v.addr)
+    gtkAAAAAAAAAAAAAAA()
 
 
 proc gtkGet[T](this: NElement, prop: string, val: var T) =
@@ -218,8 +208,7 @@ proc gtkGet[T](this: NElement, prop: string): T =
 
 proc gtkSet[T](this: NElement, prop: string, val: T) =
   var v: GValueObj
-  template getV: auto =
-    when v2: addr(v) else: v
+  template getV: auto = v
   
   when val is bool:
     discard getV.init(G_TYPE_BOOLEAN)
@@ -260,11 +249,9 @@ proc tmPath(depth: openArray[int], row: int, column: int = -1): TMPath =
 template toTreePath(tmPath: TMPath): auto =
   block:
     if isNil(tmPath.depth.s):
-      newTreePath(cint(tmPath.row), (when v2: +1 else: -1))
-
+      newTreePath(cint(tmPath.row), -1)
     else:
-      when v2: newTreePath(tmPath.depth.s, Gsize(tmPath.depth.len))
-      else:    newTreePath(cast[var cint](tmPath.depth.s), Gsize(tmPath.depth.len))
+      newTreePath(cast[var cint](tmPath.depth.s), Gsize(tmPath.depth.len))
 
 template withIter(tmPath: TMPath, body: untyped) =  
   block:
@@ -436,9 +423,9 @@ proc internalSetEvent(
   if gtkEvent in [EVENT_TO_SIGNAL[neFILE_CHOOSE_ACCEPT]]:
     # https://docs.gtk.org/gtk3/signal.Dialog.response.html
     nguiTrigger = SCB(
-        proc(source: GPointer, response: cint, data: GPointer): bool {.cdecl.} =
+        proc(source: GPointer, response: Gint, data: GPointer): bool {.cdecl.} =
         
-      if ResponseType(response) != (when v2: RESPONSE_ACCEPT else: ACCEPT): return
+      if ResponseType(response) != ACCEPT: return
         
       var src = cast[gtkWidget](source)
 
@@ -472,7 +459,7 @@ proc setPixbuf(this: Bitmap, that: GdkPixBuf) =
 proc pixbuf(this: Bitmap): GDKPixbuf =
   result = getOrDefault(bmpToPixbuf, this, nil)
   if result == nil:
-    const rgb = when v2: COLORSPACE_RGB else: GdkColorspace.RGB
+    const rgb = GdkColorspace.RGB
     result = newPixbuf(rgb, true, 8, this.w.cint, this.h.cint)
     bmpToPixbuf[this] = result
     setPixbuf(this, result)
@@ -500,18 +487,12 @@ proc toNGUISelection(this: gtkSelectionMode): NAmount =
 # NELEMENT --------------------------------------
 proc internalSetVisible(this: NElement, state: bool) =
   # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-set-visible
-  when v2:
-    if state: this.data(gtkWidget).show() else: this.data(gtkWidget).hide()
-  else:
-    this.data(gtkWidget).setVisible(state)
+  this.data(gtkWidget).setVisible(state)
   
 proc internalGetVisible(this: NElement): bool =
   # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-get-visible
   if this of App: return
-
-  return
-    when v2:this.data(gtkWidget).WIDGET_VISIBLE()
-    else:   bool(this.data(gtkWidget).getVisible())
+  return bool(this.data(gtkWidget).getVisible())
 
 proc internalGetFocus(this: NElement): bool =
   # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-is-focus
@@ -520,7 +501,7 @@ proc internalGetFocus(this: NElement): bool =
 proc internalSetFocus(this: NElement) =
   let thisD = this.data(gtkWidget)
   # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-grab-focus
-  when not v2: thisD.setCanFocus(true)
+  thisD.setCanFocus(true)
   thisD.grabFocus()
 
 proc internalSetTooltip(this: NElement, text: string) =
@@ -558,15 +539,10 @@ proc internalGetSize(this: NElement): tuple[w, h: int] =
   # uggh ...
   # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-get-preferred-size
   result = (-1, -1)
-  
-  when v2:
-    let a = this.data(gtkWidget).allocation
-    return (a.width.int, a.height.int)
-    
-  else:
-    var a, b: Requisition
-    this.data(gtkWidget).getPreferredSize(a, b)
-    if b != nil: return (b.width.int, b.height.int)
+
+  var a, b: Requisition
+  this.data(gtkWidget).getPreferredSize(a, b)
+  if b != nil: return (b.width.int, b.height.int)
 
 proc internalSetSize(this: NElement, size: tuple[w, h: int]) =
   let w = this.data(gtkWidget)
@@ -576,11 +552,10 @@ proc internalSetSize(this: NElement, size: tuple[w, h: int]) =
   #if adapter != nil:
     #cast[gtk.Widget](adapter).setSizeRequest(size.w.cint, size.h.cint)
 
-  when not v2:
-    if this of Progress:
-      discard invokeSatanSet(this,
-        "trough{min-width:$1px;min-height:$2px;}progress{min-height:$2px;}",
-          size.w, size.h)
+  if this of Progress:
+    discard invokeSatanSet(this,
+      "trough{min-width:$1px;min-height:$2px;}progress{min-height:$2px;}",
+        size.w, size.h)
   
   adjustSize(this)
 
@@ -589,8 +564,7 @@ proc onDestroyWin(this: Window) # FD
 proc internalInitNElement(this: var NElement) =  
   case this.kind:
   of neApp:
-    when v2: gtk2.nim_init()
-    else: gtk.initWithArgv()
+    gtk.initWithArgv()
     return
 
   of neWindow:
@@ -633,9 +607,7 @@ proc internalInitNElement(this: var NElement) =
     
   of neSlider:
     # https://developer.gnome.org/gtk3/stable/GtkScale.html
-    var s: gtkScale
-    when v2: s = hscale_new(0, 100, 1)
-    else:    s = newScale(Orientation.HORIZONTAL, 0, 100, 1) 
+    let s: gtkScale = newScale(Orientation.HORIZONTAL, 0, 100, 1) 
     s.setDrawValue(false)
     this.data = s
     
@@ -733,14 +705,7 @@ proc internalSetPosition(this: Window, position: tuple[x, y: int]) =
 
 proc internalGetPosition(this: Window): tuple[x, y: int] =
   var x, y: cint
-  
-  when v2:
-    var (px, py) = (Pgint(x.addr), Pgint(y.addr))
-    this.data(gtkWindow).getPosition(px, py)
-    
-  else:
-    this.data(gtkWindow).getPosition(x, y)
-
+  this.data(gtkWindow).getPosition(x, y)
   return (x.int, y.int)
 
 proc internalGetFocused(this: Window): NElement =
@@ -772,8 +737,7 @@ proc internalSetMaximized(this: Window, v: bool) =
   else: this.data(gtkWindow).unmaximize()
   
 proc internalGetMaximized(this: Window): bool =
-  when v2: discard # TODO
-  else: this.data(gtkWindow).isMaximized()
+  this.data(gtkWindow).isMaximized()
 
 proc onDestroyWin(this: Window) =
   # TODO: This should be optional
@@ -840,8 +804,7 @@ proc internalAddSeparator(this: Container, dir: NOrientation) =
     menu.add(newSeparatorMenuItem())
   elif this of Tools:
     let tools = this.data(gtkToolBar)
-    when v2: tools.add(newSeparator(toOrientation(dir)))
-    else:    tools.add(newSeparatorToolItem())
+    tools.add(newSeparatorToolItem())
 
 proc handleMenuBarAdd(this, that: NElement) # FD
 proc handleToolsAdd(this: Tools, that: NElement) # FD
@@ -871,19 +834,8 @@ proc internalAdd(this: Container, that: NElement) =
   if this of Box: adapter = adaptersScrolledWindow
   
   if not utilTryAddChild(thisD, thatD, adapter):
-    # https://developer.gnome.org/gtk3/stable/GtkContainer.html#gtk-container-add
-    when v2:
-      if this of List:
-        if not (that of Label):
-          raiseAssert("Cannot add this element to gtk List: " & $that.kind)
-        var text = [cstring(Label(that).internalGetText)]
-        discard this.data(gtkListBox).append(text.addr)
-
-      else:
-        thisD.add(thatD)
-      
-    else:
-      thisD.add(thatD)
+    # https://developer.gnome.org/gtk3/stable/GtkContainer.html#gtk-container-add  
+    thisD.add(thatD)
 
   # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-show
   thatD.show()
@@ -959,42 +911,16 @@ proc internalGetWrap(this: Label): bool =
   this.data(gtkLabel).getLineWrap()
 
 proc internalGetXAlign(this: Label): float =
-  when v2:
-    var x, y: gfloat
-    var (px, py) = (Pgfloat(x.addr), Pgfloat(y.addr))
-    this.data(gtkLabel).get_alignment(px, py)
-    discard y
-    return float(x)
-    
-  else:
-    this.data(gtkLabel).getXAlign()
+  this.data(gtkLabel).getXAlign()
 
 proc internalGetYAlign(this: Label): float =
-  when v2:
-    var x, y: gfloat
-    var (px, py) = (Pgfloat(x.addr), Pgfloat(y.addr))
-    this.data(gtkLabel).get_alignment(px, py)
-    discard x
-    return float(y)
-
-  else:
-    this.data(gtkLabel).getYAlign()
+  this.data(gtkLabel).getYAlign()
   
 proc internalSetXAlign(this: Label, v: float) =
-  when v2:    
-    this.data(gtkLabel).set_alignment(
-      gfloat(v), gfloat(internalGetYAlign(this)))
-    
-  else:
-    this.data(gtkLabel).setXAlign(v)
+  this.data(gtkLabel).setXAlign(v)
 
 proc internalSetYAlign(this: Label, v: float) =
-  when v2:    
-    this.data(gtkLabel).set_alignment(
-      gfloat(internalGetXAlign(this)), gfloat(v))
-
-  else:
-    this.data(gtkLabel).setYAlign(v)
+  this.data(gtkLabel).setYAlign(v)
 
 
 # ENTRY -----------------------------------------
@@ -1009,9 +935,7 @@ proc internalSetText(this: Entry, text: string) =
 proc internalSetImage(this: Button, img: Bitmap) =
   let
     pb  = pixbuf(img)
-    img =
-      when v2: image_new_from_pixbuf(pb)
-      else:    newImage(pb)
+    img = newImage(pb)
 
   this.data(gtkButton).setImage(img)
 
@@ -1045,9 +969,7 @@ proc internalScrollbar(this: Box, state: bool) =
     discard utilDelAdapter(thisD, adaptersScrolledWindow)
 
 proc internalScrollbar(this: Box): bool =
-  gTypeCheckInstanceType(
-    this.data(gtkBox).getParent(),
-    (when v2: TYPE_VIEWPORT() else: typeScrollable()))
+  gTypeCheckInstanceType(this.data(gtkBox).getParent(), typeScrollable())
 
 
 # RADIO -----------------------------------------
@@ -1086,44 +1008,28 @@ proc internalValue(this: Progress, v: float) =
 # CALENDAR --------------------------------------
 proc internalGetDate(this: Calendar): DateTime =
   var d, m, y: cuint
-  
-  when v2:
-    this.data(gtkCalendar).getDate(y.addr, m.addr, d.addr)
-  else:
-    this.data(gtkCalendar).getDate(y, m, d)
+  this.data(gtkCalendar).getDate(y, m, d)
 
   return initDateTime(
     monthday = MonthdayRange(d), month = Month(m + 1), year = int(y),
     0, 0, 0, 0)
 
-template discardVal(op) =
-  when v2: discard op else: op
-
 proc internalSetDate(this: Calendar, date: DateTime) =
   let c = this.data(gtkCalendar)
-  discardVal c.selectMonth((date.month.int - 1).cuint, date.year.cuint)
+  c.selectMonth((date.month.int - 1).cuint, date.year.cuint)
   c.selectDay(date.monthday.cuint)
 
-when v2:
-  var marks: STable[Calendar, system.set[1 .. 31]]
-
 proc internalMark(this: Calendar, day: int) =
-  when v2:
-    if this notin marks: marks[this] = {}
-    incl(marks[this], day)
-  discardVal this.data(gtkCalendar).markDay(day.cuint)
+  this.data(gtkCalendar).markDay(day.cuint)
 
 proc internalUnmark(this: Calendar, day: int) =
-  when v2: excl(marks[this], day)
-  discardVal this.data(gtkCalendar).unmarkDay(day.cuint)
+  this.data(gtkCalendar).unmarkDay(day.cuint)
 
 proc internalClear(this: Calendar) =
-  when v2: del(marks, this)
   this.data(gtkCalendar).clearMarks()
 
 proc internalMarked(this: Calendar, day: int): bool =
-  when v2: day in getOrDefault(marks, this)
-  else:    this.data(gtkCalendar).getDayIsMarked(day.cuint)
+  this.data(gtkCalendar).getDayIsMarked(day.cuint)
 
 
 # SLIDER ----------------------------------------
@@ -1212,7 +1118,7 @@ proc newBitmap(pixbuf: GDKPixbuf): Bitmap =
   doAssert c in 3 .. 4
     
   if c == 3:
-    const Z = when v2: 0 else: 0.cuchar
+    const Z = 0.cuchar
     data   = pixbuf.addAlpha(false, Z, Z, Z)
 
   result = Bitmap(w: w, h: h)
@@ -1249,25 +1155,18 @@ proc internalRun(this: FileChoose) =
 
 # LIST ------------------------------------------
 proc internalGetMode(this: List): NAmount =
-  when not v2:
-    toNGUISelection(this.data(gtkListBox).getSelectionMode)
-  else:
-    toNGUISelection(this.data(gtkListBox).selection_mode)
+  toNGUISelection(this.data(gtkListBox).getSelectionMode)
 
 proc internalSetMode(this: List, mode: NAmount) =
   this.data(gtkListBox).setSelectionMode(toGTKSelection(mode))
 
 proc internalSelected(this: List, that: var seq[NElement]) =
-  # TODO: Broken for GTK2. Throw everything away and use Tables instead
-  when not v2:
-    var r = this.data(gtkListBox).getSelectedRows()
-    while r != nil:
-      let d = cast[gtkListBoxRow](r.data).getChild()
-      that.add(d.utilElement())
-      r = r.next
-    free(r)
-  else:
-    discard # TODO
+  var r = this.data(gtkListBox).getSelectedRows()
+  while r != nil:
+    let d = cast[gtkListBoxRow](r.data).getChild()
+    that.add(d.utilElement())
+    r = r.next
+  free(r)
 
 
 # MENU ------------------------------------------
@@ -1356,13 +1255,8 @@ proc internalGetSide(this: Tab): NSide =
     int(this.data(gtkNoteBook).getTabPos())]
 
 proc internalSetSide(this: Tab, side: NSide) =  
-  when v2:
-    # GTK2 doesn't support left/right sides?
-    let p = guint([0, 1, 0, 1][int(side)])
-
-  else:
-    let p = [PositionType.TOP, PositionType.BOTTOM,
-       PositionType.LEFT, PositionType.RIGHT][int(side)]
+  let p = [PositionType.TOP, PositionType.BOTTOM,
+    PositionType.LEFT, PositionType.RIGHT][int(side)]
 
   this.data(gtkNoteBook).setTabPos(p)
 
@@ -1400,20 +1294,16 @@ var tableMeta: STable[NID, tuple[
   ]]
 
 proc pbType: auto =
-  when v2:
-    return TYPE_PIXBUF()
-
-  else:
-    proc hackGetPixbufType: GType =
-      var t {.global.}: GType
-      once:
-        let pb = newPixbuf(GdkColorspace.RGB, false, 8, 1, 1)
-        t = gObjectType(pb)
-        objectUnref(pb)
-        
-      return t
-    
-    return hackGetPixbufType()
+  proc hackGetPixbufType: GType =
+    var t {.global.}: GType
+    once:
+      let pb = newPixbuf(GdkColorspace.RGB, false, 8, 1, 1)
+      t = gObjectType(pb)
+      objectUnref(pb)
+      
+    return t
+  
+  return hackGetPixbufType()
   
 template storeAction(this: NElement, body: untyped) =
   # TODO: Rename to withStore
@@ -1428,7 +1318,7 @@ proc tableGet(ls: gtkTreeModel, ti: var gtkTreeIterObj, x: int): NCell =
   # TODO: tableGet/tableSet rename to modelGet/modelSet
   var v: GValueObj
   getValue(ls, ti.addr, x.cint, v.addr)
-  let gvt = (when v2: G_VALUE_TYPE(v.addr) else: gValueType(v.addr))
+  let gvt =gValueType(v.addr)
 
   if gvt == G_TYPE_STRING:
     result = toCell($getString(v.addr))
@@ -1440,9 +1330,7 @@ proc tableGet(ls: gtkTreeModel, ti: var gtkTreeIterObj, x: int): NCell =
     result = NCell(kind: ckImg)
     
     template holdsPointer: bool =
-      # Good job
-      (when v2: G_TYPE_CHECK_VALUE_TYPE else: g_TYPE_CHECK_VALUE_TYPE)(
-        v.addr, G_TYPE_POINTER)
+      g_TYPE_CHECK_VALUE_TYPE(v.addr, G_TYPE_POINTER)
     
     if holdsPointer():
       let
@@ -1522,21 +1410,12 @@ proc setHeaders(
       doAssert column != nil
       lastColumn = column
 
-      when v2:
-        columnPackStart(column, renderer, false)
-        columnAddAttribute(column, renderer, t, cint(i))
-
-      else:
-        packStart(column, renderer, false)
-        addAttribute(column, renderer, t, cint(i))
+      packStart(column, renderer, false)
+      addAttribute(column, renderer, t, cint(i))
 
       if not append:
         # append renderer to last column, not column to tree view
-        when v2:
-          columnSetTitle(column, name)
-
-        else:
-          setTitle(column, name)
+        setTitle(column, name)
         doAssert bool(appendColumn(tv, column))
 
     case kind:
@@ -1602,8 +1481,7 @@ proc onClear(this: NElement, path: TMPath) =
   let ls = this.data(gtkTreeView).getModel()
   withIter path:
     storeAction this:
-      when v2: remove(ls, ti.addr)
-      else:    discard remove(ls, ti.addr)
+      discard remove(ls, ti.addr)
 
 
 # TABLE -----------------------------------------
@@ -1686,7 +1564,7 @@ proc internalGet(this: NTable, that: var seq[tuple[x, y: int]]) =
   # https://developer.gnome.org/gtk3/stable/GtkTreeSelection.html#gtk-tree-selection-get-selected-rows
 
   var
-    model: (when v2: ptr[gtkTreeModel] else: gtkTreeModel)
+    model: gtkTreeModel
     r = this.data(gtkTreeView).getSelection().getSelectedRows(model)
 
   while r != nil:
@@ -1701,12 +1579,7 @@ proc internalGet(this: NTable, that: var seq[tuple[x, y: int]]) =
     for i in 0 ..< len:
       add(that, (-1, int(idxList[i])))
 
-  when v2:
-    # https://developer.gnome.org/gtk2/stable/GtkTreeSelection.html#gtk-tree-selection-get-selected-rows
-    foreach(r, cast[TGFunc](gtk_tree_path_free), nil)
-  else:
-    freeFull(r, GDestroyNotify(free))
-
+  freeFull(r, GDestroyNotify(free))
   free(r)
 
 
@@ -1785,13 +1658,10 @@ proc internalClear(this: Tree) =
 
 # CLIPBOARD -------------------------------------
 proc getCB: Clipboard =
-  when v2:
-    clipboard_get(SELECTION_CLIPBOARD())
-  else:
-    # https://developer.gnome.org/gtk3/stable/gtk3-Clipboards.html
-    var acb {.global.}: gdk.Atom
-    once: acb = atomIntern("CLIPBOARD", true)
-    return clipboardGet(acb)
+  # https://developer.gnome.org/gtk3/stable/gtk3-Clipboards.html
+  var acb {.global.}: gdk.Atom
+  once: acb = atomIntern("CLIPBOARD", true)
+  return clipboardGet(acb)
   
 template C: Clipboard = getCB()
 
@@ -1815,21 +1685,18 @@ proc internalClipboardGetImg: Bitmap =
 # TIMERS ----------------------------------------
 proc internalRepeat(event: NRepeatProc, ms: int): NRepeatHandle =  
   # https://developer.gnome.org/gtk-tutorial/stable/c1759.html
-  proc cb(a: GPointer): (when v2: bool else: GBoolean) {.cdecl.} =
-    utilTrigger(cast[int](a))
-  when v2: (const timeoutAdd = gtimeoutAdd)
+  proc cb(a: GPointer): GBoolean {.cdecl.} = utilTrigger(cast[int](a))
   
   let rid = utilNextRepeatID()
   result = timeoutAdd(
     interval = cuint(ms),
-    function = when v2: cast[gtk2.TFunction](cb) else: GSourceFunc(cb),
+    function = GSourceFunc(cb),
     data     = cast[GPointer](rid),
   ).NRepeatHandle
 
   utilRepeatAdd(event, result, rid)
 
 proc internalStop(this: NRepeatHandle) =
-  when v2: (const sourceRemove = gSourceRemove)
   discard sourceRemove(this.cuint)
   utilDel(this)
 
@@ -1851,9 +1718,7 @@ proc internalGetCurrentEvent: NEventArgs =
   let
     widget    = e.getEventWidget()
     nElement  = utilElement(widget)
-    eventType =
-      when v2: cast[PEventAny](e).`type`
-      else: e.`type`
+    eventType = e.`type`
 
   # FileChoose Event
   if insideFCResponse and eventType == BUTTON_RELEASE:
@@ -1890,7 +1755,7 @@ proc internalGetCurrentEvent: NEventArgs =
       result = NEventArgs(kind: neClick)
     
     if eventType in {BUTTON_PRESS, BUTTON2_PRESS, BUTTON_RELEASE}:
-      let e = cast[(when v2: PEventButton else: EventButton)](e)
+      let e = cast[EventButton](e)
       
       if e.button == 1: result.mouse.incl(nm1)
       if e.button == 2: result.mouse.incl(nm2)
@@ -1898,8 +1763,8 @@ proc internalGetCurrentEvent: NEventArgs =
       result.double = eventType == BUTTON2_PRESS
       
     else:
-      var st: (when v2: TModifierType else: ModifierType)
-      if e.getState((when v2: st.addr else: st)):
+      var st: ModifierType
+      if e.getState(st):
         template setMouse(a, b) =
           if (int(st) and int(a)) != 0: result.mouse.incl(b)
 
@@ -1907,18 +1772,12 @@ proc internalGetCurrentEvent: NEventArgs =
         setMouse(BUTTON2_MASK, nm2)
         setMouse(BUTTON3_MASK, nm3)
 
-    when v2:
-      let e = cast[PEventButton](e)
-      result.x = e.x.int
-      result.y = e.y.int
-
-    else:
-      result.x = e.button.x.int
-      result.y = e.button.y.int
+    result.x = e.button.x.int
+    result.y = e.button.y.int
 
   of KEY_PRESS, KEY_RELEASE:    
     let
-      keyVal = (when v2: cast[PEventKey](e) else: e.key).keyval
+      keyVal = (e.key).keyval
       key    =
         case keyVal:
         of KEY_a .. KEY_z: NKey((int(keyVal) - int(Key_a)) + int(nkA))
@@ -1931,8 +1790,8 @@ proc internalGetCurrentEvent: NEventArgs =
       if eventType == KEY_PRESS: NEventArgs(kind: neKeyPress, key: key)
       else: NEventArgs(kind: neKeyRelease, key: key)
 
-    var st: (when v2: TModifierType else: ModifierType)
-    if e.getState((when v2: st.addr else: st)):
+    var st: ModifierType
+    if e.getState(st):
       template mapMod(mt: typed, k: NKey) =
         if (int(st) and int(mt)) != 0: result.mods.incl(k)
 
