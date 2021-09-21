@@ -5,6 +5,14 @@ CHANGELOG
 
 |
 
+21/09/21
+
+- Added Nuklear backend
+
+- Removed GTK 2
+
+- Many many API changes
+
 23/02/21
 --------
 
