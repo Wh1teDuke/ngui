@@ -11,6 +11,8 @@ proc stbi_load_from_memory*(
   len: cint,
   x, y, channels: var cint,
   desiredChannels: cint): pointer
+
+proc stbi_image_free*(data: pointer)
 {.pop.}
 
 {.emit:"""#define STB_IMAGE_IMPLEMENTATION""".}

@@ -2,22 +2,31 @@
 
 type
   NguiBackEnd* = enum
-    beNIL beGTK2 beGTK3
-    beDOC # Used to generate docs
+    beNIL beDOC # Used to generate docs
+    beGTK2 beGTK3
+    beNUKLEAR
 
 
 const backend* = static:
+  proc parseBackend(str: string): NguiBackEnd =
+    result = parseEnum[NguiBackEnd](str, beNil)
+    if result == beNil: result = parseEnum[NguiBackEnd]("be" & str, beNil)
+    if result == beNil: raiseAssert("Backend not implemented: " & str)
+  
   var be = beGTK3
 
   const nguibackend {.strdefine.} = ""
+  let envBackend = getEnv("NGUI_BACKEND")
     
+  if envBackend != "":
+    be = parseBackend(envBackend)
+
   if nguibackend != "":
-    be = parseEnum[NguiBackEnd](nguibackend, beNil)
-    if be == beNil: be = parseEnum[NguiBackEnd]("be" & nguibackend, beNil)
-    if be == beNil: raiseAssert("Backend not implemented: " & nguibackend)
+    be = parseBackend(nguibackend)  
 
   be
 
+{.hint: "Using backend " & $backend.}
 var DEP_TRUE {.compileTime.} = false
 
 template withBackend(kind: NguiBackEnd, dModule: untyped) =
@@ -42,15 +51,24 @@ macro notSupported(this: untyped): untyped =
     raiseAssert("Not Supported: (" & $backend & ", " & `sign` & ")")
   return this
 
+template ifElement(this: NElement, that: typedesc[NElement], op: untyped) =
+  if this of that:
+    let `this` {.inject.} = that(this)
+    op
+
 
 # -----------------------------------------------------------------------------
 include ngui_backend_interface
+include ngui_api
 # -----------------------------------------------------------------------------
 # GTK3
 withBackend(kind = beGTK3, dModule = ngui_begtk3)
 # -----------------------------------------------------------------------------
 # GTK2
 withBackend(kind = beGTK2, dModule = ngui_begtk2)
+# -----------------------------------------------------------------------------
+# NUKLEAR
+withBackend(kind = beNUKLEAR, dModule = ngui_benuklear)
 # -----------------------------------------------------------------------------
 # DOCS
 withBackend(kind = beDOC, dModule = ../../ngui_backend_interface)

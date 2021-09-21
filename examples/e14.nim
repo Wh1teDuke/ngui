@@ -5,31 +5,30 @@ import ngui, os
 
 
 proc main =
-  let (app, tools, table) = (app(), tools(), table())
+  let (app, tools) = (app(), tools())
   let (b1, b2) = (button("Toggle values"), button("Hide headers"))
   let box = hbox()
-  
-  table.head("Index", "Active", "Name")
-  table.row(1, true, "Foo")
-  table.row(2, true, "Bar")
+  let table = table([(ckInt, "Index"), (ckBool, "Active"), (ckStr, "Name")])
+
+  table.row(1, true,  "Foo")
+  table.row(2, true,  "Bar")
   table.row(3, false, "Baz")
 
   b1.onClickDo:
     const (p1, p2) = ((1, 0), (2, 1)) # X,Y
-    cell(table, p1): ofBool b: table[p1]= not b
-    cell(table, p2): ofStr  s: table[p2]= s[2..^1] & s[0..1]
-    # cell(table, 1, 0): ofBool b: table[1, 0]= not b <-- valid too
+    table[p1] = not table[p1].vBool
+    table[p2] = (let s = table[p2].vStr; s[2 ..^ 1] & s[0 .. 1])
 
   b2.onClickDo:
     table.headers = not table.headers
     b2.text = ["Show", "Hide"][int(table.headers)] & " headers"
   
-  let (bt1, bt2) = (button(niFile), button(niFolder))
+  let (bt1, bt2) = (button(iconBitmap(niFile)), button(iconBitmap(niFolder)))
   tools.orientation = noVertical
   tools.add(bt1, NSEPARATOR, bt2)
   
   bt1.onClickDo:
-    let bubble = bubble(button(niExecutable))
+    let bubble = bubble(button(iconBitmap(niExecutable)))
     bubble.attach(bt1)
     bubble[0].onClickDo: 
       discard execShellCmd("examples" / ("e14" & ExeExt))

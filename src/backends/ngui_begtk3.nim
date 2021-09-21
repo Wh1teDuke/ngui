@@ -9,7 +9,9 @@ proc internalGetBGColor(this: NElement): Pixel =
   invokeSatanGet(this, "background-color", result)
   
 proc internalSetBGColor(this: NElement, color: Pixel) =
-  let (r, g, b, a) = color
+  doAssert this.raw != nil
+
+  let (r, g, b, a) = (color.r, color.g, color.b, color.a)
   discard invokeSatanSet(this,
     "*{background-color:rgba($1,$2,$3,$4);}", r, g, b, a)
 
@@ -26,7 +28,7 @@ proc internalGetBorderColor(this: Container): Pixel =
   invokeSatanGet(this, "border-color", result)
 
 proc internalSetBorderColor(this: Container, color: Pixel) =
-  let (r, g, b, a) = color
+  let (r, g, b, a) = (color.r, color.g, color.b, color.a)
   discard invokeSatanSet(
     this, "*{border-color:rgba($1,$2,$3,$4);}", r, g, b, a)
 
@@ -78,15 +80,6 @@ proc internalAttach(this: Bubble, that: NElement) =
   thisD.show()
 
 
-# GRID ------------------------------------------  
-proc internalAdd(this: Grid, that: NElement, r, c, w, h: int) =
-  doAssert that.internalGetParent == nil
-
-  utilChild(this, that)
-  this.data(gtkGrid).attach(
-    that.data(gtkWidget), c.cint, r.cint, w.cint, h.cint)
-
-
 # CLIPBOARD -------------------------------------  
 template asyncCB(req, dType, cbType, get) {.dirty.} =
   var
@@ -112,13 +105,3 @@ proc internalClipboardAsyncGet(action: NAsyncTextProc) =
 proc internalClipboardAsyncGet(action: NAsyncBitmapProc) =
   asyncCB(requestImage, GdkPixBuf, ClipboardImageReceivedFunc,
     (if data == nil: nil else: newBitmap(cast[GdkPixBuf](data))))
-
-
-
-# I was a flower of the mountain yes when I put the rose in my hair like
-# the Andalusian girls used or shall I wear a red yes and how he kissed me
-# under the Moorish wall and I thought well as well him as another and then
-# I asked him with my eyes to ask again yes and then he asked me would
-# I yes to say yes my mountain flower and first I put my arms around him yes
-# and drew him down to me so he could feel my breasts all perfume yes and his
-# heart was going like mad and yes I said yes I will Yes.

@@ -5,7 +5,6 @@ import ngui
 
 
 proc main =
-  # ALWAYS start with app()
   let app = app()
   let bar = bar()
   let menu, submenu = menu()
@@ -23,10 +22,9 @@ proc main =
   submenu[0].onClickDo: echo "SubMenu1"
   submenu[1].onClickDo: echo "SubMenu2"
 
-  bar.add(add(label("MyMenu"), menu))
-  app.add(bar, calendar())
-  
-  # NEVER add new elements to app after run()
+  add(bar, add(label("MyMenu"), menu))
+  add(app, bar, calendar())
+
   run(app)
 
 main()

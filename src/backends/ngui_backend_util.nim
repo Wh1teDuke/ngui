@@ -14,7 +14,7 @@ when defined(NGUI_DEF_UTIL_ELEMENT):
       if v == this: return k
 
   proc utilExists(this: NElement): bool = this in utilData
-  
+
   proc utilDel(this: NElement) = del(utilData, this)
 
 when defined(NGUI_DEF_UTIL_CONTAINER):
@@ -31,21 +31,26 @@ when defined(NGUI_DEF_UTIL_CONTAINER):
     if isNil(parent): del(utilParents, this) else: utilParents[this] = parent
 
   proc utilRemove(this: Container, that: NElement) =
-    doAssert NElement(this) == that.internalGetParent()
+    doAssert this != nil
+    doAssert that != nil
+    doAssert NElement(this) == that.utilParent
+
     let cChildren = addr(utilChildren[this])
     cChildren[].delete(cChildren[].find(that))
-    that.utilParent nil      
-    if len(cChildren[]) == 0: del(utilChildren, this)
+    that.utilParent nil
 
-  proc utilDelParent(this: NElement) =
-    del(utilParents, this)
+    if len(cChildren[]) == 0:
+      del(utilChildren, this)
+
+  proc utilDelParent(this: NElement) = del(utilParents, this)
 
   proc utilChild(this: Container, that: NElement) =
     if this notin utilChildren: utilChildren[this] = @[that]
     else: utilChildren[this].add(that)
     that.utilParent this
   
-  proc utilRemChildrenList(this: Container) = del(utilChildren, this)
+  proc utilRemChildrenList(this: Container) =
+    del(utilChildren, this)
     
   iterator utilItems(this: Container): NElement =
     for c in getOrDefault(utilChildren, this, @[]): yield c
@@ -75,7 +80,7 @@ when defined(NGUI_DEF_UTIL_CONTAINER):
 
   proc utilNChild(this: Container, n: int): NElement =
     utilChildren.withValue(this, that):
-      if len(that[]) > n: return that[n]
+      if n in 0 ..< len(that[]): return that[n]
     
   proc utilChildIndex(this: Container, that: NElement): int =
     result = -1
@@ -172,8 +177,9 @@ when defined(NGUI_DEF_UTIL_ADAPTER):
       let adaptor = procs.ini()
       procs.add(adaptor, this)
       elementAdapter[this] = adaptor
+    
     return elementAdapter[this]
-  
+
   proc utilGetAdapter(this: pointer): pointer =
     getOrDefault(elementAdapter, this, nil)
 
@@ -183,7 +189,7 @@ when defined(NGUI_DEF_UTIL_ADAPTER):
     let
       adapter   = utilGetOrNewAdapter(child, adapterProcs.ini)
       oldParent = adapterProcs.get(child)
-      
+
     # Case 1, child has no parent: Add adaptor    
     if oldParent == nil:
       adapterProcs.add(adapter, child)
@@ -252,3 +258,92 @@ when defined(NGUI_DEF_UTIL_ADAPTER):
       procs.rem = RemChildProc(proc(p, c: pointer) = base.rem(p, c))
       procs.add = AddChildProc(proc(p, c: pointer) = base.add(p, c))
       procs
+
+when defined(NGUI_DEF_UTIL_ATTRIBUTES):
+  # ATTR
+  var utilAttrList: STable[NID, tuple[
+    added: set[NElementAttribute],
+    list:  seq[Attribute]]]
+  
+  proc utilGet(this: NElement, kind: NElementAttribute): Attribute =
+    # TODO: Default value
+    withValue(utilAttrList, this.id, attrs):
+      if kind notin attrs.added: return
+
+      for attr in attrs.list:
+        if attr.kind == kind:
+          return attr
+        
+      raiseAssert("Attribute not found: " & $kind)
+  
+  template utilSetAttr(this: NElement, that, value: untyped) =
+    block:
+      if this.id notin utilAttrList:
+        utilAttrList[this.id] = ({}, @[])
+        
+      let attrs = addr(utilAttrList[this.id])
+      
+      if `na that` in attrs.added:
+        var found = false
+        
+        for attr in mitems(attrs.list):
+          if attr.kind != `na that`: continue
+          found = true
+          attr.`a that` = value
+          break
+        
+        doAssert found, $(this.id, naKind)
+
+      else:
+        incl(attrs.added, `na that`)
+        add(
+          attrs.list, Attribute(kind: `na that`, `a that`: value, found: true))
+
+  template utilWithAttr(this: NElement, naKind: NElementAttribute, body: untyped) =
+    block:
+      withValue(utilAttrList, this.id, attrs):
+        if naKind in attrs.added:
+          var found = false
+          
+          for attr {.inject.} in mitems attrs.list:
+            if attr.kind == naKind:
+              found = true
+              body
+              break
+            
+          doAssert found, $(this.id, naKind)
+
+  template utilGetAttr(this: NElement, that: untyped) =
+    utilWithAttr(this, `na that`):
+      result =
+        when attr.`a that` is type(result): attr.`a that`
+        elif result is float:               attr.`a that`.vFloat
+        else:                               attr.`a that`.vInt
+            
+  proc utilRemAttr(this: NElement, naKind: NElementAttribute) =
+    if this.id in utilAttrList:
+      let attrs = addr(utilAttrList[this.id])
+      
+      if naKind in attrs.added:
+        var found = false
+        
+        for i, attr in attrs.list:          
+          if attr.kind == naKind:
+            found = true
+            del(attrs.list, i)
+            excl(attrs.added, naKind)
+            break
+        
+        doAssert found, $(this.id, naKind)
+  
+  proc utilHasAttr(this: NElement, naKind: NElementAttribute): bool =
+    if this.id in utilAttrList:
+      return naKind in utilAttrList[this.id].added
+
+  proc entryTextPtr(this: Entry | TextArea): ptr[string] =
+    withValue(utilAttrList, this.id, attrs):
+      for attr in mitems attrs.list:
+        if attr.kind == naText: return attr.aText.addr
+    
+    utilSetAttr(this, Text, "")
+    return entryTextPtr(this)

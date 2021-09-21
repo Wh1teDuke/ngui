@@ -8,7 +8,7 @@ proc main =
   # ALWAYS start with app()
   let app = app()
   let box = box() # vbox, hbox, box(bdHORIZONTAL/bdVERTICAL)
-  
+
   let button1 = button("Hello")
   let button2 = button("Now")
 
@@ -19,5 +19,5 @@ proc main =
   app.add(box)
   # NEVER add new elements to app after run()
   run(app)
-  
+
 main()
