@@ -7,7 +7,7 @@ when defined(NGUI_DEF_UTIL_ELEMENT):
   
   proc raw(this: NElement): pointer = getOrDefault(utilData, this)
   proc data[T](this: NElement, _: typedesc[T]): T = cast[T](raw(this))
-  proc `data=`(this: NElement, that: ptr) = utilData[this] = pointer(that)
+  proc `data=`(this: NElement, that: pointer) = utilData[this] = that
   
   proc utilElement(this: pointer): NElement =
     for k, v in utilData:
