@@ -1,4 +1,3 @@
-
 include private/ngui_common_gtk
 
 
@@ -36,48 +35,48 @@ proc internalSetBorderColor(this: Container, color: Pixel) =
 # APP -------------------------------------------
 proc internalRun(this: App) =
   for c in utilItems(this):
-    c.data(gtkWindow).showAll()
-  gtk.main() # Blocking
+    showAll(c.data(gtkWidget))
+  gtkMain() # Blocking
 
 proc internalStop(this: App) =
   utilStopRepeat()
-  gtk.mainQuit()
+  gtkMainQuit()
 
 
 # WINDOW ----------------------------------------
 proc internalGetOpacity(this: Window): float =
   # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-get-opacity
-  float(this.data(gtkWindow).getOpacity())
+  float(getOpacity(this.data(gtkWidget)))
   
 proc internalSetOpacity(this: Window, v: float) =
   let w = this.data(gtkWindow)
   # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-set-opacity
-  w.setOpacity(v.cdouble)
+  setOpacity(gtkWidget(w), v.cdouble)
 
   # Transparent window
   # https://stackoverflow.com/a/3909283
   proc onScreenChanged(this: gtkWindow, _: (GPointer, GPointer)) {.cdecl.} =
-    this.setVisual(this.getScreen().getRGBAVisual())
+    setVisual(gtkWidget(this), getRGBAVisual(getScreen(gtkWidget(this))))
 
-  proc onDraw(t: gtkWindow, c: cairo.Context, _: GPointer): GBoolean {.cdecl.} =
-    c.setSourceRGBA(0.0, 1.0, 0.0, 0.5)
-    c.setOPerator(SOURCE)
-    c.paint()
-    return false
+  proc onDraw(t: gtkWindow, c: cairoContext, _: GPointer): GBoolean {.cdecl.} =
+    setSourceRGBA(c, 0.0, 1.0, 0.0, 0.5)
+    setOperator(c, SOURCE)
+    paint(c)
+    return GBoolean(false)
   
-  discard signal(w, "screen-changed", gCALLBACK(onScreenChanged), nil)
-  discard signal(w, "draw", gCALLBACK(onDraw), nil)
-  w.setAppPaintable(true)
-  w.onScreenChanged((nil, nil))
-  # Doesn't work on my computer, why?
+  discard signal(GPointer(w), "screen-changed", gCALLBACK(onScreenChanged), nil)
+  discard signal(GPointer(w), "draw", gCALLBACK(onDraw), nil)
+  setAppPaintable(gtkWidget(w), GBoolean(true))
+  onScreenChanged(w, (nil, nil))
+  # TODO: Test
 
 
 # BUBBLE ----------------------------------------
 proc internalAttach(this: Bubble, that: NElement) =
   let thisD = this.data(gtkPopover)
-  thisD.setRelativeTo(that.data(gtkWidget))
-  thisD.setConstrainTo(PopoverConstraint.NONE)
-  thisD.show()
+  setRelativeTo(thisD, that.data(gtkWidget))
+  setConstrainTo(thisD, PopoverConstraint.NONE)
+  show(gtkWidget(thisD))
 
 
 # CLIPBOARD -------------------------------------  
@@ -104,4 +103,4 @@ proc internalClipboardAsyncGet(action: NAsyncTextProc) =
 
 proc internalClipboardAsyncGet(action: NAsyncBitmapProc) =
   asyncCB(requestImage, GdkPixBuf, ClipboardImageReceivedFunc,
-    (if data == nil: nil else: newBitmap(cast[GdkPixBuf](data))))
+    (if pointer(data) == nil: nil else: newBitmap(GdkPixBuf(data))))

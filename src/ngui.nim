@@ -1065,6 +1065,7 @@ proc toCell*(v: NCell):  NCell = v
 # TODO: typed -> NCellType
 macro toNCellArray(values: untyped): array =
   result = newNimNode(nnkBracket)
+  
   template call(a) = toCell(a)
   for v in values: add(result, getAst(call(v)))
 
@@ -1110,7 +1111,7 @@ proc `[]`*(this: NTable, x, y: int): NCell =
 proc `[]`*(this: NTable, p: tuple[x, y: int]): NCell =
   internalGet(this, p.x, p.y)
 
-template row*(this: NTable, values: varargs[typed]) =
+template row*(this: NTable, values: varargs[untyped]) =
   internalAdd(this, toNRow(values))
   
 proc mode*(this: NTable): NAmount = internalGetSelection(this)
