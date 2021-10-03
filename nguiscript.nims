@@ -108,6 +108,9 @@ task addPath, "Add ngui to your user config file":
       "ngui installed"
   )
 
+task test, "Run test suite":
+  exec("nim r tests/test.nim")
+
 task remPath, "Remove ngui from your user config file":
   info "Uninstalling ngui from ", cfgFile
   
