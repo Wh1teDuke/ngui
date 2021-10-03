@@ -376,7 +376,7 @@ macro genAllSetEventProcs: untyped =
         closureScope:
           let this {.inject, used.} = `e`
           onEvent(this, `ne ev`, proc {.closure.} =
-            let event {.inject, used.} = ngui.currentEvent()
+            let event {.inject, used.} = currentEvent()
             `action`
           )
 
