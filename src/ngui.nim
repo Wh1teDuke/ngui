@@ -437,6 +437,7 @@ proc run*(this: App) =
   internalRun(this)
 
 proc stop*(this: App) =
+  ## Stop the GUI loop
   internalStop(this)
   this.init = false
   

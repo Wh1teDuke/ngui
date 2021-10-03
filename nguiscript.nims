@@ -1,7 +1,6 @@
 import std/[strutils, sequtils, os]
 
 
-
 cd(thisDir())
 
 template info(str: varargs[untyped]) = echo "[INFO] ", str
@@ -109,7 +108,14 @@ task addPath, "Add ngui to your user config file":
   )
 
 task test, "Run test suite":
-  exec("nim r tests/test.nim")
+  var be = paramStr(paramCount()) # paramCount() - 1 is this a bug?
+  # TODO: is backend
+  if "nguiscript" in be:
+    # TODO: for each backend:
+    try: exec("nim r tests/test.nim") except: discard
+
+  else:
+    try: exec("nim r -d:nguibackend=" & be & " tests/test.nim") except: discard
 
 task remPath, "Remove ngui from your user config file":
   info "Uninstalling ngui from ", cfgFile
@@ -125,9 +131,15 @@ task remPath, "Remove ngui from your user config file":
 task defaultBackend, "Set default backend":
   var be = paramStr(paramCount()) # paramCount() - 1 is this a bug?
   # TODO: Get backend enum from a separate module
-  info "Setting default backend: ", be
+  
   discard remFromUserCfg("define:nguibackend=")
-  if startsWith(be, "be"): discard addToUserCfg("define:nguibackend=" & be)
+
+  if startsWith(be, "be"):
+    info "Setting default backend: ", be
+    discard addToUserCfg("define:nguibackend=" & be)
+    
+  else:
+    info "Remove default backend"
 
 task examples, "Compile and execute all the examples in order":
   try:

@@ -1,8 +1,8 @@
-import tWindow
+import ngui
 
 
-proc main =
-  testWindow()
+proc testWindow*() =
+  discard
 
 when isMainModule:
-  main()
+  testWindow()

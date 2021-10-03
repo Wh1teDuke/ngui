@@ -123,12 +123,13 @@ when defined(NGUI_DEF_UTIL_TIMER):
     tuple[handle: NRepeatHandle, hook: int, action: NRepeatProc]]
     
   template getBy(f): int =
-    var idx = -1
-    for i, e in utilRepeat:
-      if e.f != f: continue
-      idx = i
-      break
-    idx
+    block:
+      var idx = -1
+      for i, e in utilRepeat:
+        if e.f != f: continue
+        idx = i
+        break
+      idx
     
   proc utilNextRepeatID: int =
     var id {.global.} : int
@@ -143,10 +144,12 @@ when defined(NGUI_DEF_UTIL_TIMER):
 
   proc utilTrigger(hook: int): bool =
     result = utilRepeat[getBy(hook)].action()
-    if not result: del(utilRepeat, getBy(hook))
+    if not result:
+      let idx = getBy(hook)
+      if idx != -1: del(utilRepeat, idx)
 
   proc utilRepeatAdd(event: NRepeatProc, handle: NRepeatHandle, rid: int) =
-    utilRepeat.add((handle, rid, event))
+    add(utilRepeat, (handle, rid, event))
     
   proc utilStopRepeat =
     for i in countDown(high(utilRepeat), 0):

@@ -1,9 +1,10 @@
+import tApp
+import tWindow
 
 
-
-proc testWindow*() =
-  
-
+proc main =
+  testApp()
+  testWindow()
 
 when isMainModule:
-  testWindow()
+  main()

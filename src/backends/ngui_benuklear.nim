@@ -1110,15 +1110,19 @@ proc processElement(w: glfw.Window, this, parent: NElement) =
       let args = eventArg(this, {neChange})
       if args != nil: args.element = this
     return
+  
+var stopApp = false
 
 proc internalRun(this: App) =
+  stopApp = false
+
   var
     transient: HashSet[NID]
     repeatDel: HashSet[NRepeatHandle]
     now:       float = epochTime()
     diff:      int
 
-  while len(winList) != 0:
+  while not stopApp:
     diff = int((epochTime() - now) * 1_000)
     now  = epochTime()
 
@@ -1137,6 +1141,23 @@ proc internalRun(this: App) =
         internalSetFocus(w)
         
     glfw.pollEvents()
+    
+    # Event
+    for h, (ms, current, cb) in mpairs(repeatEvents):
+      current += diff
+      if current >= ms:
+        current -= ms
+        if not cb(): incl(repeatDel, h)
+    
+    for i in countDown(high(eventList), 0):
+      let (_, args, action) = eventList[i]
+      if args.element == nil: continue
+
+      eventArgs = args
+      action()
+      eventList[i][1].element = nil
+
+    reset(eventArgs)
 
     # https://discourse.glfw.org/t/how-to-create-multiple-window/1398/2
     forEachWin:
@@ -1147,22 +1168,6 @@ proc internalRun(this: App) =
       processElement(gW, w, this)
       if this.id in winDestroyed: continue
 
-      # Event
-      for h, (ms, current, cb) in mpairs(repeatEvents):
-        current += diff
-        if current >= ms:
-          current -= ms
-          if not cb(): incl(repeatDel, h)
-      
-      for i in countDown(high(eventList), 0):
-        let (_, args, action) = eventList[i]
-        if args.element == nil: continue
-
-        eventArgs = args
-        action()
-        eventList[i][1].element = nil
-
-      reset(eventArgs)
       buttonPress = false # In theory, nothing.
 
     forEachWin:
@@ -1181,7 +1186,10 @@ proc internalRun(this: App) =
     # Remove old Events
     for h in repeatDel:
       del(repeatEvents, h)
-    
+      
+    if len(winDestroyed) != 0 and len(winList) == 0:
+      stopApp = true
+
     clear(repeatDel)
     clear(winDestroyed)
     clear(forceRender)
@@ -1190,8 +1198,7 @@ proc internalRun(this: App) =
     sleep(20)
 
 proc internalStop(this: App) =
-  ## Shutdown the App context
-  beMsg("proc internalStop(this: App)")
+  stopApp = true
 
 
 # WINDOW ----------------------------------------
@@ -1635,7 +1642,7 @@ proc internalSetOrientation(this: Tools, value: NOrientation) =
 
 # TIMERS -----------------------------------------
 proc internalRepeat(event: NRepeatProc, ms: int): NRepeatHandle =
-  result = rand(10_000_000).NRepeatHandle
+  result = rand(10_000_000).NRepeatHandle # TODO: !!!
   repeatEvents[result] = (ms, 0, event)
 
 proc internalStop(this: NRepeatHandle) =
