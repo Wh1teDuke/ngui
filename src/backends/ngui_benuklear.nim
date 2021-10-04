@@ -1121,6 +1121,9 @@ proc internalRun(this: App) =
     repeatDel: HashSet[NRepeatHandle]
     now:       float = epochTime()
     diff:      int
+    
+  for _, w in items(winList):
+    internalSetVisible(w, true)
 
   while not stopApp:
     diff = int((epochTime() - now) * 1_000)

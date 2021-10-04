@@ -39,6 +39,7 @@ type
     # TODO neFileChoose -> neFileBrowser
 
   NElementEvent* = enum
+    # TODO: neRUN, neSTOP
     neNONE neCLICK neCLICK_RELEASE neMOVE
     neENTER neCHANGE neOPEN
     neFOCUS_ON neFOCUS_OFF neDESTROY
@@ -67,7 +68,6 @@ type
     ## .. image:: ../assets/box.png
   
   App* = ref object of Container # TODO: Do not inherate from Container
-    init: bool
   
   Window* = ref object of Container
     ## .. image:: ../assets/window.png
@@ -405,8 +405,11 @@ proc nextID: NID =
 template nguiNew() {.dirty.} =
   const kind = parseEnum[NElementKind](
     if typeOf(result) is NTable: "neTable" else: "ne" & $(typeOf(result)))
+  
+  when kind != neAPP: doAssert initialized()
   result = typeOf(result)(kind: kind, id: nextID())
   internalInitNElement(NElement(result))
+
   when result is Window:
     internalSetText(
       result, changeFileExt(extractFilename(getAppFilename()), ""))
@@ -415,7 +418,24 @@ proc nguiNew[N: NElement](_: typedesc[N]): N = nguiNew()
 
 
 # APP -------------------------------------------
-var pApp: App
+var 
+  pApp:  App
+  pInit: bool
+  pRun:  bool
+
+
+proc initialized*: bool = pApp != nil
+proc running*: bool = pApp != nil and pRun
+
+proc shutdown*(this: App) =
+  ## Stop and destroy the App context. You won't be able to reuse it.
+  doAssert this != nil and pApp == this and pInit
+  
+  stop(this)
+  pApp  = nil
+  pInit = false
+  pRun  = false
+  # TODO: internal shutdown
 
 proc getApp*: App =
   result = pApp
@@ -429,17 +449,18 @@ proc app*: App =
   doAssert pApp == nil
   nguiNew()
   pApp = result
+  pInit = true
 
 proc run*(this: App) =
   ## Display any window and listen to user input
-  doAssert(not this.init)
-  this.init = true
+  doAssert(not pRun)
+  pRun = true
   internalRun(this)
 
 proc stop*(this: App) =
   ## Stop the GUI loop
-  internalStop(this)
-  this.init = false
+  if pRun: internalStop(this)
+  pRun = false
   
 template startApp*(body: untyped) =
   block:
@@ -850,6 +871,14 @@ proc addSeparator*(this: Container) =
   internalAddSeparator(this, o)
 
 proc onAdd(this: Container, that: NElement) =
+  # Edge case: I want to add one box and some elements AFTER said box
+
+  if empty(this) and
+      ((this of App and not(that of Window)) or (this of Window)):
+    let b = nguiNew(Box)
+    internalSetOrientation(b, noVERTICAL)
+    add(this, b)
+
   doAssert this != nil and that != nil
   doAssert that.internalGetParent == nil
   doAssert this.id != 0 and that.id != 0
@@ -897,7 +926,7 @@ proc onAdd(this: Container, that: NElement) =
       onAdd(Window(this)[0], that)
       return
 
-  if this of App:
+  if this of App:    
     if not(that of Window):
       if len(this) == 0:
         let w = nguiNew(Window)
@@ -907,7 +936,7 @@ proc onAdd(this: Container, that: NElement) =
       return
     
     else:
-      Window(that).show()
+      discard # Window(that).show()
 
   internalAdd(this, that)
 
@@ -918,21 +947,15 @@ proc add*(this: Container, that: NElement) =
   if that.id == NSEPARATOR.id: this.addSeparator()
   else:                        this.onAdd(that)
 
-proc add*(this: Container, text: string) = this.add(label(text))
+proc add*(this: Container, text: string) = add(this, label(text))
 
 proc add*(this: Container, one, two: NElement, list: varargs[NElement]) =
-  # Edge case: I want to add one box and some elements AFTER said box
-  if (this of Window or this of App) and len(this) == 0:
-    let b = nguiNew(Box)
-    internalSetOrientation(b, noVERTICAL)
-    add(this, b)
-
   add(this, one)
   add(this, two)
   for that in list: add(this, that)
 
 proc add*[N: NElement](this: Container, list: openArray[N]) =
-  for that in list: this.add(that)
+  for that in list: add(this, that)
 
 proc remove*(this: Container, that: NElement) =
   ## Remove that element from this container. The container must be

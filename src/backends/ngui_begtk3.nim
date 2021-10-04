@@ -34,8 +34,7 @@ proc internalSetBorderColor(this: Container, color: Pixel) =
 
 # APP -------------------------------------------
 proc internalRun(this: App) =
-  for c in utilItems(this):
-    showAll(c.data(gtkWidget))
+  for c in utilItems(this): showAll(c.data(gtkWidget))
   gtkMain() # Blocking
 
 proc internalStop(this: App) =

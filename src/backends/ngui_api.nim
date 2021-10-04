@@ -60,10 +60,13 @@ proc nguiNew[N: NElement](_: typedesc[N]): N
 
 
 # APP
+proc initialized*: bool
+proc running*: bool
 proc getApp*: App
 proc app*: App
 proc run*(this: App)
 proc stop*(this: App)
+proc shutdown*(this: App)
 
 proc `[]`*(this: App, index: int): Window
 proc `[]`*(this: App, index: BackwardsIndex): Window

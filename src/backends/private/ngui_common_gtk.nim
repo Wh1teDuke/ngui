@@ -527,7 +527,7 @@ proc internalInitNElement(this: var NElement) =
     let w = newWindow()
     this.data = pointer(w)
     onDestroyWin(Window(this))
-    
+
   of neLabel:
     # https://developer.gnome.org/gtk3/stable/GtkLabel.html
     this.data = pointer(newLabel())
