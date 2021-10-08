@@ -302,7 +302,8 @@ when defined(NGUI_DEF_UTIL_ATTRIBUTES):
         add(
           attrs.list, Attribute(kind: `na that`, `a that`: value, found: true))
 
-  template utilWithAttr(this: NElement, naKind: NElementAttribute, body: untyped) =
+  template utilWithAttr(
+      this: NElement, naKind: NElementAttribute, body: untyped) =
     block:
       withValue(utilAttrList, this.id, attrs):
         if naKind in attrs.added:
@@ -321,8 +322,8 @@ when defined(NGUI_DEF_UTIL_ATTRIBUTES):
       result =
         when attr.`a that` is type(result): attr.`a that`
         elif result is float:               attr.`a that`.vFloat
-        else:                               attr.`a that`.vInt
-            
+        else:                               attr.`a that`.vInt  
+
   proc utilRemAttr(this: NElement, naKind: NElementAttribute) =
     if this.id in utilAttrList:
       let attrs = addr(utilAttrList[this.id])

@@ -13,6 +13,7 @@ proc testWindow* =
     app   = app()
     w1    = window()
     title = "tWindow"
+    p     = (x: 50, y: 50)
 
   doAssert w1.resizable,          "Window Resizable default == true"
 
@@ -23,11 +24,17 @@ proc testWindow* =
 
   doAssert parent(w1) == app,     "Window parent is app"
   doAssert not(visible(w1)),      "Window Visible default == false"
+  doAssert w1.position != p,      "Window position not set"
+  doAssert opacity(w1) == 1.0,    "Window default opacity is 1.0"
+  w1.position = p
 
   laterDo 0:
-    doAssert visible(w1),        "Window Visible on run default == true"
-    doAssert not(resizable(w1)), "Window resizable set false"
-    doAssert w1.text == title,   "Window title set to " & title
+    doAssert visible(w1),         "Window Visible on run default == true"
+    doAssert not(resizable(w1)),  "Window resizable set false"
+    doAssert w1.text == title,    "Window title set to " & title
+    doAssert w1.position == p,    "Window position set"
+    doAssert w1.x == p.x,         "X coord comparison"
+    doAssert w1.y == p.y,         "Y coord comparison"
     stop(app)
 
   run(app)

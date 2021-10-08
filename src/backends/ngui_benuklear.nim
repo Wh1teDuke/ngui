@@ -1227,7 +1227,7 @@ proc setPosition(this: Window | Alert, p: tuple[x, y: int]) =
 proc getPosition(this: Window | Alert): tuple[x, y: int] =
   var x, y: int32
   glfw.getWindowPos(glfwWindowOf(this), x.addr, y.addr)
-  return (x.int, y.int)
+  return (int(x), int(y))
 
 proc internalSetPosition(this: Window, position: tuple[x, y: int]) =
   setPosition(this, position)
@@ -1283,12 +1283,11 @@ proc internalSetTransient(this, that: Window) = setTransient(this, that)
 proc internalGetTransient(this: Window): Window = getTransient(this)
 
 proc internalGetOpacity(this: Window): float =
-  ## Get Opacity of this window (0.0 .. 1.0)
-  beMsg("proc internalGetOpacity(this: Window): float")
+  result = 1.0 # Default value
+  utilGetAttr(this, opacity)
 
 proc internalSetOpacity(this: Window, v: float) =
-  ## Set Opacity of this window (0.0 .. 1.0)
-  beMsg("proc internalSetOpacity(this: Window, v: float)")
+  utilSetAttr(this, opacity, v)
 
 
 # ALERT -----------------------------------------
