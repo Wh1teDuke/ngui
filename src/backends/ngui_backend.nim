@@ -1,30 +1,7 @@
+import backend as be
 
 
-type
-  NguiBackEnd* = enum
-    beNIL beDOC # Used to generate docs
-    beGTK3
-    beNUKLEAR
-
-
-const backend* = static:
-  proc parseBackend(str: string): NguiBackEnd =
-    result = parseEnum[NguiBackEnd](str, beNil)
-    if result == beNil: result = parseEnum[NguiBackEnd]("be" & str, beNil)
-    if result == beNil: raiseAssert("Backend not implemented: " & str)
-  
-  var be = beGTK3
-
-  const nguibackend {.strdefine.} = ""
-  let envBackend = getEnv("NGUI_BACKEND")
-    
-  if envBackend != "":
-    be = parseBackend(envBackend)
-
-  if nguibackend != "":
-    be = parseBackend(nguibackend)  
-
-  be
+const backend* = getBackend()
 
 {.hint: "Using backend " & $backend.}
 var DEP_TRUE {.compileTime.} = false
