@@ -1,7 +1,8 @@
 import std/[strutils, sequtils, os]
+import src/backends/backend
 
 
-cd(thisDir())
+cd(parentDir(currentSourcePath))
 
 template info(str: varargs[untyped]) = echo "[INFO] ", str
 template error(str: varargs[untyped]) = echo "[ERROR] ", str
@@ -15,6 +16,17 @@ let
   cfgDir  = getConfigDir() / "nim"
   cfgFile = cfgDir / "nim.cfg"
   beTempl = "ngui_backend_template.nim"
+  params  = block:
+    var list: seq[string]
+    for i in 0 .. paramCount(): add(list, paramStr(i))
+    while len(list) > 0:
+      let stop = list[0] == splitPath(currentSourcePath).tail
+      delete(list, 0)
+      if stop: break
+    list
+
+proc getParamOr(i: int, default: string): string =
+  if i in 0 ..< len(params): params[i] else: default
 
 task newBackend, "Gen Backend Interface Template":
   var str = """
@@ -127,19 +139,13 @@ task remPath, "Remove ngui from your user config file":
     of rFileNotFound: "File doesn't exist"
   )
 
-
 task defaultBackend, "Set default backend":
-  var be = paramStr(paramCount()) # paramCount() - 1 is this a bug?
-  # TODO: Get backend enum from a separate module
-  
-  discard remFromUserCfg("define:nguibackend=")
+  var be = parseBackend(getParamOr(0, "beNil"))
+  info "Setting default backend: ", be
 
-  if startsWith(be, "be"):
-    info "Setting default backend: ", be
-    discard addToUserCfg("define:nguibackend=" & be)
-    
-  else:
-    info "Remove default backend"
+  discard remFromUserCfg("define:nguibackend=")
+  if be notin {beNil, beDoc}:
+    discard addToUserCfg("define:nguibackend=" & $be)
 
 task examples, "Compile and execute all the examples in order":
   try:
