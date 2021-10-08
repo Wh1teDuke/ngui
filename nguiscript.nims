@@ -17,10 +17,11 @@ let
   cfgFile = cfgDir / "nim.cfg"
   beTempl = "ngui_backend_template.nim"
   params  = block:
+    let script = splitPath(currentSourcePath).tail
     var list: seq[string]
     for i in 0 .. paramCount(): add(list, paramStr(i))
     while len(list) > 0:
-      let stop = list[0] == splitPath(currentSourcePath).tail
+      let stop = list[0] in [script, changeFileExt(script, "")]
       delete(list, 0)
       if stop: break
     list
