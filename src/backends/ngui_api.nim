@@ -46,9 +46,6 @@ proc index*(this: NElement): int
 proc bgColor*(this: NElement): Pixel
 proc `bgColor=`*(this: NElement, color: Pixel)
 
-proc supports*(element: NElementKind, event: NElementEvent): bool
-proc supports*(element: NElementKind, attribute: NElementAttribute): bool
-
 proc currentEvent*(): NEventArgs
 proc eventHandled*()
 proc onEvent*(this: NElement, event: NElementEvent, action: NEventProc)
