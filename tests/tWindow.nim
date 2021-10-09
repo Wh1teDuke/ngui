@@ -14,6 +14,7 @@ proc testWindow* =
     w1    = window()
     title = "tWindow"
     p     = (x: 50, y: 50)
+    icon  = iconBitmap(niEXECUTABLE)
 
   doAssert w1.resizable,          "Window Resizable default == true"
 
@@ -22,11 +23,14 @@ proc testWindow* =
 
   add(app, w1)
 
+  doAssert icon(w1) == nil,       "Window icon is nil"
   doAssert parent(w1) == app,     "Window parent is app"
   doAssert not(visible(w1)),      "Window Visible default == false"
   doAssert w1.position != p,      "Window position not set"
   doAssert opacity(w1) == 1.0,    "Window default opacity is 1.0"
+
   w1.position = p
+  w1.icon     = icon
 
   laterDo 0:
     doAssert visible(w1),         "Window Visible on run default == true"
@@ -35,6 +39,7 @@ proc testWindow* =
     doAssert w1.position == p,    "Window position set"
     doAssert w1.x == p.x,         "X coord comparison"
     doAssert w1.y == p.y,         "Y coord comparison"
+    doAssert w1.icon == icon,     "Window icon set"
     stop(app)
 
   run(app)
