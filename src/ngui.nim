@@ -341,12 +341,6 @@ proc bgColor*(this: NElement): Pixel =
 proc `bgColor=`*(this: NElement, color: Pixel) =
   internalSetBGColor(this, color)
 
-proc supports*(element: NElementKind, event: NElementEvent): bool =
-  discard
-
-proc supports*(element: NElementKind, attribute: NElementAttribute): bool =
-  discard
-
 proc currentEvent*(): NEventArgs =
   ## Get current event's argument object
   internalGetCurrentEvent()
