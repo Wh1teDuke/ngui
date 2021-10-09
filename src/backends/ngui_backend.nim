@@ -1,4 +1,4 @@
-import backend as be
+import ../backend as be
 
 
 const backend* = getBackend()

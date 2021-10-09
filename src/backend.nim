@@ -70,7 +70,7 @@ proc testDependencies*(
       test("libcairo.so(|.2)")
 
     of beNUKLEAR:
-      if not defined(glfwStaticLib):
+      when not defined(glfwStaticLib):
         test("libglfw.so.3")
       
       discard

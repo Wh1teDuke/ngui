@@ -1,5 +1,5 @@
 import std/[strutils, strformat, sequtils, os]
-import src/backends/backend
+import src/backend
 
 
 cd(parentDir(currentSourcePath))
