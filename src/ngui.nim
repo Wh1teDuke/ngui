@@ -424,6 +424,11 @@ var
   pRun:  bool
 
 
+proc requiredLibsInstalled*: bool =
+  result = true
+  for _, found in items testDependencies(backend):
+    if not found: return false
+
 proc initialized*: bool = pApp != nil
 proc running*: bool = pApp != nil and pRun
 

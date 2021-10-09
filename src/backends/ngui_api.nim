@@ -60,6 +60,7 @@ proc nguiNew[N: NElement](_: typedesc[N]): N
 
 
 # APP
+proc requiredLibsInstalled*: bool
 proc initialized*: bool
 proc running*: bool
 proc getApp*: App

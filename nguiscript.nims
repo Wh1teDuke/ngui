@@ -1,4 +1,4 @@
-import std/[strutils, sequtils, os]
+import std/[strutils, strformat, sequtils, os]
 import src/backends/backend
 
 
@@ -121,14 +121,24 @@ task addPath, "Add ngui to your user config file":
   )
 
 task test, "Run test suite":
-  var be = paramStr(paramCount()) # paramCount() - 1 is this a bug?
-  # TODO: is backend
-  if "nguiscript" in be:
-    # TODO: for each backend:
-    try: exec("nim r tests/test.nim") except: discard
+  proc test(be: NGUIBackend) =
+    try:    exec(fmt "nim r -d:nguibackend={be} tests/test.nim")
+    except: discard
 
-  else:
-    try: exec("nim r -d:nguibackend=" & be & " tests/test.nim") except: discard
+  let arg = getParamOr(0, "nil")
+  if cmpIgnoreCase(arg, "all") == 0:
+    for be in backendItems(): test(be)
+  else: test(parseBackend(arg))
+  
+task testDep, "Test if your computer can run a backend":
+  let be = parseBackend(getParamOr(0, ""), beGTK3)
+  echo be, " depends on:"
+  var counter: tuple[found, total: int]
+  for dep, found in items testDependencies(be):
+    echo "\\- ", alignLeft(dep, 25), "[", (if found: "Found" else: "NOT FOUND"), "]"
+    inc(counter.total)
+    inc(counter.found, int(found))
+  echo counter.found, '/', counter.total
 
 task remPath, "Remove ngui from your user config file":
   info "Uninstalling ngui from ", cfgFile
@@ -150,7 +160,7 @@ task defaultBackend, "Set default backend":
 
 task examples, "Compile and execute all the examples in order":
   try:
-    for i in 1 .. 30:
+    for i in 1 .. 20:
       let file = $CurDir / "examples" / ("e" & $i & ".nim")
       if not fileExists(file): continue
       
@@ -169,13 +179,13 @@ task examples, "Compile and execute all the examples in order":
 
 task docs, "Gen documentation":  
   const
-    DF = $CurDir / "docs" / "html"
+    DF  = $CurDir / "docs" / "html"
     arg = "--warnings:off --hints:off --outdir:"
 
   proc nDoc(a: string) =
-    exec("nim doc --index:off -d:nguibackend:doc $1 $2 $3" % [arg, DF, a])
+    exec(fmt "nim doc --index:off -d:nguibackend:doc {arg} {DF} {a}")
   proc nRSTDoc(a: string) =
-    exec("nim rst2html $1 $2 $3" % [arg, DF, a])
+    exec(fmt "nim rst2html {arg} {DF} {a}")
   
 
   # Code Documentation ----------------
@@ -219,14 +229,14 @@ task docs, "Gen documentation":
 
   # Tutorial --------------------------
   nRSTDoc(DF / ParDir / "learn.rst")
-  
+
   # Architecture ----------------------
   nRSTDoc(DF / ParDir / "architecture.rst")
   writeFile($CurDir / "docs" / "html" / "architecture.html",
     replace(readFile($CurDir / "docs" / "html" / "architecture.html"),
       "./assets", "../assets")
   )
-  
+
   # Cleanup
   rmFile(intFile)
   rmFile(intHead)
