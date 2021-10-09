@@ -31,8 +31,9 @@ proc testWindow* =
 
   w1.position = p
   w1.icon     = icon
+  w1.opacity  = 0.5
 
-  laterDo 0:
+  laterDo 0: # TODO: 'replace this laterDo 0' with 'onStart' events
     doAssert visible(w1),         "Window Visible on run default == true"
     doAssert not(resizable(w1)),  "Window resizable set false"
     doAssert w1.text == title,    "Window title set to " & title
@@ -40,6 +41,8 @@ proc testWindow* =
     doAssert w1.x == p.x,         "X coord comparison"
     doAssert w1.y == p.y,         "Y coord comparison"
     doAssert w1.icon == icon,     "Window icon set"
+    doAssert w1.opacity - 0.5 in -0.005 .. +0.005,
+                                  "Window opacity set"
     stop(app)
 
   run(app)

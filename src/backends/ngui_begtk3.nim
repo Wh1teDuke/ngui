@@ -45,7 +45,7 @@ proc internalStop(this: App) =
 # WINDOW ----------------------------------------
 proc internalGetOpacity(this: Window): float =
   # https://developer.gnome.org/gtk3/stable/GtkWidget.html#gtk-widget-get-opacity
-  float(getOpacity(this.data(gtkWidget)))
+  result = float(getOpacity(this.data(gtkWidget)))
   
 proc internalSetOpacity(this: Window, v: float) =
   let w = this.data(gtkWindow)
