@@ -42,7 +42,7 @@ proc testDependencies*(
 
   proc linuxInstalledSOList: string =
     get("""sh -c '/sbin/ldconfig -N -v'""")
-    
+
   var candidates: seq[string]
 
   case os:
@@ -61,7 +61,7 @@ proc testDependencies*(
 
     case backend:
     of beGTK3:
-      # See gtk3_min
+      # See gtk3_min.nim
       test("libgtk-3.so(|.0)")
       test("libgobject-2.0.so(|.0)")
       test("libglib-2.0.so(|.0)")

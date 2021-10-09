@@ -35,8 +35,8 @@ template ifElement(this: NElement, that: typedesc[NElement], op: untyped) =
 
 
 # -----------------------------------------------------------------------------
-include ngui_backend_interface
 include ngui_api
+include ngui_backend_interface
 # -----------------------------------------------------------------------------
 # GTK3
 withBackend(kind = beGTK3, dModule = ngui_begtk3)

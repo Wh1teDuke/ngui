@@ -1,6 +1,5 @@
-import ngui
-import tApp
-import tWindow
+import tApp, tWindow
+
 
 proc main =
   testApp()
