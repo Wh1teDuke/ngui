@@ -690,6 +690,17 @@ proc copy*(this: Bitmap): Bitmap =
   result.img  = this.img
   result.path = this.path
 
+proc `==`*(a, b: Bitmap): bool =
+  if (cast[pointer](a) == nil) xor (cast[pointer](b) == nil):
+    return
+  if cast[pointer](a) == cast[pointer](b):
+    return true
+  if (a.w, a.h) != (b.w, b.h):
+    return false
+  if a.img != b.img:
+    return false
+  return true
+
 
 # NElement ------------------
 proc image*(bitmap: Bitmap = nil): Image =
