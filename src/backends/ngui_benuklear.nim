@@ -8,7 +8,7 @@ include ../nelements/ngui_filebrowser
 
 includeUtils CONTAINER, ATTRIBUTES#ELEMENT, EVENT, TIMER, ADAPTER
 #     v-- Set 'LAX_ERROR' to false to see fireworks
-const LAX_ERROR = true
+const LAX_ERROR = off
   
 template beInfo(str: string) =
   echo("[NGUI_INFO] " & str & " NOT IMPLEMENTED")
@@ -31,6 +31,7 @@ var
   winFocus:        HashSet[NID]
   forceRender:     HashSet[NID]
   withFocus:       STable[Window, NElement]
+  winIcon:         STable[NID, Bitmap]
 
   # EVENTS
   eventList:       seq[(NElement, NEventArgs, NEventProc)]
@@ -1240,19 +1241,17 @@ proc internalGetFocused(this: Window): NElement =
   beMsg("proc internalGetFocused(this: Window): NElement")
 
 proc internalGetIcon(this: Window): Bitmap =
-  ## Get the icon that this window is displaying or nil
-  beMsg("proc internalGetIcon(this: Window): Bitmap")
+  getOrDefault(winIcon, this.id, nil)
 
 proc internalSetIcon(this: Window, that: Bitmap) =
+  winIcon[this.id] = that
   glfwIcon(glfwWindowOf(this), (that.w, that.h), that.img[0].addr)
 
 proc internalGetDecorated(this: Window): bool =
-  ## Get whether or not this window is displaying the border
-  beMsg("proc internalGetDecorated(this: Window): bool")
+  glfwDecorated(glfwWindowOf(this))
 
 proc internalSetDecorated(this: Window, v: bool) =
-  ## Set whether or not this window is displaying the border
-  beMsg("proc internalSetDecorated(this: Window, v: bool)")
+  glfwDecorated(glfwWindowOf(this), v)
 
 proc internalSetMinimized(this: Window, v: bool) =
   ## Set whether or not this window is minimized

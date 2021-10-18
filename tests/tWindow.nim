@@ -28,10 +28,12 @@ proc testWindow* =
   doAssert not(visible(w1)),      "Window Visible default == false"
   doAssert w1.position != p,      "Window position not set"
   doAssert opacity(w1) == 1.0,    "Window default opacity is 1.0"
+  doAssert decorated(w1),         "Window decorated by default"
 
-  w1.position = p
-  w1.icon     = icon
-  w1.opacity  = 0.5
+  w1.position  = p
+  w1.icon      = icon
+  w1.opacity   = 0.5
+  w1.decorated = false
 
   laterDo 0: # TODO: 'replace this laterDo 0' with 'onStart' events
     doAssert visible(w1),         "Window Visible on run default == true"
@@ -41,6 +43,7 @@ proc testWindow* =
     doAssert w1.x == p.x,         "X coord comparison"
     doAssert w1.y == p.y,         "Y coord comparison"
     doAssert w1.icon == icon,     "Window icon set"
+    doAssert not(w1.decorated),   "Window decorated off"
     doAssert w1.opacity - 0.5 in -0.005 .. +0.005,
                                   "Window opacity set"
     stop(app)

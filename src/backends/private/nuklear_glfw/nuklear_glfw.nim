@@ -40,6 +40,12 @@ proc glfwVisible*(w: glfw.Window, state: bool) =
 proc glfwVisible*(w: glfw.Window): bool =
   bool(glfw.getWindowAttrib(w, hVisible.cint))
 
+proc glfwDecorated*(w: glfw.Window, state: bool) =
+  glfw.setWindowAttrib(w, hDecorated.cint, state.cint)
+
+proc glfwDecorated*(w: glfw.Window): bool =
+  bool(glfw.getWindowAttrib(w, hDecorated.cint))
+
 proc glfwTitle*(w: glfw.Window, title: string) =
   glfw.setWindowTitle(w, cstring(title))
   
