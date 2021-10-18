@@ -1254,20 +1254,16 @@ proc internalSetDecorated(this: Window, v: bool) =
   glfwDecorated(glfwWindowOf(this), v)
 
 proc internalSetMinimized(this: Window, v: bool) =
-  ## Set whether or not this window is minimized
-  beMsg("proc internalSetMinimized(this: Window, v: bool)")
+  glfwMinimized(glfwWindowOf(this), v)
 
 proc internalGetMinimized(this: Window): bool =
-  ## Get whether or not this window is minimized
-  beMsg("proc internalGetMinimized(this: Window): bool")
+  glfwMinimized(glfwWindowOf(this))
 
 proc internalSetMaximized(this: Window, v: bool) =
-  ## Set whether or not this window is maximized
-  beMsg("proc internalSetMaximized(this: Window, v: bool)")
+  glfwMaximized(glfwWindowOf(this), v)
 
 proc internalGetMaximized(this: Window): bool =
-  ## Get whether or not this window is maximized
-  beMsg("proc internalGetMaximized(this: Window): bool")
+  glfwMaximized(glfwWindowOf(this))
 
 proc internalSetModal(this: Window, v: bool) =
   ## Set whether or not user can interact with other windows

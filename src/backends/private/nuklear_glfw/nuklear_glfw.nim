@@ -81,6 +81,18 @@ proc glfwResizable*(w: glfw.Window, state: bool) =
 proc glfwResizable*(w: glfw.Window): bool =
   glfw.getWindowAttrib(w, hResizable.int32).bool
 
+proc glfwMinimized*(w: glfw.Window, state: bool) =
+  glfw.setWindowAttrib(w, Iconified.cint, state.cint)
+
+proc glfwMinimized*(w: glfw.Window): bool =
+  bool(glfw.getWindowAttrib(w, Iconified.cint))
+
+proc glfwMaximized*(w: glfw.Window, state: bool) =
+  glfw.setWindowAttrib(w, hMaximized.cint, state.cint)
+
+proc glfwMaximized*(w: glfw.Window): bool =
+  bool(glfw.getWindowAttrib(w, hMaximized.cint))
+
 
 # NUKLEAR =====================================================================
 # https://github.com/Immediate-Mode-UI/Nuklear/blob/master/demo/glfw_opengl2/nuklear_glfw_gl2.h
