@@ -100,6 +100,10 @@ proc root(this: NElement): Window =
     parent = utilParent(parent)
   if parent of Window: return Window(parent)
 
+proc getModal(this: NElement): bool =
+  doAssert this.kind in {neWindow, neAlert}
+  utilGetAttr(this, modal)
+
 proc getTransient(this: NElement): Window =
   doAssert this.kind in {neWindow, neAlert}
   utilGetAttr(this, transient)
@@ -1119,6 +1123,7 @@ proc internalRun(this: App) =
 
   var
     transient: HashSet[NID]
+    modal:     HashSet[NID]
     repeatDel: HashSet[NRepeatHandle]
     now:       float = epochTime()
     diff:      int
@@ -1137,8 +1142,12 @@ proc internalRun(this: App) =
         body
 
     clear(transient)
+    clear(modal)
+    
+    # Modal/Transient stuff
     for gW, w in items(winList):
       let tw = getTransient(w)
+      if getModal(w): incl(modal, w.id)
       if tw == nil: continue
       incl(transient, tw.id)
       if internalGetFocus(tw):
@@ -1166,7 +1175,10 @@ proc internalRun(this: App) =
     # https://discourse.glfw.org/t/how-to-create-multiple-window/1398/2
     forEachWin:
       # glfw -> nk Input
-      nk_glfw_new_frame(gW, w.id in transient)
+      let hasInput =
+        w.id in transient or
+        w.id in modal # TODO: This requires a better implementation
+      nk_glfw_new_frame(gW, hasInput)
 
       # Process (Trigger Events + NK Render)
       processElement(gW, w, this)
@@ -1266,12 +1278,12 @@ proc internalGetMaximized(this: Window): bool =
   glfwMaximized(glfwWindowOf(this))
 
 proc internalSetModal(this: Window, v: bool) =
-  ## Set whether or not user can interact with other windows
-  beMsg("proc internalSetModal(this: Window, v: bool)")
+  # NOTE Nuklear: Modal/transient is not supported
+  utilSetAttr(this, modal, v)
 
 proc internalGetModal(this: Window): bool =
-  ## Get whether or not user can interact with other windows
-  beMsg("proc internalGetModal(this: Window): bool")
+  # NOTE Nuklear: Modal/transient is not supported
+  utilGetAttr(this, modal)
 
 proc internalSetTransient(this, that: Window) = setTransient(this, that)
 

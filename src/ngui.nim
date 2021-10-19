@@ -1,4 +1,4 @@
-import std/[strutils, hashes, tables, times, sequtils, os]
+import std/[strutils, hashes, tables, sets, times, sequtils, os]
 import utils/stb
 
 type pointer      = system.pointer

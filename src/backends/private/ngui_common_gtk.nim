@@ -93,6 +93,7 @@ let # Doesn't work with const, but one day ...
 var
   gtkScaleRange: STable[NID, Slice[float]]
   gtkScaleStep:  STable[NID, float]
+  gtkIconified:  HashSet[NID]
   insideFCResponse: bool # More dirty HACKS
 
   
@@ -527,6 +528,27 @@ proc internalInitNElement(this: var NElement) =
     let w = newWindow()
     this.data = pointer(w)
     onDestroyWin(Window(this))
+    
+    # NOTE GTK3: Apparently, the only why to get this info.
+    # https://docs.gtk.org/gtk3/method.Window.iconify.html#description
+    # https://docs.gtk.org/gtk3/signal.Widget.window-state-event.html
+    # https://docs.gtk.org/gdk3/struct.EventWindowState.html
+    discard signal(
+      this.data(GPointer),
+      "window-state-event",
+      SCB(
+        proc(
+            _:     gtkWidget,
+            state: EventWindowState,
+            id:    GPointer): GBoolean {.cdecl.} =
+          let
+            id  = cast[NID](id)
+            ico = (int(state.newWindowState) and
+                  int(WindowState.ICONIFIED)) != 0
+
+          if ico: incl(gtkIconified, id) else: excl(gtkIconified, id)
+      ),
+      cast[GPointer](this.id))
 
   of neLabel:
     # https://developer.gnome.org/gtk3/stable/GtkLabel.html
@@ -685,7 +707,7 @@ proc internalSetMinimized(this: Window, v: bool) =
   else: this.data(gtkWindow).deiconify()
   
 proc internalGetMinimized(this: Window): bool =
-  discard # TODO
+  this.id in gtkIconified
 
 proc internalSetMaximized(this: Window, v: bool) =
   if v: this.data(gtkWindow).maximize()

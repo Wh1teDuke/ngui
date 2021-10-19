@@ -1,3 +1,4 @@
+import std/os
 import ngui
 
 
@@ -49,10 +50,27 @@ proc testWindow* =
     doAssert not(w1.decorated),   "Window decorated off"
     doAssert w1.opacity - 0.5 in -0.005 .. +0.005,
                                   "Window opacity set"
+
+    if backend == beGTK3:
+      # NOTE GTK3: Seems like gtk's resizable is bugged. Even after
+      # 'w1.resizable = true', is not working (but it works if
+      # 'w1.resizable = false' is not called previously)
+      # https://stackoverflow.com/questions/36936620/window-wont-maximize-when-set-resizable-is-false-once-gtk3
+      # https://stackoverflow.com/questions/11551204/gtk-window-non-resizable-bug
+      stop(app)
+      return
+
+    if backend == beNuklear:
+      # TODO Nuklear: This is broken in versions < 3.3.3. Update glfw
+      # https://github.com/glfw/glfw/issues/1499
+      stop(app)
+      return
+      
     w1.maximized = true
-    doAssert w1.maximized,        "Window maximized"
-    
+    sleep(50)
+    doAssert w1.maximized,        "Window maximized"    
     w1.minimized = true
+    sleep(50)
     doAssert w1.minimized,        "Window minimized"
     stop(app)
 

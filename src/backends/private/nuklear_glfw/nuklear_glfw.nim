@@ -82,16 +82,16 @@ proc glfwResizable*(w: glfw.Window): bool =
   glfw.getWindowAttrib(w, hResizable.int32).bool
 
 proc glfwMinimized*(w: glfw.Window, state: bool) =
-  glfw.setWindowAttrib(w, Iconified.cint, state.cint)
+  glfw.setWindowAttrib(w, Iconified.int32, state.int32)
 
 proc glfwMinimized*(w: glfw.Window): bool =
-  bool(glfw.getWindowAttrib(w, Iconified.cint))
+  bool(glfw.getWindowAttrib(w, Iconified.int32))
 
 proc glfwMaximized*(w: glfw.Window, state: bool) =
-  glfw.setWindowAttrib(w, hMaximized.cint, state.cint)
+  glfw.setWindowAttrib(w, hMaximized.int32, state.int32)
 
 proc glfwMaximized*(w: glfw.Window): bool =
-  bool(glfw.getWindowAttrib(w, hMaximized.cint))
+  bool(glfw.getWindowAttrib(w, hMaximized.int32))
 
 
 # NUKLEAR =====================================================================
