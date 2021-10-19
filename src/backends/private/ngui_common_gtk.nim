@@ -709,7 +709,7 @@ proc internalGetModal(this: Window): bool =
   bool(this.data(gtkWindow).getModal())
   
 proc internalSetTransient(this, that: Window) =
-  # https://developer.gnome.org/gtk3/stable/GtkWindow.html#gtk-window-set-transient-for
+  # https://docs.gtk.org/gtk3/method.Window.set_transient_for.html
   this.data(gtkWindow).setTransientFor(that.data(gtkWindow))
 
 proc internalGetTransient(this: Window): Window =

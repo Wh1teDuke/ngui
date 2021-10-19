@@ -31,6 +31,7 @@ proc testWindow* =
   doAssert decorated(w1),         "Window decorated by default"
   doAssert not(w1.minimized),     "Window not minimized by default"
   doAssert not(w1.maximized),     "Window not maximized by default"
+  doAssert not(w1.modal),         "Window not modal by default"
 
   w1.position  = p
   w1.icon      = icon
@@ -48,6 +49,11 @@ proc testWindow* =
     doAssert not(w1.decorated),   "Window decorated off"
     doAssert w1.opacity - 0.5 in -0.005 .. +0.005,
                                   "Window opacity set"
+    w1.maximized = true
+    doAssert w1.maximized,        "Window maximized"
+    
+    w1.minimized = true
+    doAssert w1.minimized,        "Window minimized"
     stop(app)
 
   run(app)

@@ -876,17 +876,12 @@ proc addSeparator*(this: Container) =
   internalAddSeparator(this, o)
 
 proc onAdd(this: Container, that: NElement) =
-  # Edge case: I want to add one box and some elements AFTER said box
-
-  if empty(this) and
-      ((this of App and not(that of Window)) or (this of Window)):
-    let b = nguiNew(Box)
-    internalSetOrientation(b, noVERTICAL)
-    add(this, b)
-
   doAssert this != nil and that != nil
   doAssert that.internalGetParent == nil
   doAssert this.id != 0 and that.id != 0
+  doAssert not(this of Window and that of Window)
+  doAssert not(this of App and that of App)
+  doAssert not(this of Window and that of App)
 
   doAssert not(this of Bar and that of Menu),
     "Don't add menu directly to bar. Instead do Bar -> Label -> Menu"
@@ -922,26 +917,25 @@ proc onAdd(this: Container, that: NElement) =
       return
 
   if this of Window:
-    if not (that of Box) or len(this) > 0:
-      if len(this) == 0:
-        let b = nguiNew(Box)
-        internalSetOrientation(b, noVERTICAL)
-        onAdd(Window(this), b)
-
+    if not empty(this):
       onAdd(Window(this)[0], that)
       return
 
-  if this of App:    
-    if not(that of Window):
-      if len(this) == 0:
-        let w = nguiNew(Window)
-        onAdd(this, w)
-        
-      onAdd(App(this)[0], that)
+    if not (that of Box):
+      let b = nguiNew(Box)
+      internalSetOrientation(b, noVERTICAL)
+      onAdd(this, b)
+      onAdd(this, that)
       return
-    
-    else:
-      discard # Window(that).show()
+
+  if this of App and not(that of Window):
+    if empty(this):
+      let w = nguiNew(Window)
+      onAdd(this, w)
+
+    onAdd(App(this)[0], that)
+    return
+    # Window(that).show()
 
   internalAdd(this, that)
 
@@ -954,12 +948,59 @@ proc add*(this: Container, that: NElement) =
 
 proc add*(this: Container, text: string) = add(this, label(text))
 
+proc addBoxIfNeeded(this: Container, that: NElement) =
+  # Problem here is that windows need a box, but by convenience it is created
+  # with a default orientation, unless the first element you try to add to a
+  # window is precisely a box.
+  # Now, how to distinguis between these two cases:
+  # - I expect a default box to be created, and I want to add a new box within
+  #   the main window box
+  # - I want to specify the orientation of the main box, NOT to insert it into
+  #   the main box
+  # The simplest solution would be to require always a box first. But this is
+  # annoying for 99% of the cases.
+  # Example:
+  #   app.add(label1, input1, button1) # Just don't bother me and create the
+  #                                    # necessary window/box for me
+  # Another example (taken from e14):
+  #   let box1 = hbox(element1, element2, ...)
+  #   window.add(box1, element3, element4, ...)
+  # 
+  # where the expectation here is not to set 'box1' as window's main box, 
+  # but to simply insert a set of elements with a specific orientation.
+  # Because the default case is to create a box for you, unless you specifically
+  # call 'window.add(box1)', I'll take for granted you don't really want to 
+  # set the main layout. Of course, this is like reading the mind.
+  # But I'm trying to experiment with this default, to figure out what's the
+  # most convenient default behaviour here. I don't know if this sounds stupid,
+  # I'm thinking aloud.
+  # This behaviour may change in the future.
+  if that of Window: return
+  if not(this of Window or this of App): return
+  if this of Window and not empty(this): return
+  if this of App and not empty(this) and not empty(this[Window, 0]): return
+  let b = nguiNew(Box)
+  internalSetOrientation(b, noVERTICAL)
+  onAdd(this, b)
+  # Just to recapitulate on my expectations:
+  #   app.add(e1, e2, e3)     # Please, create default window/box for me
+  #   window.add(e1, e2, e3)  # Please, create default window/box for me
+  #   --------
+  #   app.add(box1, e1, e2)   # Again, create a default box for me, and add
+  #                           # 'box1' inside it
+  #   --------
+  #   app.add(box1)           # I'm actually setting the main box
+  # Is this a good default behaviour? Only time will tell.
+
 proc add*(this: Container, one, two: NElement, list: varargs[NElement]) =
+  addBoxIfNeeded(this, one)
   add(this, one)
   add(this, two)
   for that in list: add(this, that)
 
 proc add*[N: NElement](this: Container, list: openArray[N]) =
+  if len(list) == 0: return
+  addBoxIfNeeded(this, list[0])
   for that in list: add(this, that)
 
 proc remove*(this: Container, that: NElement) =

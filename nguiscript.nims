@@ -159,6 +159,8 @@ task defaultBackend, "Set default backend":
     discard addToUserCfg("define:nguibackend=" & $be)
 
 task examples, "Compile and execute all the examples in order":
+  let be = parseBackend(getParamOr(0, "beGTK"))
+  
   try:
     for i in 1 .. 20:
       let file = $CurDir / "examples" / ("e" & $i & ".nim")
@@ -170,7 +172,7 @@ task examples, "Compile and execute all the examples in order":
       info("Interrupt with ctrl + c")
 
       try:
-        exec("nim r -d:release --hints:off --warnings:off " & file)
+        exec(fmt "nim r -d:nguibackend:{be} --hints:off --warnings:off {file}")
       except:
         if i != 1: raiseAssert("")
 
